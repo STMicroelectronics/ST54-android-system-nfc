@@ -1,0 +1,31 @@
+// START system version
+cc_library_static {
+    name: "libstnfcutils",
+    vendor: false,
+    defaults: ["nfc_utils_defaults"],
+    export_include_dirs: ["include"],
+    host_supported: true,
+    srcs: [
+        "config.cc",
+        "ringbuffer.cc",
+    ],
+    shared_libs: [
+        "libbase",
+    ],
+}
+// END system version
+// START vendor version
+cc_library_static {
+    name: "libstnfcutils-vendor",
+    vendor: true,
+    defaults: ["nfc_utils_defaults"],
+    export_include_dirs: ["include"],
+    srcs: [
+        "config.cc",
+        "ringbuffer.cc",
+    ],
+    shared_libs: [
+        "libbase",
+    ],
+}
+// END vendor version
