@@ -934,32 +934,6 @@ void nfa_ee_api_register(tNFA_EE_MSG* p_data) {
     }
   }
 
-  int max_aid_cfg_length = nfa_ee_find_max_aid_cfg_len();
-  int max_aid_entries = max_aid_cfg_length / NFA_MIN_AID_LEN + 1;
-
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("max_aid_cfg_length: %d and max_aid_entries: %d",
-                      max_aid_cfg_length, max_aid_entries);
-
-  for (xx = 0; xx < NFA_EE_NUM_ECBS; xx++) {
-    nfa_ee_cb.ecb[xx].aid_len = (uint8_t*)GKI_getbuf(max_aid_entries);
-    nfa_ee_cb.ecb[xx].aid_pwr_cfg = (uint8_t*)GKI_getbuf(max_aid_entries);
-    nfa_ee_cb.ecb[xx].aid_rt_info = (uint8_t*)GKI_getbuf(max_aid_entries);
-    nfa_ee_cb.ecb[xx].aid_info = (uint8_t*)GKI_getbuf(max_aid_entries);
-    nfa_ee_cb.ecb[xx].aid_cfg = (uint8_t*)GKI_getbuf(max_aid_cfg_length);
-    if ((NULL != nfa_ee_cb.ecb[xx].aid_len) &&
-        (NULL != nfa_ee_cb.ecb[xx].aid_pwr_cfg) &&
-        (NULL != nfa_ee_cb.ecb[xx].aid_info) &&
-        (NULL != nfa_ee_cb.ecb[xx].aid_cfg)) {
-      memset(nfa_ee_cb.ecb[xx].aid_len, 0, max_aid_entries);
-      memset(nfa_ee_cb.ecb[xx].aid_pwr_cfg, 0, max_aid_entries);
-      memset(nfa_ee_cb.ecb[xx].aid_rt_info, 0, max_aid_entries);
-      memset(nfa_ee_cb.ecb[xx].aid_info, 0, max_aid_entries);
-      memset(nfa_ee_cb.ecb[xx].aid_cfg, 0, max_aid_cfg_length);
-    } else {
-      LOG(ERROR) << StringPrintf("GKI_getbuf allocation for ECB failed !");
-    }
-  }
 
   /* This callback is verified (not NULL) in NFA_EeRegister() */
   (*p_cback)(NFA_EE_REGISTER_EVT, &evt_data);
@@ -985,13 +959,6 @@ void nfa_ee_api_deregister(tNFA_EE_MSG* p_data) {
 
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("nfa_ee_api_deregister");
 
-  for (int xx = 0; xx < NFA_EE_NUM_ECBS; xx++) {
-    GKI_freebuf(nfa_ee_cb.ecb[xx].aid_len);
-    GKI_freebuf(nfa_ee_cb.ecb[xx].aid_pwr_cfg);
-    GKI_freebuf(nfa_ee_cb.ecb[xx].aid_rt_info);
-    GKI_freebuf(nfa_ee_cb.ecb[xx].aid_info);
-    GKI_freebuf(nfa_ee_cb.ecb[xx].aid_cfg);
-  }
 
   p_cback = nfa_ee_cb.p_ee_cback[index];
   nfa_ee_cb.p_ee_cback[index] = nullptr;
@@ -2858,6 +2825,7 @@ void nfa_ee_nci_disc_req_ntf(tNFA_EE_MSG* p_data) {
   tNFA_EE_ECB* p_cb = nullptr;
   uint8_t report_ntf = 0;
   uint8_t xx;
+  uint8_t listen_cnt = 0;
 
   DLOG_IF(INFO, nfc_debug_enabled)
       << StringPrintf("%s - num_info: %d cur_ee:%d", __func__, p_cbk->num_info,
@@ -2887,6 +2855,8 @@ void nfa_ee_nci_disc_req_ntf(tNFA_EE_MSG* p_data) {
     p_cb->ecb_flags |= NFA_EE_ECB_FLAGS_DISC_REQ;
     if (p_cbk->info[xx].op == NFC_EE_DISC_OP_ADD) {
       if (p_cbk->info[xx].tech_n_mode == NFC_DISCOVERY_TYPE_LISTEN_A) {
+        listen_cnt++;
+
         if (p_cbk->info[xx].protocol == NFA_PROTOCOL_ISO_DEP) {
           p_cb->la_protocol |= NFA_PROTOCOL_MASK_ISO_DEP;
         } else if (p_cbk->info[xx].protocol == NFA_PROTOCOL_MIFARE) {
@@ -2895,10 +2865,14 @@ void nfa_ee_nci_disc_req_ntf(tNFA_EE_MSG* p_data) {
           p_cb->la_protocol |= NFA_PROTOCOL_MASK_NFC_DEP;
         }
       } else if (p_cbk->info[xx].tech_n_mode == NFC_DISCOVERY_TYPE_LISTEN_B) {
+        listen_cnt++;
+
         if (p_cbk->info[xx].protocol == NFA_PROTOCOL_ISO_DEP) {
           p_cb->lb_protocol |= NFA_PROTOCOL_MASK_ISO_DEP;
         }
       } else if (p_cbk->info[xx].tech_n_mode == NFC_DISCOVERY_TYPE_LISTEN_F) {
+        listen_cnt++;
+
         if (p_cbk->info[xx].protocol == NFA_PROTOCOL_T3T) {
           p_cb->lf_protocol |= NFA_PROTOCOL_MASK_T3T;
         } else if (p_cbk->info[xx].protocol == NFA_PROTOCOL_NFC_DEP) {
@@ -2908,13 +2882,20 @@ void nfa_ee_nci_disc_req_ntf(tNFA_EE_MSG* p_data) {
                  NFC_DISCOVERY_TYPE_LISTEN_B_PRIME) {
         p_cb->lbp_protocol = p_cbk->info[xx].protocol;
       }
-      DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-          "%s - nfcee_id=0x%x ee_status=0x%x ecb_flags=0x%x la_protocol=0x%x "
-          "la_protocol=0x%x la_protocol=0x%x",
-          __func__, p_cb->nfcee_id, p_cb->ee_status, p_cb->ecb_flags,
-          p_cb->la_protocol, p_cb->lb_protocol, p_cb->lf_protocol);
+      if (listen_cnt) {
+        DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+            "%s - nfcee_id=0x%x ee_status=0x%x ecb_flags=0x%x la_protocol=0x%x "
+            "lb_protocol=0x%x lf_protocol=0x%x",
+            __func__, p_cb->nfcee_id, p_cb->ee_status, p_cb->ecb_flags,
+            p_cb->la_protocol, p_cb->lb_protocol, p_cb->lf_protocol);
+      } else {
+        DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+            "%s - Only poll information in message, do nothing", __func__);
+      }
     } else {
       if (p_cbk->info[xx].tech_n_mode == NFC_DISCOVERY_TYPE_LISTEN_A) {
+        listen_cnt++;
+
         if (p_cbk->info[xx].protocol == NFA_PROTOCOL_ISO_DEP) {
           p_cb->la_protocol &= ~NFA_PROTOCOL_MASK_ISO_DEP;
         } else if (p_cbk->info[xx].protocol == NFA_PROTOCOL_MIFARE) {
@@ -2923,10 +2904,14 @@ void nfa_ee_nci_disc_req_ntf(tNFA_EE_MSG* p_data) {
           p_cb->la_protocol &= ~NFA_PROTOCOL_MASK_NFC_DEP;
         }
       } else if (p_cbk->info[xx].tech_n_mode == NFC_DISCOVERY_TYPE_LISTEN_B) {
+        listen_cnt++;
+
         if (p_cbk->info[xx].protocol == NFA_PROTOCOL_ISO_DEP) {
           p_cb->lb_protocol &= ~NFA_PROTOCOL_MASK_ISO_DEP;
         }
       } else if (p_cbk->info[xx].tech_n_mode == NFC_DISCOVERY_TYPE_LISTEN_F) {
+        listen_cnt++;
+
         if (p_cbk->info[xx].protocol == NFA_PROTOCOL_T3T) {
           p_cb->lf_protocol &= ~NFA_PROTOCOL_MASK_T3T;
         } else if (p_cbk->info[xx].protocol == NFA_PROTOCOL_NFC_DEP) {
@@ -2940,7 +2925,7 @@ void nfa_ee_nci_disc_req_ntf(tNFA_EE_MSG* p_data) {
   }
 
   /* Report NFA_EE_DISCOVER_REQ_EVT for all active NFCEE */
-  if (report_ntf) nfa_ee_report_discover_req_evt();
+  if (report_ntf && listen_cnt) nfa_ee_report_discover_req_evt();
 }
 
 /*******************************************************************************

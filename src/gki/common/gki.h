@@ -42,6 +42,7 @@
 ** send buffers to the task.
 */
 #define TASK_MBOX_0 0
+#define TASK_MBOX_1 1
 #define TASK_MBOX_2 2
 
 #define NUM_TASK_MBOX 4

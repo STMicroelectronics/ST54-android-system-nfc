@@ -666,6 +666,46 @@ static void nfc_main_hal_data_cback(uint16_t data_len, uint8_t* p_data) {
     p_msg = (NFC_HDR*)GKI_getbuf(sizeof(NFC_HDR) + NFC_RECEIVE_MSGS_OFFSET +
                                  data_len);
 #else
+    uint16_t used_ratio = GKI_poolutilization(NFC_NCI_POOL_ID);
+    if ((data_len > 6) && (p_data[0] == 0x6f) && (p_data[1] == 0x02) &&
+        (p_data[4] == 0x20)) {
+      if (used_ratio > 80) {
+        LOG(ERROR) << StringPrintf(
+            "%s - Less than 20%% free GKI buffers left in NFC_NCI_POOL_ID, "
+            "skipping FW NTF message to offload stack",
+            __func__);
+        nfc_cb.fw_log_overflow = true;
+        return;
+      } else if ((used_ratio < 20) && (nfc_cb.fw_log_overflow)) {
+        DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+            "%s - Overflow ended, restart processing FW logs, process dummy "
+            "overflow",
+            __func__);
+        nfc_cb.fw_log_overflow = false;
+
+        // Create dummy FW NTF to reset JNI SM
+        p_msg = (NFC_HDR*)GKI_getpoolbuf(NFC_NCI_POOL_ID);
+        if (p_msg != nullptr) {
+          uint8_t data[] = {0x6f, 0x02, 0x05, 0x00, 0x20, 0x00, 0xFF, 0x00};
+
+          /* Initialize NFC_HDR */
+          p_msg->len = sizeof(data);
+          p_msg->event = BT_EVT_TO_NFC_NCI;
+          p_msg->offset = NFC_RECEIVE_MSGS_OFFSET;
+
+          /* no need to check length, it always less than pool size */
+          memcpy((uint8_t*)(p_msg + 1) + p_msg->offset, data, p_msg->len);
+
+          GKI_send_msg(NFC_TASK, NFC_MBOX_SLOW_ID, p_msg);
+        } else {
+          LOG(ERROR) << StringPrintf("%s - No buffer", __func__);
+        }
+
+      } else if (nfc_cb.fw_log_overflow) {
+        // SKipping...
+        return;
+      }
+    }
     p_msg = (NFC_HDR*)GKI_getpoolbuf(NFC_NCI_POOL_ID);
 #endif
     if (p_msg != nullptr) {
@@ -677,7 +717,14 @@ static void nfc_main_hal_data_cback(uint16_t data_len, uint8_t* p_data) {
       /* no need to check length, it always less than pool size */
       memcpy((uint8_t*)(p_msg + 1) + p_msg->offset, p_data, p_msg->len);
 
-      GKI_send_msg(NFC_TASK, NFC_MBOX_ID, p_msg);
+      if (((data_len > 6) && (p_data[0] == 0x6f) && (p_data[1] == 0x02) &&
+           (p_data[4] == 0x20)) ||
+          ((data_len == 4) && (p_data[0] == 0x61) && (p_data[1] == 0x07))) {
+        GKI_send_msg(NFC_TASK, NFC_MBOX_SLOW_ID, p_msg);
+      } else {
+        GKI_send_msg(NFC_TASK, NFC_MBOX_ID, p_msg);
+      }
+
     } else {
       LOG(ERROR) << StringPrintf("%s - No buffer", __func__);
     }

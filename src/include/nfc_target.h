@@ -50,6 +50,17 @@
 #define NFC_MBOX_ID (TASK_MBOX_0)
 #endif
 
+/* Mailbox event mask for NFC stack */
+#ifndef NFC_MBOX_SLOW_EVT_MASK
+#define NFC_MBOX_SLOW_EVT_MASK (TASK_MBOX_1_EVT_MASK)
+#endif
+
+/* Mailbox ID for NFC stack */
+#ifndef NFC_MBOX_SLOW_ID
+#define NFC_MBOX_SLOW_ID (TASK_MBOX_1)
+#endif
+
+
 /* Mailbox event mask for NFA */
 #ifndef NFA_MBOX_EVT_MASK
 #define NFA_MBOX_EVT_MASK (TASK_MBOX_2_EVT_MASK)

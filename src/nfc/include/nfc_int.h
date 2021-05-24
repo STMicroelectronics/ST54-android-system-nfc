@@ -242,6 +242,7 @@ typedef struct {
   uint8_t dta_state;
   uint8_t manu_specific_info[40];
   uint8_t flag_vs_pipe_info;
+  bool fw_log_overflow;
 
 } tNFC_CB;
 

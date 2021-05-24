@@ -233,6 +233,7 @@ typedef union {
   tNFA_EE_DISCOVER_REQ discover_req;
   tNFA_EE_STATUS_NTF status_ntf;
   tNFA_EE_POWER_CTRL_RSP power_ctrl_rsp;
+  tNFA_EE_FORCE_ROUTING_RSP force_routing_rsp;
 } tNFA_EE_CBACK_DATA;
 
 /* EE callback */

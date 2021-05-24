@@ -386,9 +386,13 @@ typedef uint8_t tNCI_DISCOVERY_TYPE;
 #define NCI_EE_TRIG_RF_PROTOCOL 0x01
 #define NCI_EE_TRIG_RF_TECHNOLOGY 0x02
 #define NCI_EE_TRIG_APP_INIT 0x10
+#define PROP_EE_TRIG_7816_SELECT_WITH_SW 0x11
 
 #define NCI_EE_ACT_TAG_AID 0xC0  /* AID                 */
 #define NCI_EE_ACT_TAG_DATA 0xC3 /* hex data for app    */
+
+#define PROP_EE_ACTSW_TAG_AID 0xF0 /* AID               */
+#define PROP_EE_ACTSW_TAG_SW 0xF2  /* SW                */
 
 /* NFCEE ID (1 octet) PL config (1 octet) */
 #define NCI_CORE_PARAM_SIZE_NFCEE_PL_CTRL 0x02

@@ -390,7 +390,7 @@ static void nfa_dm_nfc_response_cback(tNFC_RESPONSE_EVT event,
     case NFC_GEN_ERROR_REVT: /* generic error command or notification */
       if (p_data->status == 0xE1) {
         LOG(ERROR) << __func__ << " - Got FW buffer overflow !";
-        (*nfa_dm_cb.p_dm_cback)(NFA_DM_NFCC_TRANSPORT_ERR_EVT, nullptr);
+        NFC_RestartOrAbort();
       }
       break;
 

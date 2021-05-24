@@ -1622,6 +1622,33 @@ void nfc_ncif_proc_ee_action(uint8_t* p, uint16_t plen) {
           data_len -= ulen;
         }
         break;
+      case PROP_EE_TRIG_7816_SELECT_WITH_SW:
+        while (data_len > NFC_TL_SIZE) {
+          data_len -= NFC_TL_SIZE;
+          tag = *p++;
+          ulen = *p++;
+          if (ulen > data_len) ulen = data_len;
+          p_data = nullptr;
+          max_len = ulen;
+          switch (tag) {
+            case PROP_EE_ACTSW_TAG_AID: /* AID                 */
+              if (max_len > NFC_MAX_AID_LEN) max_len = NFC_MAX_AID_LEN;
+              evt_data.act_data.param.app_init.len_aid = max_len;
+              p_data = evt_data.act_data.param.app_init.aid;
+              break;
+            case PROP_EE_ACTSW_TAG_SW: /* hex data for app    */
+              if (max_len > 2)         // SW length is fixed
+                max_len = 2;
+              evt_data.act_data.param.app_init.len_data = max_len;
+              p_data = evt_data.act_data.param.app_init.data;
+              break;
+          }
+          if (p_data) {
+            STREAM_TO_ARRAY(p_data, p, max_len);
+          }
+          data_len -= ulen;
+        }
+        break;
     }
     tNFC_RESPONSE nfc_response;
     nfc_response.ee_action = evt_data;

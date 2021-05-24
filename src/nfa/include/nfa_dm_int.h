@@ -554,6 +554,8 @@ typedef struct {
 
   uint8_t manu_specific_info[40];
   bool custom_config;
+  tNFC_DEACT_TYPE listen_deact_cmd_type;
+  bool is_already_disc;
   uint8_t deactivate_cmd_retry_count; /*number of times the deactivation cmd
                                          sent in case of error scenerio */
 

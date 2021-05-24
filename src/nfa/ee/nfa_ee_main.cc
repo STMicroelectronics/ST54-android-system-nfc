@@ -145,6 +145,34 @@ void nfa_ee_sys_enable(void) {
     }
   }
 
+  int xx;
+  int max_aid_cfg_length = nfa_ee_find_max_aid_cfg_len();
+  int max_aid_entries = max_aid_cfg_length / NFA_MIN_AID_LEN + 1;
+
+  DLOG_IF(INFO, nfc_debug_enabled)
+      << StringPrintf("max_aid_cfg_length: %d and max_aid_entries: %d",
+                      max_aid_cfg_length, max_aid_entries);
+
+  for (xx = 0; xx < NFA_EE_NUM_ECBS; xx++) {
+    nfa_ee_cb.ecb[xx].aid_len = (uint8_t*)GKI_getbuf(max_aid_entries);
+    nfa_ee_cb.ecb[xx].aid_pwr_cfg = (uint8_t*)GKI_getbuf(max_aid_entries);
+    nfa_ee_cb.ecb[xx].aid_rt_info = (uint8_t*)GKI_getbuf(max_aid_entries);
+    nfa_ee_cb.ecb[xx].aid_info = (uint8_t*)GKI_getbuf(max_aid_entries);
+    nfa_ee_cb.ecb[xx].aid_cfg = (uint8_t*)GKI_getbuf(max_aid_cfg_length);
+    if ((NULL != nfa_ee_cb.ecb[xx].aid_len) &&
+        (NULL != nfa_ee_cb.ecb[xx].aid_pwr_cfg) &&
+        (NULL != nfa_ee_cb.ecb[xx].aid_info) &&
+        (NULL != nfa_ee_cb.ecb[xx].aid_cfg)) {
+      memset(nfa_ee_cb.ecb[xx].aid_len, 0, max_aid_entries);
+      memset(nfa_ee_cb.ecb[xx].aid_pwr_cfg, 0, max_aid_entries);
+      memset(nfa_ee_cb.ecb[xx].aid_rt_info, 0, max_aid_entries);
+      memset(nfa_ee_cb.ecb[xx].aid_info, 0, max_aid_entries);
+      memset(nfa_ee_cb.ecb[xx].aid_cfg, 0, max_aid_cfg_length);
+    } else {
+      LOG(ERROR) << StringPrintf("GKI_getbuf allocation for ECB failed !");
+    }
+  }
+
   if (nfa_ee_max_ee_cfg) {
     /* collect NFCEE information */
     NFC_NfceeDiscover(true);
@@ -485,6 +513,14 @@ void nfa_ee_sys_disable(void) {
       msg.deregister.index = xx;
       nfa_ee_api_deregister(&msg);
     }
+  }
+
+  for (xx = 0; xx < NFA_EE_NUM_ECBS; xx++) {
+    GKI_freebuf(nfa_ee_cb.ecb[xx].aid_len);
+    GKI_freebuf(nfa_ee_cb.ecb[xx].aid_pwr_cfg);
+    GKI_freebuf(nfa_ee_cb.ecb[xx].aid_rt_info);
+    GKI_freebuf(nfa_ee_cb.ecb[xx].aid_info);
+    GKI_freebuf(nfa_ee_cb.ecb[xx].aid_cfg);
   }
 
   nfa_ee_cb.num_ee_expecting = 0;

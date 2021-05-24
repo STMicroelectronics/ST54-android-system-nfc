@@ -136,17 +136,25 @@ class NfcHalDeathRecipient : public hidl_death_recipient {
     mNfcDeathHal = mHal;
   }
 
-  virtual void serviceDied(
-      uint64_t /* cookie */,
-      const wp<::android::hidl::base::V1_0::IBase>& /* who */) {
-    ALOGE(
-        "NfcHalDeathRecipient::serviceDied - Nfc-Hal service died. Killing "
-        "NfcServie");
+  void closeRecipient() {
     if (mNfcDeathHal) {
       mNfcDeathHal->unlinkToDeath(this);
     }
     mNfcDeathHal = NULL;
-    abort();
+  }
+
+  virtual void serviceDied(
+      uint64_t /* cookie */,
+      const wp<::android::hidl::base::V1_0::IBase>& /* who */) {
+    if (mNfcDeathHal) {
+      ALOGE(
+          "NfcHalDeathRecipient::serviceDied - Nfc-Hal service died. Killing "
+          "NfcServie");
+      mNfcDeathHal->unlinkToDeath(this);
+      abort();
+    } else {
+      ALOGE("NfcHalDeathRecipient::serviceDied - Nfc-Hal already closed");
+    }
   }
 };
 
@@ -285,7 +293,7 @@ void NfcAdaptation::Initialize() {
   initializeGlobalDebugEnabledFlag();
 
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s: enter", func);
-  LOG(INFO) << StringPrintf("%s: ver=%s nfa=%s st=110-20210317-21W11rc1", func,
+  LOG(INFO) << StringPrintf("%s: ver=%s nfa=%s st=110-20210521-21W20p0", func,
                             "AndroidQ", "ST");
 
   nfc_storage_path = NfcConfig::getString(NAME_NFA_STORAGE, "/data/nfc");
@@ -400,6 +408,8 @@ void NfcAdaptation::DeviceShutdown() {
   } else if (mHal_1_1 != nullptr) {
     mHal_1_1->closeForPowerOffCase();
   }
+
+  mNfcHalDeathRecipient->closeRecipient();
 }
 
 /*******************************************************************************
