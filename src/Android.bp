@@ -1,0 +1,101 @@
+package {
+    // See: http://go/android-license-faq
+    // A large-scale-change added 'default_applicable_licenses' to import
+    // all of the 'license_kinds' from "system_nfc_license"
+    // to get the below license kinds:
+    //   SPDX-license-identifier-Apache-2.0
+    default_applicable_licenses: ["st_system_nfc_license"],
+}
+
+// START system version
+cc_library {
+    arch: {
+        arm: {
+            instruction_set: "arm",
+        },
+    },
+    name: "libstnfc-nci",
+    owner: "st",
+    system_ext_specific: true,
+    shared_libs: [
+        "libcutils",
+        "liblog",
+        "libdl",
+        "libhardware",
+        "libz",
+        "libchrome",
+        "libbase",
+        "libstatslog",
+
+        // Treble configuration
+        "libhidlbase",
+        "libutils",
+        "android.hardware.nfc@1.0",
+        "android.hardware.nfc@1.1",
+        "android.hardware.nfc@1.2",
+    ],
+    static_libs: [
+        "libstnfcutils",
+    ],
+    cflags: [
+        "-DDYN_ALLOC=1",
+        "-DBUILDCFG=1",
+        "-Wall",
+        "-Werror",
+        "-Wimplicit-fallthrough",
+        "-DDCHECK_ALWAYS_ON"
+    ],
+	header_libs : [
+		"libutils_headers",
+    ],
+	static: {
+		cflags: ["-fvisibility=hidden"],
+	},
+    local_include_dirs: [
+        "include",
+        "gki/ulinux",
+        "gki/common",
+        "nfa/include",
+        "nfc/include",
+    ],
+    export_include_dirs: [
+        "include",
+        "gki/ulinux",
+        "gki/common",
+        "nfc/include",
+        "nfa/include",
+    ],
+    export_static_lib_headers: [
+        "libstnfcutils",
+    ],
+    srcs: [
+        "nfa/ce/*.cc",
+        "nfa/dm/*.cc",
+        "nfa/ee/*.cc",
+        "nfa/hci/*.cc",
+        "nfa/p2p/*.cc",
+        "nfa/rw/*.cc",
+        "nfa/sys/*.cc",
+        "nfc/llcp/*.cc",
+        "nfc/nci/*.cc",
+        "nfc/ndef/*.cc",
+        "nfc/nfc/*.cc",
+        "nfc/tags/*.cc",
+        "adaptation/*.cc",
+        "gki/common/*.cc",
+        "gki/ulinux/*.cc",
+    ],
+    required: [
+        // Provide a default libnfc-nci.conf in /system/etc for devices that
+        // does not ship one in /product
+        "libnfc-nci.conf-default",
+    ],
+    sanitize: {
+        misc_undefined: ["bounds"],
+        integer_overflow: true,
+        scs: true,
+    },
+
+}
+
+// END system version
