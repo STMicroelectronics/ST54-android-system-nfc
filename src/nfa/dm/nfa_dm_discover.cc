@@ -751,6 +751,12 @@ static void nfa_dm_disc_discovery_cback(tNFC_DISCOVER_EVT event,
       } else
         dm_disc_event = NFA_DM_RF_DEACTIVATE_RSP;
       break;
+    case NFC_INTF_ACTIVATED_DEVT: {
+      tNFA_DM_CBACK_DATA dm_cback_data;
+      dm_cback_data.intf_activated.len = p_data->intf_activated.len;
+      dm_cback_data.intf_activated.pdata = p_data->intf_activated.pdata;
+      (*nfa_dm_cb.p_dm_cback)(NFA_DM_INTF_ACTIVATED_EVT, &dm_cback_data);
+    } break;
     default:
       LOG(ERROR) << StringPrintf("%s - Unexpected event", __func__);
       return;
@@ -1094,7 +1100,7 @@ void nfa_dm_start_rf_discover(void) {
       // A needs to be blocked -- there will be a routing entry for blocking it
       // in the routing table.
       dm_disc_mask |= NFA_DM_DISC_MASK_LA_T1T | NFA_DM_DISC_MASK_LA_T2T |
-                      NFA_DM_DISC_MASK_LA_ISO_DEP | NFA_DM_DISC_MASK_LA_NFC_DEP;
+                      NFA_DM_DISC_MASK_LA_ISO_DEP;
     }
     if ((override_listentech & NFA_TECHNOLOGY_MASK_B) == 0) {
       // B needs to be blocked -- there will be a routing entry for blocking it
@@ -1104,7 +1110,7 @@ void nfa_dm_start_rf_discover(void) {
     if ((override_listentech & NFA_TECHNOLOGY_MASK_F) == 0) {
       // F needs to be blocked -- there will be a routing entry for blocking it
       // in the routing table.
-      dm_disc_mask |= NFA_DM_DISC_MASK_LF_T3T | NFA_DM_DISC_MASK_LF_NFC_DEP;
+      dm_disc_mask |= NFA_DM_DISC_MASK_LF_T3T;
     }
     DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
         "%s - Override the tech list as: 0x%x", __func__, dm_disc_mask);

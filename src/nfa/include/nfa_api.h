@@ -181,6 +181,9 @@ typedef uint8_t tNFA_PROTOCOL_MASK;
 #define NFA_DM_NFCC_TRANSPORT_ERR_EVT 7
 /* Result of NFA_SetPowerSubStateForScreenState */
 #define NFA_DM_SET_POWER_SUB_STATE_EVT 11
+/* for INTF_ACTIVATED NCI message for wallet */
+#define NFA_DM_INTF_ACTIVATED_EVT 0xFE
+
 /* T1T HR length            */
 #define NFA_T1T_HR_LEN T1T_HR_LEN
 /* Max UID length of T1/T2  */
@@ -266,10 +269,16 @@ typedef struct {
   uint8_t manu_specific_info[40];
 } tNFA_ENABLE;
 
+typedef struct {
+  uint8_t len;
+  uint8_t* pdata;
+} tNFA_INTF_ACTIVATED;
+
 /* Union of all DM callback structures */
 typedef union {
   tNFA_STATUS status; /* NFA_DM_ENABLE_EVT        */
-  tNFA_ENABLE enable; /* NFA_DM_ENABLE_EVT        */
+  tNFA_ENABLE enable;                 /* NFA_DM_ENABLE_EVT        */
+  tNFA_INTF_ACTIVATED intf_activated; /* NFA_DM_INTF_ACTIVATED_EVT */
   tNFA_SET_CONFIG set_config;          /* NFA_DM_SET_CONFIG_EVT    */
   tNFA_GET_CONFIG get_config;          /* NFA_DM_GET_CONFIG_EVT    */
   tNFA_DM_PWR_MODE_CHANGE power_mode;  /* NFA_DM_PWR_MODE_CHANGE_EVT   */

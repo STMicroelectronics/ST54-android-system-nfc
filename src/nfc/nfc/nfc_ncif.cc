@@ -1174,6 +1174,15 @@ void nfc_ncif_proc_activate(uint8_t* p, uint8_t len) {
   tNFC_RF_PA_PARAMS* p_pa;
   uint8_t plen = len, pplen = 0;
 
+  if (nfc_cb.p_discv_cback) {
+    // Send raw activation data to wallet
+    tNFC_DISCOVER intf_evt_data;
+
+    intf_evt_data.intf_activated.len = len;
+    intf_evt_data.intf_activated.pdata = p;
+    (*nfc_cb.p_discv_cback)(NFC_INTF_ACTIVATED_DEVT, &intf_evt_data);
+  }
+
   nfc_set_state(NFC_STATE_OPEN);
 
   memset(p_intf, 0, sizeof(tNFC_INTF_PARAMS));

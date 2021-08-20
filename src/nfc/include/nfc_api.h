@@ -585,6 +585,9 @@ enum {
   NFC_SELECT_DEVT,                 /* Status of NFC_DiscoverySelect    */
   NFC_ACTIVATE_DEVT,               /* RF interface is activated        */
   NFC_DEACTIVATE_DEVT              /* Status of RF deactivation        */
+  ,
+  NFC_INTF_ACTIVATED_DEVT /* send the raw data of RF_INTF_ACTIVATED_NTF to
+                             wallet */
 };
 typedef uint16_t tNFC_DISCOVER_EVT;
 
@@ -766,6 +769,11 @@ typedef struct {
   tNFC_DEACT_REASON reason; /* De-activate reason    */
 } tNFC_DEACTIVATE_DEVT;
 
+typedef struct {
+  uint8_t len;
+  uint8_t* pdata;
+} tNFC_INTF_ACTIVATED_DEVT;
+
 typedef union {
   tNFC_STATUS status; /* The event status.        */
   tNFC_START_DEVT start;
@@ -774,6 +782,8 @@ typedef union {
   tNFC_STOP_DEVT stop;
   tNFC_ACTIVATE_DEVT activate;
   tNFC_DEACTIVATE_DEVT deactivate;
+  tNFC_INTF_ACTIVATED_DEVT
+      intf_activated; /* send the raw data of RF_INTF_ACTIVATED_NTF to wallet */
 } tNFC_DISCOVER;
 
 typedef struct {

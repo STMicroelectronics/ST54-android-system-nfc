@@ -136,25 +136,28 @@ class NfcHalDeathRecipient : public hidl_death_recipient {
     mNfcDeathHal = mHal;
   }
 
-  void closeRecipient() {
+  virtual void serviceDied(
+      uint64_t /* cookie */,
+      const wp<::android::hidl::base::V1_0::IBase>& /* who */) {
+    ALOGE(
+        "NfcHalDeathRecipient::serviceDied - Nfc-Hal service died. Killing "
+        "NfcService");
     if (mNfcDeathHal) {
       mNfcDeathHal->unlinkToDeath(this);
     }
     mNfcDeathHal = NULL;
+    abort();
   }
-
-  virtual void serviceDied(
-      uint64_t /* cookie */,
-      const wp<::android::hidl::base::V1_0::IBase>& /* who */) {
+  void finalize() {
     if (mNfcDeathHal) {
-      ALOGE(
-          "NfcHalDeathRecipient::serviceDied - Nfc-Hal service died. Killing "
-          "NfcServie");
       mNfcDeathHal->unlinkToDeath(this);
-      abort();
     } else {
-      ALOGE("NfcHalDeathRecipient::serviceDied - Nfc-Hal already closed");
+      DLOG_IF(INFO, nfc_debug_enabled)
+          << StringPrintf("%s: mNfcDeathHal is not set", __func__);
     }
+
+    ALOGI("NfcHalDeathRecipient::destructor - NfcService");
+    mNfcDeathHal = NULL;
   }
 };
 
@@ -168,7 +171,6 @@ class NfcHalDeathRecipient : public hidl_death_recipient {
 **
 *******************************************************************************/
 NfcAdaptation::NfcAdaptation() {
-  mNfcHalDeathRecipient = new NfcHalDeathRecipient(mHal);
   memset(&mHalEntryFuncs, 0, sizeof(mHalEntryFuncs));
 }
 
@@ -293,7 +295,7 @@ void NfcAdaptation::Initialize() {
   initializeGlobalDebugEnabledFlag();
 
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s: enter", func);
-  LOG(INFO) << StringPrintf("%s: ver=%s nfa=%s st=120-20210624-21W25p0", func,
+  LOG(INFO) << StringPrintf("%s: ver=%s nfa=%s st=120-20210819-21W33p1", func,
                             "AndroidQ", "ST");
 
   nfc_storage_path = NfcConfig::getString(NAME_NFA_STORAGE, "/data/nfc");
@@ -389,6 +391,7 @@ void NfcAdaptation::Finalize() {
 
   NfcConfig::clear();
 
+  mNfcHalDeathRecipient->finalize();
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s: exit", func);
   delete this;
 }
@@ -408,8 +411,9 @@ void NfcAdaptation::DeviceShutdown() {
   } else if (mHal_1_1 != nullptr) {
     mHal_1_1->closeForPowerOffCase();
   }
-
-  mNfcHalDeathRecipient->closeRecipient();
+  if (mHal) {
+    mHal->unlinkToDeath(mNfcHalDeathRecipient);
+  }
 }
 
 /*******************************************************************************
@@ -529,6 +533,7 @@ void NfcAdaptation::InitializeHalDeviceContext() {
                             (mHal->isRemote() ? "remote" : "local"));
 
   if (mHal) {
+    mNfcHalDeathRecipient = new NfcHalDeathRecipient(mHal);
     mHal->linkToDeath(mNfcHalDeathRecipient, 0);
   }
 }

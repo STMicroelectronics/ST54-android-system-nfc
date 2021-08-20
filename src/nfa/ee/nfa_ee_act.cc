@@ -603,13 +603,27 @@ static void nfa_ee_add_sys_code_route_to_ecb(tNFA_EE_ECB* p_cb, uint8_t* pp,
       if (p_cb->sys_code_rt_loc_vs_info[xx] & NFA_EE_AE_ROUTE) {
         uint8_t* p_sys_code_cfg = &p_cb->sys_code_cfg[start_offset];
         if (nfa_ee_is_active(p_cb->sys_code_rt_loc[xx] | NFA_HANDLE_GROUP_EE)) {
-          add_route_sys_code_tlv(&pp, p_sys_code_cfg, p_cb->sys_code_rt_loc[xx],
-                                 p_cb->sys_code_pwr_cfg[xx]);
+          bool block = 0;
+          uint8_t mask = 0;
+
+          nfa_dm_get_tech_route_block(&mask, &block);
+
+          // If block a tech, allow no power states
+          if (block && (mask & NFA_TECHNOLOGY_MASK_F) == 0) {
+            DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+                "%s - Blocking SC routing as tech F muted", __func__);
+
+            add_route_sys_code_tlv(&pp, p_sys_code_cfg, 0x00, 0x00);
+          } else {
+            add_route_sys_code_tlv(&pp, p_sys_code_cfg,
+                                   p_cb->sys_code_rt_loc[xx],
+                                   p_cb->sys_code_pwr_cfg[xx]);
+          }
           p_cb->ecb_flags |= NFA_EE_ECB_FLAGS_ROUTING;
           num_tlv++;
         } else {
           DLOG_IF(INFO, nfc_debug_enabled)
-              << StringPrintf("%s -  ignoring route loc%x", __func__,
+              << StringPrintf("%s -  ignoring route loc %x", __func__,
                               p_cb->sys_code_rt_loc[xx]);
         }
       }
@@ -1027,12 +1041,18 @@ void nfa_ee_api_set_tech_cfg(tNFA_EE_MSG* p_data) {
   tNFA_TECHNOLOGY_MASK old_tech_screen_off_lock = p_cb->tech_screen_off_lock;
   uint8_t old_size_mask_tech = p_cb->size_mask_tech;
 
-  if ((p_cb->tech_switch_on == p_data->set_tech.technologies_switch_on) &&
-      (p_cb->tech_switch_off == p_data->set_tech.technologies_switch_off) &&
-      (p_cb->tech_battery_off == p_data->set_tech.technologies_battery_off) &&
-      (p_cb->tech_screen_lock == p_data->set_tech.technologies_screen_lock) &&
-      (p_cb->tech_screen_off == p_data->set_tech.technologies_screen_off) &&
-      (p_cb->tech_screen_off_lock ==
+  if (((p_cb->tech_switch_on & p_data->set_tech.technologies_switch_on) ==
+       p_data->set_tech.technologies_switch_on) &&
+      ((p_cb->tech_switch_off & p_data->set_tech.technologies_switch_off) ==
+       p_data->set_tech.technologies_switch_off) &&
+      ((p_cb->tech_battery_off & p_data->set_tech.technologies_battery_off) ==
+       p_data->set_tech.technologies_battery_off) &&
+      ((p_cb->tech_screen_lock & p_data->set_tech.technologies_screen_lock) ==
+       p_data->set_tech.technologies_screen_lock) &&
+      ((p_cb->tech_screen_off & p_data->set_tech.technologies_screen_off) ==
+       p_data->set_tech.technologies_screen_off) &&
+      ((p_cb->tech_screen_off_lock &
+        p_data->set_tech.technologies_screen_off_lock) ==
        p_data->set_tech.technologies_screen_off_lock)) {
     /* nothing to change */
     evt_data.status = NFA_STATUS_OK;
@@ -1142,12 +1162,18 @@ void nfa_ee_api_set_proto_cfg(tNFA_EE_MSG* p_data) {
   tNFA_PROTOCOL_MASK old_proto_screen_off_lock = p_cb->proto_screen_off_lock;
   uint8_t old_size_mask_proto = p_cb->size_mask_proto;
 
-  if ((p_cb->proto_switch_on == p_data->set_proto.protocols_switch_on) &&
-      (p_cb->proto_switch_off == p_data->set_proto.protocols_switch_off) &&
-      (p_cb->proto_battery_off == p_data->set_proto.protocols_battery_off) &&
-      (p_cb->proto_screen_lock == p_data->set_proto.protocols_screen_lock) &&
-      (p_cb->proto_screen_off == p_data->set_proto.protocols_screen_off) &&
-      (p_cb->proto_screen_off_lock ==
+  if (((p_cb->proto_switch_on & p_data->set_proto.protocols_switch_on) ==
+       p_data->set_proto.protocols_switch_on) &&
+      ((p_cb->proto_switch_off & p_data->set_proto.protocols_switch_off) ==
+       p_data->set_proto.protocols_switch_off) &&
+      ((p_cb->proto_battery_off & p_data->set_proto.protocols_battery_off) ==
+       p_data->set_proto.protocols_battery_off) &&
+      ((p_cb->proto_screen_lock & p_data->set_proto.protocols_screen_lock) ==
+       p_data->set_proto.protocols_screen_lock) &&
+      ((p_cb->proto_screen_off & p_data->set_proto.protocols_screen_off) ==
+       p_data->set_proto.protocols_screen_off) &&
+      ((p_cb->proto_screen_off_lock &
+        p_data->set_proto.protocols_screen_off_lock) ==
        p_data->set_proto.protocols_screen_off_lock)) {
     /* nothing to change */
     evt_data.status = NFA_STATUS_OK;
