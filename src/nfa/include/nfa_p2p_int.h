@@ -58,7 +58,6 @@ enum {
   NFA_P2P_API_GET_REMOTE_SAP_EVT,
   NFA_P2P_API_SET_LLCP_CFG_EVT,
   NFA_P2P_INT_RESTART_RF_DISC_EVT,
-  NFA_P2P_API_SET_TXEMPY_CALLBACK_EVT,
 
   NFA_P2P_LAST_EVT
 };
@@ -165,13 +164,6 @@ typedef struct {
   uint16_t delay_first_pdu_timeout;
 } tNFA_P2P_API_SET_LLCP_CFG;
 
-/* data type for NFA_P2P_API_SET_TXCOMPLETE_CALLBACK_EVT */
-typedef struct {
-  NFC_HDR hdr;
-  uint8_t lsap;
-  uint8_t rsap;
-} tNFA_P2P_API_SET_TXCOMPLETE_CALLBACK;
-
 /* union of all event data types */
 typedef union {
   NFC_HDR hdr;
@@ -188,7 +180,6 @@ typedef union {
   tNFA_P2P_API_GET_LINK_INFO api_link_info;
   tNFA_P2P_API_GET_REMOTE_SAP api_remote_sap;
   tNFA_P2P_API_SET_LLCP_CFG api_set_llcp_cfg;
-  tNFA_P2P_API_SET_TXCOMPLETE_CALLBACK api_set_txcomplete_callback;
 } tNFA_P2P_MSG;
 
 /*****************************************************************************
@@ -295,7 +286,6 @@ void nfa_p2p_proc_llcp_disconnect_ind(tLLCP_SAP_CBACK_DATA* p_data);
 void nfa_p2p_proc_llcp_disconnect_resp(tLLCP_SAP_CBACK_DATA* p_data);
 void nfa_p2p_proc_llcp_congestion(tLLCP_SAP_CBACK_DATA* p_data);
 void nfa_p2p_proc_llcp_link_status(tLLCP_SAP_CBACK_DATA* p_data);
-void nfa_p2p_proc_llcp_tx_complete(tLLCP_SAP_CBACK_DATA* p_data);
 
 bool nfa_p2p_start_sdp(char* p_service_name, uint8_t local_sap);
 
@@ -313,7 +303,6 @@ bool nfa_p2p_get_link_info(tNFA_P2P_MSG* p_msg);
 bool nfa_p2p_get_remote_sap(tNFA_P2P_MSG* p_msg);
 bool nfa_p2p_set_llcp_cfg(tNFA_P2P_MSG* p_msg);
 bool nfa_p2p_restart_rf_discovery(tNFA_P2P_MSG* p_msg);
-bool nfa_p2p_set_txcomplete_callback(tNFA_P2P_MSG* p_msg);
 
 #else
 

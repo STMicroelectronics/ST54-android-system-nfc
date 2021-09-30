@@ -295,7 +295,7 @@ void NfcAdaptation::Initialize() {
   initializeGlobalDebugEnabledFlag();
 
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s: enter", func);
-  LOG(INFO) << StringPrintf("%s: ver=%s nfa=%s st=120-20210819-21W33p1", func,
+  LOG(INFO) << StringPrintf("%s: ver=%s nfa=%s st=120-20210929-21W39p0", func,
                             "AndroidQ", "ST");
 
   nfc_storage_path = NfcConfig::getString(NAME_NFA_STORAGE, "/data/nfc");

@@ -402,85 +402,75 @@ tLLCP_STATUS llcp_sdp_proc_snl(uint16_t sdu_length, uint8_t* p) {
 
     switch (type) {
       case LLCP_SDREQ_TYPE:
-        if ((length >= 1) /* TID and service name */
+        if ((length > 1) /* TID and service name */
             &&
+            /* Workaround in case end of service name string is badly detected
+             */
             (sdu_length == 2 + length)) /* type, length, TID and service name */
         {
           p_value = p;
           BE_STREAM_TO_UINT8(tid, p_value);
           sap = llcp_sdp_get_sap_by_name((char*)p_value, (uint8_t)(length - 1));
-          /* fix to pass TC_CTO_TAR_BI_03_x (x=5) test case
-           * As per the LLCP test specification v1.2.00 by receiving erroneous
-           * SNL PDU i'e with improper service name "urn:nfc:sn:dta-co-echo-in",
-           * the IUT should not send any PDU except SYMM PDU */
-          if (appl_dta_mode_flag == 1 && sap == 0x00) {
-            DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-                "%s: In dta mode sap == 0x00 p_value = %s", __func__, p_value);
-            if ((length - 1) == strlen((const char*)p_value)) {
-              DLOG_IF(INFO, nfc_debug_enabled)
-                  << StringPrintf("%s: Strings are not equal", __func__);
-              llcp_sdp_send_sdres(tid, sap);
-            }
-          } else {
-            /* if URI not registered or malformed, SDRES with SAP=0 sent
-             * transparently */
-            DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-                "%s: URI not registered or malformed, sap sent in SDRES = %d",
-                __func__, sap);
             llcp_sdp_send_sdres(tid, sap);
-          }
         } else {
-          /* For P2P in LLCP mode TC_CTO_TAR_BI_03_x(x=3) fix
-           * Remove for CR12 as tid returned must be the one received in the
-           * request */
-          if (appl_dta_mode_flag == 1 &&
-              ((nfa_dm_cb.eDtaMode & 0x0F) == NFA_DTA_LLCP_MODE)) {
-            LOG(ERROR) << StringPrintf("%s: Calling llcp_sdp_send_sdres",
-                                       __func__);
             tid = 0x01;
             sap = 0x00;
 
-            llcp_sdp_send_sdres(tid, sap);
+            if ((!appl_dta_mode_flag) ||
+                (appl_dta_mode_flag &&
+                 ((nfa_dm_cb.eDtaMode & 0xF0) == NFA_DTA_CR12))) {
+              /* Applicable to NFC Forum CR11 and before */
+              llcp_sdp_send_sdres(tid, sap);
+            } else {
+              if (length == 1) {
+                /* For P2P in LLCP mode TC_CTO_TAR_BI_03_x(x=3) fix */
+                LOG(ERROR) << StringPrintf(
+                    "Empty service name URI in LLCP_SDREQ_TYPE");
+                llcp_sdp_send_sdres(tid, sap);
+                break;
+              } else {
+                /* For P2P in LLCP mode TC_CTO_TAR_BI_03_x(x=5) fix */
+                /* Bad service name length, send SYMM */
+              }
+            }
+            LOG(ERROR) << StringPrintf("bad length (%d) in LLCP_SDREQ_TYPE",
+                                       length);
           }
+          break;
 
-          LOG(ERROR) << StringPrintf("bad length (%d) in LLCP_SDREQ_TYPE",
-                                     length);
+          case LLCP_SDRES_TYPE:
+            if ((length == LLCP_SDRES_LEN)     /* TID and SAP */
+                && (sdu_length >= 2 + length)) /* type, length, TID and SAP */
+            {
+              p_value = p;
+              BE_STREAM_TO_UINT8(tid, p_value);
+              BE_STREAM_TO_UINT8(sap, p_value);
+              llcp_sdp_return_sap(tid, sap);
+            } else {
+              LOG(ERROR) << StringPrintf(
+                  "%s - bad length (%d) in LLCP_SDRES_TYPE", __func__, length);
+            }
+            break;
+
+          default:
+            LOG(WARNING) << StringPrintf("%s - Unknown type (0x%x) is ignored",
+                                         __func__, type);
+            break;
         }
-        break;
 
-      case LLCP_SDRES_TYPE:
-        if ((length == LLCP_SDRES_LEN)     /* TID and SAP */
-            && (sdu_length >= 2 + length)) /* type, length, TID and SAP */
+        if (sdu_length >= 2 + length) /* type, length, value */
         {
-          p_value = p;
-          BE_STREAM_TO_UINT8(tid, p_value);
-          BE_STREAM_TO_UINT8(sap, p_value);
-          llcp_sdp_return_sap(tid, sap);
+          sdu_length -= 2 + length;
+          p += length;
         } else {
-          LOG(ERROR) << StringPrintf("%s - bad length (%d) in LLCP_SDRES_TYPE",
-                                     __func__, length);
+          break;
         }
-        break;
-
-      default:
-        LOG(WARNING) << StringPrintf("%s - Unknown type (0x%x) is ignored",
-                                     __func__, type);
-        break;
     }
 
-    if (sdu_length >= 2 + length) /* type, length, value */
-    {
-      sdu_length -= 2 + length;
-      p += length;
+    if (sdu_length) {
+      LOG(ERROR) << StringPrintf("%s - Bad format of SNL", __func__);
+      return LLCP_STATUS_FAIL;
     } else {
-      break;
+      return LLCP_STATUS_SUCCESS;
     }
   }
-
-  if (sdu_length) {
-    LOG(ERROR) << StringPrintf("%s - Bad format of SNL", __func__);
-    return LLCP_STATUS_FAIL;
-  } else {
-    return LLCP_STATUS_SUCCESS;
-  }
-}

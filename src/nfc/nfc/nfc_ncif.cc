@@ -170,9 +170,8 @@ void nfc_ncif_cmd_timeout(void) {
     nfc_enabled(NFC_STATUS_FAILED, nullptr);
   }
 
-  if (!nfc_cb.dta_state)
-    /* XXX maco since this failure is unrecoverable, abort the process */
-    if (!ncif_fw_reset) abort();
+  /* XXX maco since this failure is unrecoverable, abort the process */
+  if (!ncif_fw_reset) abort();
 }
 
 /*******************************************************************************
@@ -429,11 +428,16 @@ void nfc_ncif_check_cmd_queue(NFC_HDR* p_buf) {
       nfc_cb.nci_cmd_window--;
       if ((*(ps) & (NCI_MT_CMD << NCI_MT_SHIFT))) {
         nfc_cb.p_msg_saved = NCI_GET_CMD_BUF(GKI_BUF2_SIZE);
-        nfc_cb.p_msg_saved->event = p_buf->event;
-        nfc_cb.p_msg_saved->len = p_buf->len;
-        nfc_cb.p_msg_saved->offset = p_buf->offset;
-        memcpy((uint8_t*)(nfc_cb.p_msg_saved + 1) + nfc_cb.p_msg_saved->offset,
-               ps, p_buf->len);
+        if (nfc_cb.p_msg_saved == nullptr) {
+          LOG(ERROR) << StringPrintf("%s - p_msg_saved is null", __func__);
+        } else {
+          nfc_cb.p_msg_saved->event = p_buf->event;
+          nfc_cb.p_msg_saved->len = p_buf->len;
+          nfc_cb.p_msg_saved->offset = p_buf->offset;
+          memcpy(
+              (uint8_t*)(nfc_cb.p_msg_saved + 1) + nfc_cb.p_msg_saved->offset,
+              ps, p_buf->len);
+        }
       }
 
       // Make sure the caches are consistent with other threads here.
@@ -2073,6 +2077,10 @@ void nfc_data_event(tNFC_CONN_CB* p_cb) {
       }
 
       p_evt = (NFC_HDR*)GKI_dequeue(&p_cb->rx_q);
+      if (p_evt == nullptr) {
+        LOG(ERROR) << StringPrintf("%s - p_evt is null", __func__);
+        return;
+      }
       /* report data event */
       p_evt->offset += NCI_MSG_HDR_SIZE;
       p_evt->len -= NCI_MSG_HDR_SIZE;
@@ -2155,6 +2163,10 @@ void nfc_ncif_proc_data(NFC_HDR* p_msg) {
 
   p_cb = nfc_find_conn_cb_by_conn_id(cid);
 
+  if (p_cb == nullptr) {
+    LOG(ERROR) << StringPrintf("%s - p_cb is null", __func__);
+    return;
+  }
   p_cb->num_buff += cr;
 
   if (p_cb && (p_msg->len >= NCI_DATA_HDR_SIZE)) {

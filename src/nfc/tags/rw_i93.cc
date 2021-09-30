@@ -3391,7 +3391,7 @@ static void rw_i93_data_cback(__attribute__((unused)) uint8_t conn_id,
 *******************************************************************************/
 tNFC_STATUS rw_i93_select(uint8_t* p_uid) {
   tRW_I93_CB* p_i93 = &rw_cb.tcb.i93;
-  uint8_t uid[I93_UID_BYTE_LEN], *p;
+  uint8_t uid[I93_UID_BYTE_LEN];
 
   DLOG_IF(INFO, nfc_debug_enabled) << __func__;
 
@@ -3400,11 +3400,9 @@ tNFC_STATUS rw_i93_select(uint8_t* p_uid) {
   p_i93->state = RW_I93_STATE_IDLE;
 
   /* convert UID to big endian format - MSB(0xE0) in first byte */
-  p = uid;
-  STREAM_TO_ARRAY8(p, p_uid);
+  STREAM_TO_ARRAY8(uid, p_uid);
 
   rw_i93_get_product_version(uid);
-
   return NFC_STATUS_OK;
 }
 
@@ -4259,6 +4257,7 @@ tNFC_STATUS RW_I93PresenceCheck(void) {
   } else if (rw_cb.tcb.i93.state != RW_I93_STATE_IDLE) {
     return NFC_STATUS_BUSY;
   } else {
+    rw_cb.tcb.i93.in_pres_check = true;
     if (rw_cb.tcb.i93.i93_t5t_mode == RW_I93_GET_SYS_INFO_MEM_INFO) {
       /* The support of AFI by the VICC is optional, so do not include AFI */
       status = rw_i93_send_cmd_inventory(rw_cb.tcb.i93.uid, false, 0x00);
@@ -4267,6 +4266,7 @@ tNFC_STATUS RW_I93PresenceCheck(void) {
       rw_cb.tcb.i93.intl_flags &= ~RW_I93_FLAG_EXT_COMMANDS;
       status = rw_i93_send_cmd_read_single_block(0, false);
     }
+    rw_cb.tcb.i93.in_pres_check = false;
 
     if (status == NFC_STATUS_OK) {
       /* do not retry during presence check */

@@ -199,18 +199,6 @@ tLLCP_STATUS llcp_link_activate(tLLCP_ACTIVATE_CONFIG* p_config) {
      * disconnect of LLCP PDU.
      * This is fix for TC_MAC_TAR_BI_01 LLCP test case */
 
-    if (appl_dta_mode_flag == 1 && p_config->is_initiator == FALSE) {
-      NFC_HDR* p_msg = (NFC_HDR*)GKI_getpoolbuf(LLCP_POOL_ID);
-
-      if (p_msg) {
-        /*LLCP test scenario requires non LLC PDU to be sent in case of wrong
-          magic bytes. So sending NFC-DEP pdu with size 1 (0x00)*/
-        p_msg->len = 1;
-        p_msg->offset = NCI_MSG_OFFSET_SIZE + NCI_DATA_HDR_SIZE;
-
-        NFC_SendData(NFC_RF_CONN_ID, p_msg);
-      }
-    }
 
     (*llcp_cb.lcb.p_link_cback)(LLCP_LINK_ACTIVATION_FAILED_EVT,
                                 LLCP_LINK_BAD_GEN_BYTES);
@@ -448,10 +436,21 @@ void llcp_link_deactivate(uint8_t reason) {
    */
   if ((reason == LLCP_LINK_FRAME_ERROR) ||
       (reason == LLCP_LINK_LOCAL_INITIATED) ||
-      (appl_dta_mode_flag && reason == LLCP_LINK_REMOTE_INITIATED &&
-       llcp_cb.lcb.is_initiator == false &&
-       (nfa_dm_cb.eDtaMode & 0xF0) != NFA_DTA_CR8)
-      || ((reason == LLCP_LINK_REMOTE_INITIATED) && (!llcp_cb.lcb.is_initiator))
+      /* NFC Forum CR12 */
+      /* In LLCP v1.0 (6.2.4), it is not mandatory that a TARGET (IUT) shall
+       * answer to any DISC PDU emitted by the INITIATOR (LT) during the
+       * deactivation procedure */
+      /* A TARGET (IUT) shall answer to any PDU after DISC PDU emitted by the
+       * INITIATOR (LT) during the MAC link deactivation procedure with:
+       * - SYMM PDUs for LLCP v1.1 (6.2.4)
+       * - DISC PDUs for LLCP v1.2 (6.2.4) */
+      ((!llcp_cb.lcb.is_initiator) &&
+       (((reason == LLCP_LINK_REMOTE_INITIATED) &&
+         (llcp_cb.lcb.agreed_minor_version != 0)) ||
+        (appl_dta_mode_flag &&
+         ((nfa_dm_cb.eDtaMode & 0xF00) != NFA_DTA_CR11_DEACT_SYMM) &&
+         (reason == LLCP_LINK_TIMEOUT) &&
+         (llcp_cb.lcb.agreed_minor_version > 1))))
   ) {
     /* get rid of the data pending in NFC tx queue, so DISC PDU can be sent ASAP
      */
@@ -475,8 +474,23 @@ void llcp_link_deactivate(uint8_t reason) {
     llcp_cb.lcb.link_deact_reason = reason;
     return;
   }
+  /* send DISC PDU instead of SYMM PDU in case of MAC Link Deactivation as
+   * specified in LLCP1.2 6.2.3 */
+  else if ((reason == LLCP_LINK_REMOTE_INITIATED) &&
+           (!llcp_cb.lcb.is_initiator)) {
+    /* if received DISC to deactivate LLCP link as target role, send SYMM PDU */
+    llcp_link_send_SYMM();
+    /* NFC Forum LLCP1.1 TARGET (for CR8 & CR11 only) */
+  } else if ((reason == LLCP_LINK_TIMEOUT) && (!llcp_cb.lcb.is_initiator)) {
+    NFC_FlushData(NFC_RF_CONN_ID);
 
-  else /*  for link timeout and interface error */
+    /* Wait for remote response to resume SYMM exchanges */
+    DLOG_IF(INFO, nfc_debug_enabled)
+        << StringPrintf("%s - Wait until response from peer", __func__);
+    llcp_cb.lcb.link_state = LLCP_LINK_STATE_DEACTIVATING;
+    llcp_cb.lcb.link_deact_reason = reason;
+    return;
+  } else /*  for link timeout and interface error */
   {
     /* if got RF link loss receiving no LLC PDU from peer */
     if ((reason == LLCP_LINK_RF_LINK_LOSS_ERR) &&
@@ -885,9 +899,8 @@ void llcp_link_check_send_data(void) {
   */
   llcp_link_check_congestion();
 
-  if (llcp_cb.lcb.symm_state == LLCP_LINK_SYMM_LOCAL_XMIT_NEXT ||
-      (appl_dta_mode_flag &&
-       llcp_cb.lcb.link_state == LLCP_LINK_STATE_DEACTIVATING)) {
+  if ((llcp_cb.lcb.symm_state == LLCP_LINK_SYMM_LOCAL_XMIT_NEXT) ||
+      (llcp_cb.lcb.link_state == LLCP_LINK_STATE_DEACTIVATING)) {
     DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
         "%s - in state of "
         "LLCP_LINK_SYMM_LOCAL_XMIT_NEXT",
@@ -1295,90 +1308,112 @@ static void llcp_link_proc_rx_data(NFC_HDR* p_msg) {
         (llcp_cb.lcb.sig_xmit_q.count == 0)) {
       /* this indicates that DISC PDU had been sent out to peer */
       /* initiator may wait for SYMM PDU */
-      if (appl_dta_mode_flag == 0x01)
+      if (appl_dta_mode_flag &&
+          ((nfa_dm_cb.eDtaMode & 0xF00) != NFA_DTA_CR11_DEACT_SYMM)) {
+        /* NFC Forum CR12 & CR11 MAC_TAR_BV_02/LLC_UND_BV_07 */
         llcp_util_send_disc(LLCP_SAP_LM, LLCP_SAP_LM);
-      else
-        llcp_link_process_link_timeout();
-    } else {
-      if (p_msg->len < LLCP_PDU_HEADER_SIZE) {
-        LOG(ERROR) << StringPrintf("%s - Received too small PDU: got %d bytes",
-                                   __func__, p_msg->len);
-        frame_error = true;
       } else {
-        p = (uint8_t*)(p_msg + 1) + p_msg->offset;
-        BE_STREAM_TO_UINT16(pdu_hdr, p);
+        /* Workaround to pass LLC_UND_BV_08 in CR11 */
+        llcp_link_send_SYMM();
 
-        dsap = LLCP_GET_DSAP(pdu_hdr);
-        ptype = (uint8_t)(LLCP_GET_PTYPE(pdu_hdr));
-        ssap = LLCP_GET_SSAP(pdu_hdr);
+        /* wait for data to receive from remote */
+        llcp_link_start_link_timer();
 
-        /* get length of information per PDU type */
-        if ((ptype == LLCP_PDU_I_TYPE) || (ptype == LLCP_PDU_RR_TYPE) ||
-            (ptype == LLCP_PDU_RNR_TYPE)) {
-          if (p_msg->len >= LLCP_PDU_HEADER_SIZE + LLCP_SEQUENCE_SIZE) {
-            info_length =
-                p_msg->len - LLCP_PDU_HEADER_SIZE - LLCP_SEQUENCE_SIZE;
-          } else {
-            LOG(ERROR) << StringPrintf(
-                "%s - Received I/RR/RNR PDU without sequence", __func__);
-            frame_error = true;
-          }
-        } else {
-          info_length = p_msg->len - LLCP_PDU_HEADER_SIZE;
+        /* start inactivity timer */
+        if (llcp_cb.num_data_link_connection == 0) {
+          llcp_link_start_inactivity_timer();
         }
-
-        /* check if length of information is bigger than link MIU */
-        if ((!frame_error) && (info_length > llcp_cb.lcb.local_link_miu)) {
+      }
+    } else {
+      /* ignore and do not forward received PDU to upper layers
+       * while in DEACTIVATING state */
+      if (llcp_cb.lcb.link_state != LLCP_LINK_STATE_DEACTIVATING) {
+        if (p_msg->len < LLCP_PDU_HEADER_SIZE) {
           LOG(ERROR) << StringPrintf(
-              "%s - Received exceeding MIU (%d): got %d bytes SDU", __func__,
-              llcp_cb.lcb.local_link_miu, info_length);
-
+              "%s - Received too small PDU: got %d bytes", __func__,
+              p_msg->len);
           frame_error = true;
-          /* Needed for CTO_TAR_BI_04 */
-          if (ptype == LLCP_PDU_I_TYPE) {
-            error_flags = LLCP_FRMR_I_ERROR_FLAG;
-          }
         } else {
-          DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-              "%s - DSAP:0x%x, PTYPE:%s (0x%x), "
-              "SSAP:0x%x",
-              __func__, dsap, llcp_pdu_type(ptype).c_str(), ptype, ssap);
+          p = (uint8_t*)(p_msg + 1) + p_msg->offset;
+          BE_STREAM_TO_UINT16(pdu_hdr, p);
 
-          if (ptype == LLCP_PDU_SYMM_TYPE) {
-            if (info_length > 0) {
+          dsap = LLCP_GET_DSAP(pdu_hdr);
+          ptype = (uint8_t)(LLCP_GET_PTYPE(pdu_hdr));
+          ssap = LLCP_GET_SSAP(pdu_hdr);
+
+          /* get length of information per PDU type */
+          if ((ptype == LLCP_PDU_I_TYPE) || (ptype == LLCP_PDU_RR_TYPE) ||
+              (ptype == LLCP_PDU_RNR_TYPE)) {
+            if (p_msg->len >= LLCP_PDU_HEADER_SIZE + LLCP_SEQUENCE_SIZE) {
+              info_length =
+                  p_msg->len - LLCP_PDU_HEADER_SIZE - LLCP_SEQUENCE_SIZE;
+            } else {
               LOG(ERROR) << StringPrintf(
-                  "%s - Received extra data (%d bytes) in SYMM PDU", __func__,
-                  info_length);
+                  "%s - Received I/RR/RNR PDU without sequence", __func__);
               frame_error = true;
             }
           } else {
-            /* received other than SYMM */
-            llcp_link_stop_inactivity_timer();
+            info_length = p_msg->len - LLCP_PDU_HEADER_SIZE;
+          }
 
-            llcp_link_proc_rx_pdu(dsap, ptype, ssap, p_msg);
-            free_buffer = false;
+          /* check if length of information is bigger than link MIU */
+          if ((!frame_error) && (info_length > llcp_cb.lcb.local_link_miu)) {
+            LOG(ERROR) << StringPrintf(
+                "%s - Received exceeding MIU (%d): got %d bytes SDU", __func__,
+                llcp_cb.lcb.local_link_miu, info_length);
+
+            frame_error = true;
+            /* Needed for CTO_TAR_BI_04 */
+            if (ptype == LLCP_PDU_I_TYPE) {
+              error_flags = LLCP_FRMR_I_ERROR_FLAG;
+            }
+          } else {
+            DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+                "%s - DSAP:0x%x, PTYPE:%s (0x%x), "
+                "SSAP:0x%x",
+                __func__, dsap, llcp_pdu_type(ptype).c_str(), ptype, ssap);
+
+            if (ptype == LLCP_PDU_SYMM_TYPE) {
+              if (info_length > 0) {
+                LOG(ERROR) << StringPrintf(
+                    "%s - Received extra data (%d bytes) in SYMM PDU", __func__,
+                    info_length);
+                frame_error = true;
+              }
+            } else {
+              /* received other than SYMM */
+              llcp_link_stop_inactivity_timer();
+
+              llcp_link_proc_rx_pdu(dsap, ptype, ssap, p_msg);
+              free_buffer = false;
+            }
           }
         }
-      }
 
-      llcp_cb.lcb.symm_state = LLCP_LINK_SYMM_LOCAL_XMIT_NEXT;
+        llcp_cb.lcb.symm_state = LLCP_LINK_SYMM_LOCAL_XMIT_NEXT;
 
-      /* Needed for CTO_TAR_BI_04 */
-      if (frame_error && error_flags) {
-        rcv_seq = LLCP_GET_NR(*p);
+        /* Needed for CTO_TAR_BI_04 */
+        if (frame_error && error_flags) {
+          rcv_seq = LLCP_GET_NR(*p);
 
-        p_dlcb = llcp_dlc_find_dlcb_by_sap(dsap, ssap);
-        if (p_dlcb) {
-          /* llcp_link_check_send_data() called by llcp_util_send_frmr() */
-          /* beware to enter LLCP_LINK_SYMM_LOCAL_XMIT_NEXT state */
-          llcp_util_send_frmr(p_dlcb, error_flags, ptype, rcv_seq);
-          llcp_dlsm_execute(p_dlcb, LLCP_DLC_EVENT_FRAME_ERROR, nullptr);
+          p_dlcb = llcp_dlc_find_dlcb_by_sap(dsap, ssap);
+          if (p_dlcb) {
+            /* llcp_link_check_send_data() called by llcp_util_send_frmr() */
+            /* beware to enter LLCP_LINK_SYMM_LOCAL_XMIT_NEXT state */
+            llcp_util_send_frmr(p_dlcb, error_flags, ptype, rcv_seq);
+            llcp_dlsm_execute(p_dlcb, LLCP_DLC_EVENT_FRAME_ERROR, nullptr);
+          }
+        } else {
+          /* check if any pending packet */
+          llcp_link_check_send_data();
         }
-      } else {
+      } /* not LLCP_LINK_STATE_DEACTIVATING */
+      else {
+        /* pending DISC to send as llcp_cb.lcb.sig_xmit_q.count != 0 */
+        llcp_cb.lcb.symm_state = LLCP_LINK_SYMM_LOCAL_XMIT_NEXT;
         /* check if any pending packet */
         llcp_link_check_send_data();
       }
-      /* Needed for CTO_TAR_BI_04 */
     }
 
   } else {
@@ -1583,7 +1618,10 @@ static NFC_HDR* llcp_link_build_next_pdu(NFC_HDR* p_pdu) {
         llcp_cb.lcb.effective_miu) {
       /* Get a next PDU from link manager or data links */
       p_next_pdu = llcp_link_get_next_pdu(false, &next_pdu_length);
-
+      if (p_next_pdu == nullptr) {
+        LOG(ERROR) << StringPrintf("%s - No next PDU", __func__);
+        return p_msg;
+      }
       p = (uint8_t*)(p_agf + 1) + p_agf->offset + p_agf->len;
 
       UINT16_TO_BE_STREAM(p, p_next_pdu->len);
@@ -1634,20 +1672,16 @@ void llcp_link_connection_cback(__attribute__((unused)) uint8_t conn_id,
                                 tNFC_CONN_EVT event, tNFC_CONN* p_data) {
   if (event == NFC_DATA_CEVT) {
     if (llcp_cb.lcb.link_state == LLCP_LINK_STATE_DEACTIVATED) {
+      if (llcp_cb.lcb.agreed_minor_version > 1) /* NFC Forum CR12 */
+        llcp_util_send_disc(LLCP_SAP_LM, LLCP_SAP_LM);
+      else
+      /* NFC Forum CR11 */
+        /* responding SYMM while LLCP is deactivated but RF link is not
+         * deactivated yet */
+        llcp_link_send_SYMM();
       /* release memory for SYMM PDU */
       GKI_freebuf((NFC_HDR*)p_data->data.p_data);
 
-      /* responding SYMM while LLCP is deactivated but RF link is not
-       * deactivated yet */
-      llcp_link_send_SYMM();
-    } else if (llcp_cb.lcb.link_state == LLCP_LINK_STATE_DEACTIVATING) {
-      /* release memory for SYMM PDU */
-      GKI_freebuf((NFC_HDR*)p_data->data.p_data);
-
-      /* send DISC PDU instead of SYMM PDU in case of MAC Link Deactivation as
-       * specified in LLCP1.2 6.2.3 */
-      llcp_cb.lcb.symm_state = LLCP_LINK_SYMM_LOCAL_XMIT_NEXT;
-      llcp_util_send_disc(LLCP_SAP_LM, LLCP_SAP_LM);
     } else if (llcp_cb.lcb.link_state == LLCP_LINK_STATE_ACTIVATION_FAILED) {
       /* respoding with invalid LLC PDU until initiator deactivates RF link
        *after LLCP activation was failed,

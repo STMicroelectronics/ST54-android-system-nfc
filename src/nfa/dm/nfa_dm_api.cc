@@ -30,7 +30,6 @@
 #include "ndef_utils.h"
 #include "nfa_api.h"
 #include "nfa_ce_int.h"
-#include "nfa_sys_int.h"
 
 using android::base::StringPrintf;
 
@@ -1336,24 +1335,15 @@ void NFA_EnableDtamode(tNFA_eDtaModes eDtaMode) {
 
 /*******************************************************************************
 **
-** Function         NFA_DtaRegister
+** Function:        NFA_DisableDtamode
 **
-** Description      This function sets the DTA specific mode.
-**                  To call after NFA_Init() and before NFA_Enable().
+** Description:     Disable DTA Mode
 **
-** Returns          None
-**
-*******************************************************************************/
-void NFA_DtaRegister(void) { nfa_sys_cb.dta_enabled = 1; }
-
-/*******************************************************************************
-**
-** Function         NFA_DtaDeregister
-**
-** Description      This function resets the DTA specific mode.
-**                  To call before NFA_Disable().
-**
-** Returns          None
+** Returns:         none:
 **
 *******************************************************************************/
-void NFA_DtaDeregister(void) { nfa_sys_cb.dta_enabled = 0; }
+void NFA_DisableDtamode(void) {
+  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s: enter", __func__);
+  appl_dta_mode_flag = 0x0;
+  nfa_dm_cb.eDtaMode = 0x00;
+}

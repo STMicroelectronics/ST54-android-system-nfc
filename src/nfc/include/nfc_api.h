@@ -880,7 +880,7 @@ typedef void(tNFC_CONN_CBACK)(uint8_t conn_id, tNFC_CONN_EVT event,
 ** Returns          tNFC_STATUS
 **
 *******************************************************************************/
-extern tNFC_STATUS NFC_Enable(tNFC_RESPONSE_CBACK* p_cback, uint8_t dta_on_off);
+extern tNFC_STATUS NFC_Enable(tNFC_RESPONSE_CBACK* p_cback);
 
 /*******************************************************************************
 **
@@ -899,7 +899,7 @@ extern tNFC_STATUS NFC_Enable(tNFC_RESPONSE_CBACK* p_cback, uint8_t dta_on_off);
 ** Returns          nothing
 **
 *******************************************************************************/
-extern void NFC_Disable(uint8_t dta_on_off);
+extern void NFC_Disable();
 
 /*******************************************************************************
 **

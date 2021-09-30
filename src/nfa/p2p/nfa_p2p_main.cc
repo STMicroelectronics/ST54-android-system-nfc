@@ -85,9 +85,7 @@ const tNFA_P2P_ACTION nfa_p2p_action[] = {
     nfa_p2p_get_link_info,               /* NFA_P2P_API_GET_LINK_INFO_EVT    */
     nfa_p2p_get_remote_sap,              /* NFA_P2P_API_GET_REMOTE_SAP_EVT   */
     nfa_p2p_set_llcp_cfg,                /* NFA_P2P_API_SET_LLCP_CFG_EVT     */
-    nfa_p2p_restart_rf_discovery,        /* NFA_P2P_INT_RESTART_RF_DISC_EVT  */
-    nfa_p2p_set_txcomplete_callback /* NFA_P2P_API_SET_TXCOMPLETE_CALLBACK_EVT
-                                     */
+    nfa_p2p_restart_rf_discovery         /* NFA_P2P_INT_RESTART_RF_DISC_EVT  */
 };
 
 /*******************************************************************************
@@ -823,8 +821,6 @@ static std::string nfa_p2p_evt_code(uint16_t evt_code) {
       return "API_SET_LLCP_CFG_EVT";
     case NFA_P2P_INT_RESTART_RF_DISC_EVT:
       return "RESTART_RF_DISC_EVT";
-    case NFA_P2P_API_SET_TXEMPY_CALLBACK_EVT:
-      return "TXEMPY_CALLBACK_EVT";
     default:
       return "Unknown event";
   }

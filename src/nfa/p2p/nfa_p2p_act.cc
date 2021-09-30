@@ -158,10 +158,6 @@ static void nfa_p2p_llcp_cback(tLLCP_SAP_CBACK_DATA* p_data) {
       nfa_p2p_proc_llcp_link_status(p_data);
       break;
 
-    case LLCP_SAP_EVT_TX_COMPLETE:
-      nfa_p2p_proc_llcp_tx_complete(p_data);
-      break;
-
     default:
       LOG(ERROR) << StringPrintf("%s - Unknown event:0x%02X", __func__,
                                  p_data->hdr.event);
@@ -478,33 +474,6 @@ void nfa_p2p_proc_llcp_disconnect_resp(tLLCP_SAP_CBACK_DATA* p_data) {
       evt_data.disc.handle = (NFA_HANDLE_GROUP_P2P | local_sap);
       nfa_p2p_cb.sap_cb[local_sap].p_cback(NFA_P2P_DISC_EVT, &evt_data);
     }
-  }
-}
-
-/*******************************************************************************
-**
-** Function         nfa_p2p_proc_llcp_tx_complete
-**
-** Description      Processing LLCP tx complete event
-**
-**
-** Returns          None
-**
-*******************************************************************************/
-void nfa_p2p_proc_llcp_tx_complete(tLLCP_SAP_CBACK_DATA* p_data) {
-  uint8_t local_sap, remote_sap, xx;
-  tNFA_P2P_EVT_DATA evt_data;
-
-  local_sap = p_data->tx_complete.local_sap;
-  remote_sap = p_data->tx_complete.remote_sap;
-
-  xx = nfa_p2p_find_conn_cb(local_sap, remote_sap);
-
-  if (xx != LLCP_MAX_DATA_LINK) {
-    evt_data.txcomplete.handle =
-        (NFA_HANDLE_GROUP_P2P | NFA_P2P_HANDLE_FLAG_CONN | xx);
-
-    nfa_p2p_cb.sap_cb[local_sap].p_cback(NFA_P2P_TXCOMPLETE_EVT, &evt_data);
   }
 }
 
@@ -1103,25 +1072,6 @@ bool nfa_p2p_get_link_info(tNFA_P2P_MSG* p_msg) {
 
   local_sap = (uint8_t)(p_msg->api_link_info.handle & NFA_HANDLE_MASK);
   nfa_p2p_cb.sap_cb[local_sap].p_cback(NFA_P2P_LINK_INFO_EVT, &evt_data);
-
-  return true;
-}
-
-/*******************************************************************************
-**
-** Function         nfa_p2p_set_txcomplete_callback
-**
-** Description      Set callback used to notify the acknowledgment of last
-**                  transmitted PDU
-**
-** Returns          true
-**
-*******************************************************************************/
-bool nfa_p2p_set_txcomplete_callback(tNFA_P2P_MSG* p_msg) {
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
-
-  LLCP_SetTxCompleteNtf(p_msg->api_set_txcomplete_callback.lsap,
-                        p_msg->api_set_txcomplete_callback.rsap);
 
   return true;
 }

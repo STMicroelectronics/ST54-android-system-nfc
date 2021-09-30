@@ -754,8 +754,7 @@ static void nfc_main_hal_data_cback(uint16_t data_len, uint8_t* p_data) {
 ** Returns          tNFC_STATUS
 **
 *******************************************************************************/
-tNFC_STATUS NFC_Enable(tNFC_RESPONSE_CBACK* p_cback, uint8_t dta_on_off)
-{
+tNFC_STATUS NFC_Enable(tNFC_RESPONSE_CBACK* p_cback) {
   DLOG_IF(INFO, nfc_debug_enabled) << __func__;
 
   /* Validate callback */
@@ -763,7 +762,6 @@ tNFC_STATUS NFC_Enable(tNFC_RESPONSE_CBACK* p_cback, uint8_t dta_on_off)
     return (NFC_STATUS_INVALID_PARAM);
   }
   nfc_cb.p_resp_cback = p_cback;
-  nfc_cb.dta_state = dta_on_off;
 
   /* Open HAL transport. */
   nfc_set_state(NFC_STATE_W4_HAL_OPEN);
@@ -784,13 +782,10 @@ tNFC_STATUS NFC_Enable(tNFC_RESPONSE_CBACK* p_cback, uint8_t dta_on_off)
 **                  NFC_DISABLED_REVT is returned to the application using the
 **                  tNFC_RESPONSE_CBACK.
 **
-** Parameters       dta_on_off - library mode (normal or DTA)
-**
 ** Returns          nothing
 **
 *******************************************************************************/
-void NFC_Disable(uint8_t dta_on_off)
-{
+void NFC_Disable() {
   DLOG_IF(INFO, nfc_debug_enabled)
       << StringPrintf("%s - nfc_state = %d", __func__, nfc_cb.nfc_state);
 
@@ -806,7 +801,6 @@ void NFC_Disable(uint8_t dta_on_off)
 
   /* Close transport and clean up */
   nfc_task_shutdown_nfcc();
-  nfc_cb.dta_state = dta_on_off;
 }
 
 /*******************************************************************************

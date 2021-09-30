@@ -407,6 +407,11 @@ void* GKI_getpoolbuf(uint8_t pool_id) {
       size = GKI_BUF3_SIZE;
       break;
 
+    // Fragmented data
+    case GKI_POOL_ID_4:
+      size = GKI_BUF4_SIZE;
+      break;
+
     default:
       LOG(ERROR) << StringPrintf("Unknown pool ID: %d", pool_id);
 #ifndef DYN_ALLOC

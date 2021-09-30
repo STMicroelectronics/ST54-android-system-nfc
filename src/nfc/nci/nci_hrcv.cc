@@ -534,7 +534,11 @@ void nci_proc_prop_rsp(NFC_HDR* p_msg) {
             if (rsp == NFA_HCI_ANY_OK) {
               // Update pointer
               p_pipe_up = nfa_hciu_find_pipe_by_pid(pipe);
-
+              if (p_pipe_up == nullptr) {
+                LOG(ERROR) << StringPrintf("%s - Pipe info not found",
+                                           __func__);
+                return;
+              }
               if (pipe_state >= 0x06)
                 p_pipe_up->pipe_state = NFA_HCI_PIPE_OPENED;
 

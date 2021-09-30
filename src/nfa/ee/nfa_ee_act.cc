@@ -377,9 +377,8 @@ static void nfa_ee_add_tech_route_to_ecb(tNFA_EE_ECB* p_cb, uint8_t* pp,
             &pp, nfa_ee_cb.route_block_control | NFC_ROUTE_TAG_TECH,
             0x00 /* DH */, 0x00 /* no power states */, nfa_ee_tech_list[xx]);
       } else {
-        add_route_tech_proto_tlv(
-            &pp, nfa_ee_cb.route_block_control | NFC_ROUTE_TAG_TECH,
-            p_cb->nfcee_id, power_cfg, nfa_ee_tech_list[xx]);
+        add_route_tech_proto_tlv(&pp, NFC_ROUTE_TAG_TECH, p_cb->nfcee_id,
+                                 power_cfg, nfa_ee_tech_list[xx]);
       }
 
       num_tlv++;
@@ -601,6 +600,12 @@ static void nfa_ee_add_sys_code_route_to_ecb(tNFA_EE_ECB* p_cb, uint8_t* pp,
       uint8_t* p_start = pp;
       /* add one SC entry */
       if (p_cb->sys_code_rt_loc_vs_info[xx] & NFA_EE_AE_ROUTE) {
+        if (start_offset >
+            (sizeof(p_cb->sys_code_cfg) - NFA_EE_SYSTEM_CODE_LEN)) {
+          LOG(ERROR) << StringPrintf("%s - start_offset higer than 2",
+                                     __func__);
+          return;
+        }
         uint8_t* p_sys_code_cfg = &p_cb->sys_code_cfg[start_offset];
         if (nfa_ee_is_active(p_cb->sys_code_rt_loc[xx] | NFA_HANDLE_GROUP_EE)) {
           bool block = 0;
@@ -828,6 +833,11 @@ tNFA_EE_ECB* nfa_ee_find_sys_code_offset(uint16_t sys_code, int* p_offset,
     if (p_ecb->sys_code_cfg_entries) {
       uint8_t offset = 0;
       for (uint8_t yy = 0; yy < p_ecb->sys_code_cfg_entries; yy++) {
+        if (offset >=
+            (NFA_EE_MAX_SYSTEM_CODE_ENTRIES * NFA_EE_SYSTEM_CODE_LEN)) {
+          LOG(ERROR) << StringPrintf("%s - offset higer than 4", __func__);
+          return nullptr;
+        }
         if ((memcmp(&p_ecb->sys_code_cfg[offset], &sys_code,
                     NFA_EE_SYSTEM_CODE_LEN) == 0)) {
           p_ret = p_ecb;
@@ -2395,9 +2405,14 @@ void nfa_ee_nci_disc_ntf(tNFA_EE_MSG* p_data) {
 *******************************************************************************/
 void nfa_ee_nci_nfcee_status_ntf(tNFA_EE_MSG* p_data) {
   tNFA_EE_ECB* p_cb;
-  tNFC_NFCEE_STATUS_REVT* p_rsp = p_data->nfcee_status_ntf.p_data;
   tNFA_EE_STATUS_NTF status_ntf;
+  tNFC_NFCEE_STATUS_REVT* p_rsp;
 
+  if (p_data == nullptr) {
+    LOG(ERROR) << StringPrintf("%s - p_data is null", __func__);
+    return;
+  }
+  p_rsp = p_data->nfcee_status_ntf.p_data;
   DLOG_IF(INFO, nfc_debug_enabled)
       << StringPrintf("nfa_ee_nci_nfcee_status_ntf() handle:0x%02x status:%d",
                       p_rsp->nfcee_id, p_rsp->nfcee_status);

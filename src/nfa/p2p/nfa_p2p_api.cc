@@ -600,50 +600,6 @@ tNFA_STATUS NFA_P2pReadUI(tNFA_HANDLE handle, uint32_t max_data_len,
 
 /*******************************************************************************
 **
-** Function         NFA_P2pSetTxCompleteCallback
-**
-** Description      This function is called to set a callback to be used when
-**                  the most recently sent PDU is acknowledged.
-**
-** Returns          NFA_STATUS_OK if successfully initiated
-**                  NFA_STATUS_BAD_HANDLE if handle is not valid
-**
-*******************************************************************************/
-tNFA_STATUS NFA_P2pSetTxCompleteCallback(tNFA_HANDLE handle) {
-  tNFA_P2P_API_SET_TXCOMPLETE_CALLBACK* p_msg;
-  tNFA_STATUS ret_status = NFA_STATUS_FAILED;
-  tNFA_HANDLE xx;
-
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("NFA_P2pSetTxCompleteCallback  (): handle:0x%X", handle);
-
-  GKI_sched_lock();
-
-  xx = handle & NFA_HANDLE_MASK;
-  xx &= ~NFA_P2P_HANDLE_FLAG_CONN;
-
-  if ((!(handle & NFA_P2P_HANDLE_FLAG_CONN)) || (xx >= LLCP_MAX_DATA_LINK) ||
-      (nfa_p2p_cb.conn_cb[xx].flags == 0)) {
-    LOG(ERROR) << StringPrintf(
-        "NFA_P2pSetTxCompleteCallback (): Handle(0x%X) is not valid", handle);
-    ret_status = NFA_STATUS_BAD_HANDLE;
-  } else if ((p_msg = (tNFA_P2P_API_SET_TXCOMPLETE_CALLBACK*)GKI_getbuf(
-                  sizeof(tNFA_P2P_API_SET_TXCOMPLETE_CALLBACK))) != nullptr) {
-    p_msg->hdr.event = NFA_P2P_API_SET_TXEMPY_CALLBACK_EVT;
-    p_msg->lsap = nfa_p2p_cb.conn_cb[xx].local_sap;
-    p_msg->rsap = nfa_p2p_cb.conn_cb[xx].remote_sap;
-
-    nfa_sys_sendmsg(p_msg);
-    ret_status = NFA_STATUS_OK;
-  }
-
-  GKI_sched_unlock();
-
-  return (ret_status);
-}
-
-/*******************************************************************************
-**
 ** Function         NFA_P2pFlushUI
 **
 ** Description      This function is called to flush data on connectionless

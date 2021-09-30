@@ -48,6 +48,7 @@
 static char* rw_ci_get_state_name(uint8_t state);
 #endif
 
+
 static bool rw_ci_send_to_lower(NFC_HDR* p_c_apdu);
 
 static void rw_ci_handle_error(tNFC_STATUS status, uint8_t sw1, uint8_t sw2);
@@ -539,3 +540,4 @@ static char* rw_ci_get_state_name(uint8_t state) {
 }
 
 #endif
+

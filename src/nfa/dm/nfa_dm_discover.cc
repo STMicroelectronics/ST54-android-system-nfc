@@ -36,7 +36,6 @@
 #include "nfa_ee_int.h"
 #endif
 #include "nfa_rw_int.h"
-#include "nfa_sys_int.h"
 
 #include "nfc_int.h"
 #include "nfc_types.h"
@@ -597,10 +596,6 @@ static void nfa_dm_set_rf_listen_mode_raw_config(
     nfa_dm_check_set_config((uint8_t)(p - params), params, false);
   }
 
-  if (p_cfg->lacm_enable) {
-    disc_mask |= NFA_DM_DISC_MASK_LACM_NFC_DEP;
-  }
-
   *p_disc_mask = disc_mask;
 
   DLOG_IF(INFO, nfc_debug_enabled)
@@ -756,7 +751,8 @@ static void nfa_dm_disc_discovery_cback(tNFC_DISCOVER_EVT event,
       dm_cback_data.intf_activated.len = p_data->intf_activated.len;
       dm_cback_data.intf_activated.pdata = p_data->intf_activated.pdata;
       (*nfa_dm_cb.p_dm_cback)(NFA_DM_INTF_ACTIVATED_EVT, &dm_cback_data);
-    } break;
+    }
+      return;
     default:
       LOG(ERROR) << StringPrintf("%s - Unexpected event", __func__);
       return;
@@ -2350,7 +2346,7 @@ static void nfa_dm_disc_sm_poll_active(tNFA_DM_RF_DISC_SM_EVENT event,
 
       if ((p_data->nfc_discover.deactivate.reason !=
            NFC_DEACTIVATE_REASON_DH_REQ_FAILED) ||
-          nfa_sys_cb.dta_enabled) {
+          (appl_dta_mode_flag == 1)) {
 
         if (nfa_dm_cb.deactivate_cmd_retry_count > 0) {
           nfa_dm_cb.deactivate_cmd_retry_count = 0;
@@ -2392,7 +2388,7 @@ static void nfa_dm_disc_sm_poll_active(tNFA_DM_RF_DISC_SM_EVENT event,
 
         if ((p_data->nfc_discover.deactivate.reason ==
              NFC_DEACTIVATE_REASON_DH_REQ_FAILED) &&
-            (!nfa_sys_cb.dta_enabled)) {
+            (appl_dta_mode_flag == 0)) {
           /* in case deactivation is not sucessfull, NFCC shall send
              RF_DEACTIVATE_NTF with DH Req failed due to error.
              MW shall send deactivation cmd again for 3 three times. if

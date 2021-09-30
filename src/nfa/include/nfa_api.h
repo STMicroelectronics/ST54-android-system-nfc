@@ -296,6 +296,9 @@ typedef enum {
   NFA_DTA_LLCP_MODE = 0x00000002,
   NFA_DTA_HCEF_MODE = 0x00000004,
   NFA_DTA_CR8 = 0x00000080,
+  NFA_DTA_CR11 = 0x00000020,
+  NFA_DTA_CR12 = 0x00000040,
+  NFA_DTA_CR11_DEACT_SYMM = 0x00000100,
 } tNFA_eDtaModes;
 
 /* NFA Connection Callback Events */
@@ -683,8 +686,7 @@ typedef struct {
   /*
   ** Discovery Configuration Parameters for Listen NFC-DEP
   */
-  bool ln_enable; /* TRUE if listening NFC-DEP            */
-  bool lacm_enable; /* TRUE if listening NFC-DEP on ACM     */
+  bool ln_enable;                   /* TRUE if listening NFC-DEP            */
   uint8_t ln_wt;                    /* Waiting Time Integer                 */
   uint8_t ln_atr_res_gen_bytes_len; /* General bytes in ATR_RES             */
   uint8_t ln_atr_res_gen_bytes[NCI_MAX_GEN_BYTES_LEN];
@@ -1401,25 +1403,14 @@ extern void NFA_EnableDtamode(tNFA_eDtaModes eDtaMode);
 
 /*******************************************************************************
 **
-** Function         NFA_DtaRegister
+** Function:        NFA_DisableDtamode
 **
-** Description      This function sets the DTA specific mode.
+** Description:     Disable DTA Mode
 **
-** Returns          None
-**
-*******************************************************************************/
-extern void NFA_DtaRegister(void);
-
-/*******************************************************************************
-**
-** Function         NFA_DtaDeregister
-**
-** Description      This function resets the DTA specific mode.
-**
-** Returns          None
+** Returns:         none:
 **
 *******************************************************************************/
-extern void NFA_DtaDeregister(void);
+extern void NFA_DisableDtamode(void);
 
 /*******************************************************************************
 ** Function         NFA_GetNCIVersion

@@ -33,7 +33,6 @@
 #include "nfa_p2p_int.h"
 #include "nfa_rw_api.h"
 #include "nfa_rw_int.h"
-#include "nfa_sys_int.h"
 
 #if (NFC_NFCEE_INCLUDED == TRUE)
 #include "nfa_ee_int.h"
@@ -468,7 +467,7 @@ bool nfa_dm_enable(tNFA_DM_MSG* p_data) {
     nfa_dm_cb.p_conn_cback = p_data->enable.p_conn_cback;
 
     /* Enable NFC stack */
-    NFC_Enable(nfa_dm_nfc_response_cback, nfa_sys_cb.dta_enabled);
+    NFC_Enable(nfa_dm_nfc_response_cback);
   } else {
     LOG(ERROR) << StringPrintf("nfa_dm_enable: ERROR ALREADY ENABLED.");
     dm_cback_data.enable.status = NFA_STATUS_ALREADY_STARTED;
@@ -554,7 +553,7 @@ void nfa_dm_disable_complete(void) {
     nfa_dm_ndef_dereg_all();
 
     /* Disable nfc core stack */
-    NFC_Disable(nfa_sys_cb.dta_enabled);
+    NFC_Disable();
   }
 }
 
@@ -849,13 +848,6 @@ bool nfa_dm_act_deactivate(tNFA_DM_MSG* p_data) {
     }
   }
 
-  /* exclusive mode needs more options */
-  if ((nfa_dm_cb.flags & NFA_DM_FLAGS_EXCL_RF_ACTIVE) != 0x00) {
-    deact_type = p_data->deactivate.sleep_mode ? NFA_DEACTIVATE_TYPE_SLEEP
-                                               : NFA_DEACTIVATE_TYPE_IDLE;
-    nfa_dm_rf_deactivate(deact_type);
-    return (true);
-  }
   LOG(ERROR) << StringPrintf("invalid protocol, mode or state");
 
   /* Notify error to application */
@@ -898,7 +890,7 @@ bool nfa_dm_act_reg_vsc(tNFA_DM_MSG* p_data) {
   }
   return true;
 }
-bool nfa_dm_act_reg_restart(tNFA_DM_MSG* p_data) {
+bool nfa_dm_act_reg_restart(__attribute__((unused)) tNFA_DM_MSG* p_data) {
   LOG(INFO) << StringPrintf("%s - Restart CB registering", __func__);
   NFC_RegRestartCback(p_data->reg_restart.p_cback);
   return true;

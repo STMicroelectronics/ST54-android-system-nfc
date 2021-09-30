@@ -32,6 +32,7 @@
 #include "llcp_defs.h"
 #include "llcp_int.h"
 #include "nfc_int.h"
+#include "nfa_dm_int.h"
 
 using android::base::StringPrintf;
 
@@ -224,7 +225,6 @@ static tLLCP_STATUS llcp_dlsm_w4_remote_resp(tLLCP_DLCB* p_dlcb,
 
       /* Needed for NFC-Forum TC_CTO_INI_BV_03_x */
       /* update remote miu with received value from CC */
-      // still needed?
       llcp_cb.lcb.peer_miu = p_params->miu;
 
       p_dlcb->remote_miu = p_params->miu;
@@ -665,20 +665,14 @@ static void llcp_dlc_proc_connect_pdu(uint8_t dsap, uint8_t ssap,
      * As per the LLCP test specification v1.2.00 by receiving erroneous SNL PDU
      * i'e with improper length and service name "urn:nfc:sn:dta-co-echo-in",
      * the IUT should not send any PDU except SYMM PDU */
-
-    if (appl_dta_mode_flag == 1 &&
-        p_data[1] == strlen((const char*)&p_data[2])) {
-      DLOG_IF(INFO, nfc_debug_enabled)
-          << StringPrintf("%s: Strings are not equal", __func__);
+    if (!appl_dta_mode_flag) {
       llcp_util_send_dm(ssap, dsap, LLCP_SAP_DM_REASON_NO_SERVICE);
     } else {
-      /* Workaround for TC_CTO_TAR_BI_02_4 for CR11
-       * sn size test condition to be removed for CR12 where test will accept
-       * that the IUT responds with a Disconnected Mode PDU in case the LLC
-       * parameters are wrongly formatted
-       */
-      if (strlen(params.sn) == 0) {
-        llcp_util_send_dm(ssap, dsap, LLCP_SAP_DM_REASON_APP_REJECTED);
+      if ((nfa_dm_cb.eDtaMode & 0xF0) != NFA_DTA_CR12) {
+        /* else if CONNECT params length invalid, send SYMM PDU in
+         * NFC Forum CR11 and before */
+      } else {
+        llcp_util_send_dm(ssap, dsap, LLCP_SAP_DM_REASON_NO_SERVICE);
       }
     }
     return;
@@ -891,8 +885,6 @@ void llcp_dlc_proc_i_pdu(uint8_t dsap, uint8_t ssap, uint16_t i_pdu_length,
   bool appended;
   NFC_HDR* p_last_buf;
 
-  tLLCP_SAP_CBACK_DATA data;
-
   DLOG_IF(INFO, nfc_debug_enabled) << __func__;
 
   p_dlcb = llcp_dlc_find_dlcb_by_sap(dsap, ssap);
@@ -1053,31 +1045,6 @@ void llcp_dlc_proc_i_pdu(uint8_t dsap, uint8_t ssap, uint16_t i_pdu_length,
       }
 
       p_dlcb->num_rx_i_pdu++;
-
-      // needed e.g. by upper layer for SNEP to get notification that last tx
-      // message (e.g. CONTINUE response) was acknowledged by the currently
-      // received I PDU (e.g. next fragment)
-      DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-          "p_dlcb->i_xmit_q.count=0x%x, V(S,SA,R,RA):(%d,%d,%d,%d)",
-          p_dlcb->i_xmit_q.count, p_dlcb->next_tx_seq, p_dlcb->rcvd_ack_seq,
-          p_dlcb->next_rx_seq, p_dlcb->sent_ack_seq);
-
-      if ((p_dlcb->i_xmit_q.count == 0) &&
-          (p_dlcb->next_tx_seq == p_dlcb->rcvd_ack_seq)) {
-        /* check flag to notify upper layer */
-        if (p_dlcb->flags & LLCP_DATA_LINK_FLAG_NOTIFY_TX_DONE) {
-          DLOG_IF(INFO, nfc_debug_enabled)
-              << StringPrintf("LLCP_DATA_LINK_FLAG_NOTIFY_TX_DONE flag set");
-
-          p_dlcb->flags &= ~LLCP_DATA_LINK_FLAG_NOTIFY_TX_DONE;
-
-          data.tx_complete.event = LLCP_SAP_EVT_TX_COMPLETE;
-          data.tx_complete.local_sap = p_dlcb->local_sap;
-          data.tx_complete.remote_sap = p_dlcb->remote_sap;
-
-          (*p_dlcb->p_app_cb->p_app_cback)(&data);
-        }
-      }
 
       if ((!p_dlcb->local_busy) && (p_dlcb->num_rx_i_pdu == 1)) {
         /* notify rx data is available so upper layer reads data until queue is
@@ -1367,6 +1334,10 @@ NFC_HDR* llcp_dlc_get_next_pdu(tLLCP_DLCB* p_dlcb) {
   if ((p_dlcb->i_xmit_q.count) && (!p_dlcb->remote_busy) &&
       (llcp_dlc_is_rw_open(p_dlcb))) {
     p_msg = (NFC_HDR*)GKI_dequeue(&p_dlcb->i_xmit_q);
+    if (p_msg == nullptr) {
+      LOG(ERROR) << StringPrintf("%s - No buffer is queue", __func__);
+      return nullptr;
+    }
     llcp_cb.total_tx_i_pdu--;
 
     if (p_msg->offset >= LLCP_MIN_OFFSET) {

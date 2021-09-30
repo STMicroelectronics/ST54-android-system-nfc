@@ -239,7 +239,6 @@ typedef struct {
   uint8_t deact_reason;
 
   TIMER_LIST_ENT nci_mode_set_ntf_timer; /*Mode set notification timer*/
-  uint8_t dta_state;
   uint8_t manu_specific_info[40];
   uint8_t flag_vs_pipe_info;
   bool fw_log_overflow;

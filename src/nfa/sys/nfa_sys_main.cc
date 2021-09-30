@@ -58,10 +58,6 @@ void nfa_sys_init(void) {
   nfa_sys_cb.flags |= NFA_SYS_FL_INITIALIZED;
   nfa_sys_ptim_init(&nfa_sys_cb.ptim_cb, NFA_SYS_TIMER_PERIOD,
                     p_nfa_sys_cfg->timer);
-
-  nfa_sys_cb.dta_enabled = 0;
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s - nfa_sys_cb.dta_enabled=%d", __func__, nfa_sys_cb.dta_enabled);
 }
 
 /*******************************************************************************

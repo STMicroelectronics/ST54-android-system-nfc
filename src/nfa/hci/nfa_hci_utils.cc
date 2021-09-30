@@ -21,6 +21,7 @@
  *  This file contains the utility functions for the NFA HCI.
  *
  ******************************************************************************/
+#include <log/log.h>
 #include <string>
 
 #include <android-base/stringprintf.h>
@@ -311,6 +312,11 @@ tNFA_STATUS nfa_hciu_send_msg(uint8_t pipe_id, uint8_t type,
   // As described in DS: The maximum payload length of an NCI Data Packet
   // Size of NCI header is not included
   uint16_t max_seg_hcp_pkt_size = nfa_hci_cb.buff_size;
+
+  if ((msg_len != 0) && (p_msg == nullptr)) {
+    LOG(ERROR) << StringPrintf("%s - msg_len is 0 and p_msg is null", __func__);
+    return NFA_STATUS_FAILED;
+  }
 
   const uint8_t MAX_BUFF_SIZE = 100;
   char buff[MAX_BUFF_SIZE];

@@ -31,7 +31,6 @@
 #include "nfa_dm_int.h"
 #include "nfa_mem_co.h"
 #include "nfa_rw_int.h"
-#include "nfa_sys_int.h"
 #include "rw_api.h"
 
 using android::base::StringPrintf;
@@ -1920,9 +1919,14 @@ static bool nfa_rw_write_ndef(tNFA_RW_MSG* p_data) {
   tNFA_CONN_EVT_DATA conn_evt_data;
   DLOG_IF(INFO, nfc_debug_enabled) << __func__;
 
-  /* Validate NDEF message */
-  ndef_status = NDEF_MsgValidate(p_data->op_req.params.write_ndef.p_data,
-                                 p_data->op_req.params.write_ndef.len, false);
+  /* TODO: remove when TR13.0 is published (CR656 & CR657 implemented in
+   * testers) */
+  if (appl_dta_mode_flag) {
+    ndef_status = NDEF_OK;
+  } else
+    /* Validate NDEF message */
+    ndef_status = NDEF_MsgValidate(p_data->op_req.params.write_ndef.p_data,
+                                   p_data->op_req.params.write_ndef.len, false);
   if (ndef_status != NDEF_OK) {
     LOG(ERROR) << StringPrintf(
         "%s - Invalid NDEF message. NDEF_MsgValidate returned %i", __func__,
@@ -2854,28 +2858,23 @@ bool nfa_rw_activate_ntf(tNFA_RW_MSG* p_data) {
     return true;
   }
 
-  /* Allow RW initialization module even if RF exclusive mode is configured */
-  /* If protocol not supported by RW module, notify app of NFA_ACTIVATED_EVT and
-   * start presence check if needed */
-  if (!nfa_sys_cb.dta_enabled) {
-    if (!nfa_dm_is_protocol_supported(
-            p_activate_params->protocol,
-            p_activate_params->rf_tech_param.param.pa.sel_rsp)
-        && (nfa_rw_cb.protocol != NFA_PROTOCOL_CI)
-    ) {
-      DLOG_IF(INFO, nfc_debug_enabled)
-          << StringPrintf("nfa_rw_activate_ntf() - Protocol not supported");
-      /* Notify upper layer of NFA_ACTIVATED_EVT if needed, and start presence
-       * check timer */
-      /* Set data callback (pass all incoming data to upper layer using
-       * NFA_DATA_EVT) */
-      NFC_SetStaticRfCback(nfa_rw_raw_mode_data_cback);
+  if (!nfa_dm_is_protocol_supported(
+          p_activate_params->protocol,
+          p_activate_params->rf_tech_param.param.pa.sel_rsp)
+      && (nfa_rw_cb.protocol != NFA_PROTOCOL_CI)
+  ) {
+    DLOG_IF(INFO, nfc_debug_enabled)
+        << StringPrintf("nfa_rw_activate_ntf() - Protocol not supported");
+    /* Notify upper layer of NFA_ACTIVATED_EVT if needed, and start presence
+     * check timer */
+    /* Set data callback (pass all incoming data to upper layer using
+     * NFA_DATA_EVT) */
+    NFC_SetStaticRfCback(nfa_rw_raw_mode_data_cback);
 
-      /* Notify app of NFA_ACTIVATED_EVT and start presence check timer */
-      nfa_dm_notify_activation_status(NFA_STATUS_OK, nullptr);
-      nfa_rw_check_start_presence_check_timer(NFA_RW_PRESENCE_CHECK_INTERVAL);
-      return true;
-    }
+    /* Notify app of NFA_ACTIVATED_EVT and start presence check timer */
+    nfa_dm_notify_activation_status(NFA_STATUS_OK, nullptr);
+    nfa_rw_check_start_presence_check_timer(NFA_RW_PRESENCE_CHECK_INTERVAL);
+    return true;
   }
 
   /* Initialize RW module */
@@ -2901,7 +2900,7 @@ bool nfa_rw_activate_ntf(tNFA_RW_MSG* p_data) {
              NFA_T1T_HR_LEN);
     }
 
-    if (!nfa_sys_cb.dta_enabled) {
+    if (!appl_dta_mode_flag) {
       /* For DTA tests, do not allow requesting RID with detected UID: 78 0 00
        * 00 11 22 33 */
       tNFA_RW_MSG msg;
@@ -2918,16 +2917,22 @@ bool nfa_rw_activate_ntf(tNFA_RW_MSG* p_data) {
     memcpy(tag_params.t2t.uid, p_activate_params->rf_tech_param.param.pa.nfcid1,
            p_activate_params->rf_tech_param.param.pa.nfcid1_len);
   } else if (NFC_PROTOCOL_T3T == nfa_rw_cb.protocol) {
-    /* Delay notifying upper layer of NFA_ACTIVATED_EVT until system codes
-     * are retrieved */
-    activate_notify = false;
+    if ((appl_dta_mode_flag) && ((nfa_dm_cb.eDtaMode & 0xF0) != NFA_DTA_CR12)) {
+      /* Incase of DTA mode Dont send commands to get system code. Just notify
+       * activation */
+      activate_notify = true;
+    } else {
+      /* Delay notifying upper layer of NFA_ACTIVATED_EVT until system codes
+       * are retrieved */
+      activate_notify = false;
 
-    /* Issue command to get Felica system codes */
-    tNFA_RW_MSG msg;
-    msg.op_req.op = NFA_RW_OP_T3T_GET_SYSTEM_CODES;
-    bool free_buf = nfa_rw_handle_op_req(&msg);
-    CHECK(free_buf)
-        << "nfa_rw_handle_op_req is holding on to soon-garbage stack memory.";
+      /* Issue command to get Felica system codes */
+      tNFA_RW_MSG msg;
+      msg.op_req.op = NFA_RW_OP_T3T_GET_SYSTEM_CODES;
+      bool free_buf = nfa_rw_handle_op_req(&msg);
+      CHECK(free_buf)
+          << "nfa_rw_handle_op_req is holding on to soon-garbage stack memory.";
+    }
   } else if (NFA_PROTOCOL_T5T == nfa_rw_cb.protocol) {
     /* Delay notifying upper layer of NFA_ACTIVATED_EVT to retrieve additional
      * tag infomation */

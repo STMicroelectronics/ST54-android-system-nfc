@@ -979,7 +979,8 @@ tNFA_STATUS NFA_RwI93StayQuiet(uint8_t* p_uid) {
     return (NFA_STATUS_WRONG_PROTOCOL);
   }
 
-  p_msg = (tNFA_RW_OPERATION*)GKI_getbuf((uint16_t)(sizeof(tNFA_RW_OPERATION)));
+  p_msg = (tNFA_RW_OPERATION*)GKI_getbuf(
+      (uint16_t)(sizeof(tNFA_RW_OPERATION) + I93_UID_BYTE_LEN));
   if (p_msg != nullptr) {
     /* Fill in tNFA_RW_OPERATION struct */
     p_msg->hdr.event = NFA_RW_OP_REQUEST_EVT;

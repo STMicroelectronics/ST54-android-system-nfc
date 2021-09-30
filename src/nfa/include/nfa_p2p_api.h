@@ -68,8 +68,6 @@
 /* link MIU and Well-Known Service list         */
 #define NFA_P2P_LINK_INFO_EVT 0x09
 #define NFA_P2P_SDP_EVT 0x0A /* Remote SAP of SDP result */
-#define NFA_P2P_TXCOMPLETE_EVT \
-  0x0B /* Last sent PDU has been acked                 */
 
 typedef uint8_t tNFA_P2P_EVT;
 
@@ -157,10 +155,6 @@ typedef struct {
   uint8_t remote_sap; /* 0x00 if failed */
 } tNFA_P2P_SDP;
 
-typedef struct {
-  tNFA_HANDLE handle;
-} tNFA_P2P_TXCOMPLETE;
-
 /* Union of all P2P callback structures */
 typedef union {
   tNFA_P2P_REG_SERVER reg_server;   /* NFA_P2P_REG_SERVER_EVT   */
@@ -174,7 +168,6 @@ typedef union {
   tNFA_P2P_CONGEST congest;         /* NFA_P2P_CONGEST_EVT      */
   tNFA_P2P_LINK_INFO link_info;     /* NFA_P2P_LINK_INFO_EVT    */
   tNFA_P2P_SDP sdp;                 /* NFA_P2P_SDP_EVT          */
-  tNFA_P2P_TXCOMPLETE txcomplete; /* NFA_P2P_TXCOMPLETE_EVT   */
 } tNFA_P2P_EVT_DATA;
 
 /* NFA P2P callback */
@@ -457,21 +450,6 @@ extern tNFA_STATUS NFA_P2pFlushData(tNFA_HANDLE handle, uint32_t* p_length);
 **
 *******************************************************************************/
 extern tNFA_STATUS NFA_P2pSetLocalBusy(tNFA_HANDLE conn_handle, bool is_busy);
-
-/*******************************************************************************
-**
-** Function         NFA_P2pSetTxCompleteCallback
-**
-** Description      This function is called to activate a callback with Event
-**                  NFA_P2P_TXCOMPLETE_EVT as soon as all LLCP packets are sent
-*out.
-**
-** Returns          NFA_STATUS_OK if successfully initiated
-**                  NFA_STATUS_BAD_HANDLE if server or client is not registered
-**                  NFA_STATUS_FAILED otherwise
-**
-*******************************************************************************/
-extern tNFA_STATUS NFA_P2pSetTxCompleteCallback(tNFA_HANDLE handle);
 
 /*******************************************************************************
 **

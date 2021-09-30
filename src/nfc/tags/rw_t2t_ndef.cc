@@ -609,6 +609,11 @@ static void rw_t2t_handle_tlv_detect_rsp(uint8_t* p_data) {
                 break;
               }
               /* Collect Lock TLV */
+              if ((2 - p_t2t->bytes_count) < 0) {
+                LOG(ERROR) << StringPrintf("%s - Negative idx", __func__);
+                failed = true;
+                break;
+              }
               p_t2t->tlv_value[2 - p_t2t->bytes_count] = p_data[offset];
               if (p_t2t->bytes_count == 0) {
                 /* Lock TLV is collected and buffered in tlv_value, now decode
@@ -666,6 +671,11 @@ static void rw_t2t_handle_tlv_detect_rsp(uint8_t* p_data) {
               android_errorWriteLog(0x534e4554, "120506143");
             }
             if ((tlvtype == TAG_MEM_CTRL_TLV) || (tlvtype == TAG_NDEF_TLV)) {
+              if ((2 - p_t2t->bytes_count) < 0) {
+                LOG(ERROR) << StringPrintf("%s - Negative idx", __func__);
+                failed = true;
+                break;
+              }
               p_t2t->tlv_value[2 - p_t2t->bytes_count] = p_data[offset];
               if (p_t2t->bytes_count == 0) {
                 if (p_t2t->num_mem_tlvs >= RW_T2T_MAX_MEM_TLVS) {
@@ -1237,6 +1247,10 @@ tNFC_STATUS rw_t2t_write_ndef_next_block(uint16_t block, uint16_t msg_len,
              p_t2t->work_offset < p_t2t->new_ndef_msg_len) {
         if (rw_t2t_is_lock_res_byte(
                 (uint16_t)((block * T2T_BLOCK_SIZE) + index)) == false) {
+          if (p_t2t->work_offset > 2) {
+            LOG(ERROR) << StringPrintf("%s - idx is higher than 2", __func__);
+            return NFC_STATUS_FAILED;
+          }
           write_block[index] = length_field[p_t2t->work_offset];
           p_t2t->work_offset++;
         }
@@ -1968,7 +1982,7 @@ static void rw_t2t_update_attributes(void) {
   tRW_T2T_CB* p_t2t = &rw_cb.tcb.t2t;
   uint16_t lower_offset;
   uint16_t upper_offset;
-  uint16_t offset;
+  uint16_t offset = 0;
   uint16_t offset_in_seg;
   uint16_t block_boundary;
   uint8_t num_internal_bytes;
@@ -3076,6 +3090,10 @@ tNFC_STATUS RW_T2tWriteNDef(uint16_t msg_len, uint8_t* p_msg) {
       (p_t2t->b_read_data)) {
     p_t2t->state = RW_T2T_STATE_WRITE_NDEF;
     p_t2t->block_read = block;
+    if ((block - T2T_FIRST_DATA_BLOCK) * T2T_BLOCK_LEN < 0) {
+      LOG(ERROR) << StringPrintf("%s - Negative idx", __func__);
+      return NFC_STATUS_FAILED;
+    }
     rw_t2t_handle_ndef_write_rsp(
         &p_t2t->tag_data[(block - T2T_FIRST_DATA_BLOCK) * T2T_BLOCK_LEN]);
   } else {
