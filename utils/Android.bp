@@ -1,0 +1,51 @@
+
+// START system version
+package {
+    // See: http://go/android-license-faq
+    // A large-scale-change added 'default_applicable_licenses' to import
+    // all of the 'license_kinds' from "system_nfc_license"
+    // to get the below license kinds:
+    //   SPDX-license-identifier-Apache-2.0
+    default_applicable_licenses: ["st_system_nfc_license"],
+}
+
+cc_defaults {
+    name: "st_nfc_utils_defaults",
+    include_dirs: [
+        "system/nfc",
+    ],
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+    target: {
+        host_linux: {
+            cflags: ["-D_GNU_SOURCE"],
+        },
+        darwin: {
+            enabled: false,
+        },
+    },
+    sanitize: {
+        integer_overflow: true,
+        misc_undefined: ["bounds"],
+        scs: true,
+    },
+
+}
+
+cc_library_static {
+    name: "libstnfcutils",
+    vendor: false,
+    defaults: ["st_nfc_utils_defaults"],
+    export_include_dirs: ["include"],
+    host_supported: true,
+    srcs: [
+        "config.cc",
+        "ringbuffer.cc",
+    ],
+    shared_libs: [
+        "libbase",
+    ],
+}
+// END system version
