@@ -309,7 +309,6 @@ tNFA_STATUS NFA_EeSetDefaultTechRouting(
   tNFA_EE_ECB* p_cb;
 
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      ""
       "%s; "
       "handle:<0x%x>technology_mask:<0x%x>/<0x%x>/<0x%x><0x%x><0x%x><0x%x>",
       __func__, ee_handle, technologies_switch_on, technologies_switch_off,

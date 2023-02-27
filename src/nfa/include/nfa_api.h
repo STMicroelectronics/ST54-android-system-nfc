@@ -64,8 +64,6 @@
 #define NFA_STATUS_RF_TRANSMISSION_ERR NCI_STATUS_RF_TRANSMISSION_ERR
 /* Unexpected data    */
 #define NFA_STATUS_RF_UNEXPECTED_DATA NCI_STATUS_RF_UNEXPECTED_DATA
-/* RF Timeout           */
-#define NFA_STATUS_TIMEOUT NCI_STATUS_TIMEOUT
 
 /* Command started successfully */
 #define NFA_STATUS_CMD_STARTED NFC_STATUS_CMD_STARTED
@@ -80,7 +78,6 @@
 #define NFA_STATUS_TIMEOUT NCI_STATUS_TIMEOUT
 
 #define NFA_STATUS_CONTINUE NFC_STATUS_CONTINUE
-
 /* Out of GKI buffers */
 #define NFA_STATUS_NO_BUFFERS NFC_STATUS_NO_BUFFERS
 /* Protocol mismatch between API and activated one */
@@ -94,7 +91,6 @@
 #define NFA_STATUS_BAD_HANDLE NFC_STATUS_BAD_HANDLE
 /* congested                                        */
 #define NFA_STATUS_CONGESTED NFC_STATUS_CONGESTED
-
 typedef uint8_t tNFA_STATUS;
 
 /* Handle for NFA registrations and connections */
@@ -378,6 +374,7 @@ typedef enum {
 
 /* T3T Polling command completed */
 #define NFA_T3T_POLL_CMD_CPLT_EVT 41
+
 #define NFA_ACTIVATED_UPDATE_EVT \
   42 /* Activated intf for updating the   tech variables */
 
@@ -1366,6 +1363,17 @@ extern tNFA_STATUS NFA_PowerOffSleepMode(bool start_stop);
 **
 *******************************************************************************/
 extern tNFC_STATUS NFA_RegVSCback(bool is_register, tNFA_VSC_CBACK* p_cback);
+
+/*******************************************************************************
+**
+** Function         NFA_RegRestartCback
+**
+** Description      This function is called to register or de-register a
+**                  callback function to receive restart requests
+**
+** Returns          tNFC_STATUS
+**
+*******************************************************************************/
 extern void NFA_RegRestartCback(tNFA_RESTART_CBACK* p_cback);
 
 /*******************************************************************************

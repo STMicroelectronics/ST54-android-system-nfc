@@ -78,8 +78,27 @@ tNFC_STATUS NFC_RegVSCback(bool is_register, tNFC_VS_CBACK* p_cback) {
   return status;
 }
 
+/*******************************************************************************
+**
+** Function         NFC_RegRestartCback
+**
+** Description      This function is called to register or de-register a
+**                  callback function to receive restart requests
+**
+** Returns          tNFC_STATUS
+**
+*******************************************************************************/
 void NFC_RegRestartCback(void* p_cback) { nfc_cb.p_restart_cback = p_cback; }
 
+/*******************************************************************************
+**
+** Function         NFC_RestartOrAbort
+**
+** Description      This function triggers the call to the callback above
+**
+** Returns          tNFC_STATUS
+**
+*******************************************************************************/
 void NFC_RestartOrAbort() {
   if (nfc_cb.p_restart_cback) {
     LOG(ERROR) << StringPrintf("%s; Restart CB registered, calling", __func__);

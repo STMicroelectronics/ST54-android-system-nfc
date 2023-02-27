@@ -178,7 +178,6 @@ class NfcHalDeathRecipient : public hidl_death_recipient {
       return false;
     }
   }
-
  public:
   android::sp<android::hardware::nfc::V1_0::INfc> mNfcDeathHal;
   NfcHalDeathRecipient(android::sp<android::hardware::nfc::V1_0::INfc>& mHal) {
@@ -388,6 +387,7 @@ void NfcAdaptation::GetVendorConfigs(
                       ConfigValue((uint8_t)aidlConfigValue.offHostSIMPipeId));
     configMap.emplace(NAME_OFF_HOST_ESE_PIPE_ID,
                       ConfigValue((uint8_t)aidlConfigValue.offHostESEPipeId));
+
     configMap.emplace(NAME_ISO_DEP_MAX_TRANSCEIVE,
                       ConfigValue(aidlConfigValue.maxIsoDepTransceiveLength));
     if (aidlConfigValue.hostAllowlist.size() != 0) {
@@ -482,7 +482,7 @@ void NfcAdaptation::Initialize() {
   initializeNciResetTypeFlag();
 
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s: enter", func);
-  LOG(INFO) << StringPrintf("%s; ver=%s nfa=%s st=130-20220929-22W39p0", func,
+  LOG(INFO) << StringPrintf("%s; ver=%s nfa=%s st=130-20230215-23W07p0", func,
                             "AndroidQ", "ST");
 
   nfc_storage_path = NfcConfig::getString(NAME_NFA_STORAGE, "/data/nfc");

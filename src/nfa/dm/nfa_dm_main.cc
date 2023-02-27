@@ -79,7 +79,7 @@ const tNFA_DM_ACTION nfa_dm_action[] = {
     nfa_dm_act_disable_timeout,      /* NFA_DM_TIMEOUT_DISABLE_EVT           */
     nfa_dm_set_power_sub_state,      /* NFA_DM_API_SET_POWER_SUB_STATE_EVT   */
     nfa_dm_act_send_raw_vs,          /* NFA_DM_API_SEND_RAW_VS_EVT           */
-    nfa_dm_act_reg_restart, /* NFA_DM_API_REG_RESTART_EVT               */
+    nfa_dm_act_reg_restart,          /* NFA_DM_API_REG_RESTART_EVT           */
 };
 
 /*****************************************************************************

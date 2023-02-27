@@ -305,6 +305,7 @@ uint8_t llcp_sdp_get_sap_by_name(char* p_name, uint8_t length) {
                                            "urn:nfc:sn:cl-echo-in", length))) {
         llcp_cb.dta_snl_resp = true;
       }
+
       return (sap);
     }
   }

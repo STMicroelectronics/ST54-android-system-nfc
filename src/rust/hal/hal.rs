@@ -31,7 +31,6 @@ pub mod ihal;
 #[path = "rootcanal_hal.rs"]
 pub mod ihal;
 
-
 /// HAL module interface
 pub struct Hal {
     /// HAL events

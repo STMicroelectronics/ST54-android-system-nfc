@@ -174,6 +174,7 @@ typedef struct {
   tNFA_VSC_CBACK* p_cback;
   bool is_register;
 } tNFA_DM_API_REG_VSC;
+
 typedef struct {
   NFC_HDR hdr;
   void* p_cback;
@@ -409,6 +410,7 @@ typedef struct {
 
   TIMER_LIST_ENT tle; /* timer for waiting deactivation NTF               */
   TIMER_LIST_ENT kovio_tle; /* timer for Kovio bar code tag presence check */
+  TIMER_LIST_ENT mifare_pc_tle; /* timer for MIFARE IDLE mode presence check*/
 
   bool deact_pending; /* TRUE if deactivate while checking presence       */
   bool deact_notify_pending; /* TRUE if notify DEACTIVATED EVT while Stop rf
@@ -650,7 +652,6 @@ bool nfa_dm_ndef_dereg_hdlr(tNFA_DM_MSG* p_data);
 
 bool nfa_dm_act_reg_vsc(tNFA_DM_MSG* p_data);
 bool nfa_dm_act_reg_restart(tNFA_DM_MSG* p_data);
-
 bool nfa_dm_act_send_vsc(tNFA_DM_MSG* p_data);
 uint16_t nfa_dm_act_get_rf_disc_duration();
 bool nfa_dm_act_disable_timeout(tNFA_DM_MSG* p_data);

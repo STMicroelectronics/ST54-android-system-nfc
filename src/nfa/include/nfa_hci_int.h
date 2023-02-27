@@ -25,6 +25,7 @@
 #define NFA_HCI_INT_H
 
 #include <string>
+#include <pthread.h>
 #include "nfa_ee_api.h"
 #include "nfa_hci_api.h"
 #include "nfa_sys.h"
@@ -448,6 +449,8 @@ typedef struct {
 
 /* NFA HCI control block */
 extern tNFA_HCI_CB nfa_hci_cb;
+/* Mutex to protect nfa_hci_cb.hci_state change */
+extern pthread_mutex_t nfa_hci_mutex;
 
 /*****************************************************************************
 **  External functions

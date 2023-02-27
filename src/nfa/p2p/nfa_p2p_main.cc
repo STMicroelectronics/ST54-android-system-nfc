@@ -486,6 +486,7 @@ void nfa_p2p_init(void) {
 
   DLOG_IF(INFO, nfc_debug_enabled) << __func__;
 
+
   /* initialize control block */
   memset(&nfa_p2p_cb, 0, sizeof(tNFA_P2P_CB));
   nfa_p2p_cb.dm_disc_handle = NFA_HANDLE_INVALID;

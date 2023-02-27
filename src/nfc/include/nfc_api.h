@@ -204,7 +204,7 @@ enum {
   NFC_NFCEE_FORCE_ROUTING_REVT, /* 7 Force Routing RSP */
   NFC_RF_FIELD_REVT,              /* 8  RF Field information          */
   NFC_EE_ACTION_REVT,             /* 9  EE Action notification        */
-  NFC_EE_DISCOVER_REQ_REVT,       /* 1  EE Discover Req notification  */
+  NFC_EE_DISCOVER_REQ_REVT,       /* 10  EE Discover Req notification  */
   NFC_SET_ROUTING_REVT,           /* 11 Configure Routing response    */
   NFC_GET_ROUTING_REVT,           /* 12 Retrieve Routing response     */
   NFC_RF_COMM_PARAMS_UPDATE_REVT, /* 13 RF Communication Param Update */
@@ -896,12 +896,10 @@ extern tNFC_STATUS NFC_Enable(tNFC_RESPONSE_CBACK* p_cback);
 **                  NFC_DISABLED_REVT is returned to the application using the
 **                  tNFC_RESPONSE_CBACK.
 **
-** Parameters       dta_on_off - library mode (normal or DTA)
-**
 ** Returns          nothing
 **
 *******************************************************************************/
-extern void NFC_Disable();
+extern void NFC_Disable(void);
 
 /*******************************************************************************
 **
@@ -1277,7 +1275,29 @@ extern tNFC_STATUS NFC_SetForcedNfceeRouting(bool enable, uint8_t nfcee_id,
 **
 *******************************************************************************/
 extern tNFC_STATUS NFC_RegVSCback(bool is_register, tNFC_VS_CBACK* p_cback);
+
+/*******************************************************************************
+**
+** Function         NFC_RegRestartCback
+**
+** Description      This function is called to register or de-register a
+**                  callback function to receive restart requests
+**
+** Returns          tNFC_STATUS
+**
+*******************************************************************************/
 extern void NFC_RegRestartCback(void* p_cback);
+
+/*******************************************************************************
+**
+** Function         NFC_RestartOrAbort
+**
+** Description      This function calls the above callback if exists, otherwise
+**                  aborts()
+**
+** Returns          tNFC_STATUS
+**
+*******************************************************************************/
 extern void NFC_RestartOrAbort();
 /*******************************************************************************
 **

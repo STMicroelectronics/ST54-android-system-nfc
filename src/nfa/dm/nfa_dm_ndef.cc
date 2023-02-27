@@ -469,6 +469,7 @@ void nfa_dm_ndef_handle_message(tNFA_STATUS status, uint8_t* p_msg_buf,
   while (p_rec != nullptr) {
     /* Get record type */
     p_type = NDEF_RecGetType(p_rec, &tnf, &type_len);
+
     /* Indicate record not handled yet */
     record_handled = false;
 

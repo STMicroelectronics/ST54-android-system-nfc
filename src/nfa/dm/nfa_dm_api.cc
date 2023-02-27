@@ -1267,6 +1267,17 @@ tNFC_STATUS NFA_RegVSCback(bool is_register, tNFA_VSC_CBACK* p_cback) {
 
   return (NFA_STATUS_FAILED);
 }
+
+/*******************************************************************************
+**
+** Function         NFA_RegRestartCback
+**
+** Description      This function is called to register or de-register a
+**                  callback function to receive restart requests
+**
+** Returns          tNFC_STATUS
+**
+*******************************************************************************/
 void NFA_RegRestartCback(tNFA_RESTART_CBACK* p_cback) {
   tNFA_DM_API_REG_RESTART* p_msg;
   LOG(INFO) << StringPrintf("%s; Restart CB registering", __func__);

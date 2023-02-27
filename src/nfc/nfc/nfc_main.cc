@@ -786,7 +786,7 @@ tNFC_STATUS NFC_Enable(tNFC_RESPONSE_CBACK* p_cback) {
 ** Returns          nothing
 **
 *******************************************************************************/
-void NFC_Disable() {
+void NFC_Disable(void) {
   DLOG_IF(INFO, nfc_debug_enabled)
       << StringPrintf("%s; nfc_state = %d", __func__, nfc_cb.nfc_state);
 

@@ -73,6 +73,7 @@ tNFA_STATUS NFA_HciRegister(char* p_app_name, tNFA_HCI_CBACK* p_cback,
 
   app_name_len = (uint8_t)strlen(p_app_name);
 
+  pthread_mutex_lock(&nfa_hci_mutex);
   /* Register the application with HCI */
   if ((nfa_hci_cb.hci_state != NFA_HCI_STATE_DISABLED) &&
       (p_app_name != nullptr) && (app_name_len <= NFA_MAX_HCI_APP_NAME_LEN) &&
@@ -85,10 +86,11 @@ tNFA_STATUS NFA_HciRegister(char* p_app_name, tNFA_HCI_CBACK* p_cback,
     strlcpy(p_msg->app_name, p_app_name, NFA_MAX_HCI_APP_NAME_LEN);
     p_msg->p_cback = p_cback;
     p_msg->b_send_conn_evts = b_send_conn_evts;
-
+    pthread_mutex_unlock(&nfa_hci_mutex);
     nfa_sys_sendmsg(p_msg);
     return (NFA_STATUS_OK);
   }
+  pthread_mutex_unlock(&nfa_hci_mutex);
 
   return (NFA_STATUS_FAILED);
 }

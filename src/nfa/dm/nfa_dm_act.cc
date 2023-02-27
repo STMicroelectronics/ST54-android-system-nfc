@@ -278,7 +278,6 @@ static void nfa_dm_nfc_response_cback(tNFC_RESPONSE_EVT event,
   tNFA_DM_CBACK_DATA dm_cback_data;
   tNFA_CONN_EVT_DATA conn_evt;
   uint8_t dm_cback_evt;
-  uint8_t max_ee = 0;
 
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
       "%s; %s(0x%x)", __func__, nfa_dm_nfc_revt_2_str(event).c_str(), event);
@@ -288,14 +287,6 @@ static void nfa_dm_nfc_response_cback(tNFC_RESPONSE_EVT event,
 
       /* NFC stack enabled. Enable nfa sub-systems */
       if (p_data->enable.status == NFC_STATUS_OK) {
-        if (nfa_ee_max_ee_cfg != 0) {
-          if (nfa_dm_cb.get_max_ee) {
-            max_ee = nfa_dm_cb.get_max_ee();
-            if (max_ee) {
-              nfa_ee_max_ee_cfg = max_ee;
-            }
-          }
-        }
 
         memcpy(nfa_dm_cb.manu_specific_info, p_data->enable.manu_specific_info,
                sizeof(p_data->enable.manu_specific_info));
@@ -586,7 +577,7 @@ bool nfa_dm_set_config(tNFA_DM_MSG* p_data) {
     /* Total length of TLV must be less than 256 (1 byte) */
     status = NFC_STATUS_FAILED;
   } else {
-    // heck param Id value that indicates if custon config
+    // Check param Id value that indicates if custon config
     if (p_data->setconfig.param_id == 0xFF) {
       DLOG_IF(INFO, nfc_debug_enabled)
           << StringPrintf("%s; p_data->setconfig.p_data[0]: 0x%02X", __func__,
@@ -833,7 +824,7 @@ bool nfa_dm_act_deactivate(tNFA_DM_MSG* p_data) {
       deact_type = NFA_DEACTIVATE_TYPE_IDLE;
     }
     if (p_data->deactivate.lptd_mode == true) {
-      /* Dactivete to LPTD presence check. */
+      /* Deactivate to LPTD presence check. */
       deact_type = NFA_DEACTIVATE_TYPE_LPTD;
     }
 
@@ -900,6 +891,16 @@ bool nfa_dm_act_reg_vsc(tNFA_DM_MSG* p_data) {
   }
   return true;
 }
+
+/*******************************************************************************
+**
+** Function         nfa_dm_act_reg_restart
+**
+** Description      Process registers restart callback
+**
+** Returns          TRUE
+**
+*******************************************************************************/
 bool nfa_dm_act_reg_restart(__attribute__((unused)) tNFA_DM_MSG* p_data) {
   LOG(INFO) << StringPrintf("%s; Restart CB registering", __func__);
   NFC_RegRestartCback(p_data->reg_restart.p_cback);

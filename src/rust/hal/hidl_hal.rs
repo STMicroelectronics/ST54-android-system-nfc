@@ -52,6 +52,7 @@ pub async fn init() -> Hal {
 // TODO Either use or remove these functions, this shouldn't be the long term state
 #[allow(dead_code)]
 mod ffi {
+
     #[repr(u32)]
     #[derive(Debug)]
     enum NfcEvent {
@@ -117,7 +118,6 @@ struct Callbacks {
 lazy_static! {
     static ref CALLBACKS: Mutex<Option<Callbacks>> = Mutex::new(None);
 }
-
 
 fn on_event(evt: ffi::NfcEvent, status: ffi::NfcStatus) {
     debug!("got event: {:?} with status {:?}", evt, status);

@@ -80,6 +80,7 @@ typedef uint8_t tNFA_EE_EVT;
 /* tNFA_NFCEE_INTERFACE values */
 /* HCI Access Interface*/
 #define NFA_EE_INTERFACE_HCI_ACCESS NFC_NFCEE_INTERFACE_HCI_ACCESS
+#define NFA_EE_INTERFACE_APDU NFC_NFCEE_INTERFACE_APDU
 typedef uint8_t tNFA_EE_INTERFACE;
 
 typedef uint8_t tNFA_EE_TAG;

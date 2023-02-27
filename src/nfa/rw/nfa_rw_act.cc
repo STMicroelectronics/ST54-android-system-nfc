@@ -55,7 +55,7 @@ static void nfa_rw_handle_t2t_evt(tRW_EVENT event, tRW_DATA* p_rw_data);
 static bool nfa_rw_detect_ndef(void);
 static void nfa_rw_cback(tRW_EVENT event, tRW_DATA* p_rw_data);
 static void nfa_rw_handle_mfc_evt(tRW_EVENT event, tRW_DATA* p_rw_data);
-
+extern void nfa_dm_disc_mifare_idle_timeout_cback(TIMER_LIST_ENT* p_tle);
 /*******************************************************************************
 **
 ** Function         nfa_rw_free_ndef_rx_buf
@@ -128,12 +128,13 @@ static void nfa_rw_send_data_to_upper(tRW_DATA* p_rw_data) {
   conn_evt_data.data.len = p_rw_data->data.p_data->len;
 
   if (nfa_rw_cb.protocol == NFA_PROTOCOL_MIFARE) {
-    if ((nfa_rw_cb.mifare_pres_check_status ==
-         NFA_RW_MIFARE_PRES_CHECK_AUTH_TX) &&
-        (conn_evt_data.data.p_data[0] == 0x00)) {
-      nfa_rw_cb.mifare_pres_check_status = NFA_RW_MIFARE_PRES_CHECK_AUTH_ON;
-    } else {
-      nfa_rw_cb.mifare_pres_check_status = NFA_RW_MIFARE_PRES_CHECK_AUTH_OFF;
+    if (nfa_rw_cb.mifare_pres_check_status ==
+        NFA_RW_MIFARE_PRES_CHECK_AUTH_TX) {
+      if (conn_evt_data.data.p_data[0] == 0x00) {
+        nfa_rw_cb.mifare_pres_check_status = NFA_RW_MIFARE_PRES_CHECK_AUTH_ON;
+      } else {
+        nfa_rw_cb.mifare_pres_check_status = NFA_RW_MIFARE_PRES_CHECK_NONE;
+      }
     }
   }
 
@@ -461,6 +462,13 @@ void nfa_rw_handle_sleep_wakeup_rsp(tNFC_STATUS status) {
     DLOG_IF(INFO, nfc_debug_enabled)
         << StringPrintf("%s; Legacy presence check performed", __func__);
     /* Legacy presence check performed */
+    if (nfa_rw_cb.mifare_pres_check_status == NFA_RW_MIFARE_PRES_CHECK_IDLE) {
+      /* Initialize control block */
+      activate_params.protocol = nfa_rw_cb.protocol;
+      activate_params.rf_tech_param.param.pa.sel_rsp = nfa_rw_cb.pa_sel_res;
+      activate_params.rf_tech_param.mode = nfa_rw_cb.activated_tech_mode;
+      RW_SetActivatedTagType(&activate_params, nfa_rw_cback);
+    }
     nfa_rw_handle_presence_check_rsp(status);
   }
 }
@@ -1504,7 +1512,6 @@ static void nfa_rw_handle_mfc_evt(tRW_EVENT event, tRW_DATA* p_rw_data) {
       return;
     }
   }
-
   switch (event) {
     /* Read completed */
     case RW_MFC_NDEF_READ_CPLT_EVT:
@@ -2007,7 +2014,7 @@ void nfa_rw_check_mifare_data(NFC_HDR* p_data) {
 **
 *******************************************************************************/
 void nfa_rw_set_mifare_deactivated() {
-  nfa_rw_cb.mifare_pres_check_status = NFA_RW_MIFARE_PRES_CHECK_AUTH_OFF;
+  nfa_rw_cb.mifare_pres_check_status = NFA_RW_MIFARE_PRES_CHECK_NONE;
   memset(nfa_rw_cb.mifare_auth_cmd, 0, sizeof(nfa_rw_cb.mifare_auth_cmd));
 }
 
@@ -2090,11 +2097,27 @@ void nfa_rw_presence_check(tNFA_RW_MSG* p_data) {
     nfa_rw_cb.pres_check_tag = true;
     // Chinese ID card
     status = RW_CiPresenceCheck();
-  } else if ((NFC_PROTOCOL_MIFARE == protocol) &&
-             (nfa_rw_cb.mifare_pres_check_status ==
-              NFA_RW_MIFARE_PRES_CHECK_AUTH_ON)) {
-    // Read last authenticated block address
-    status = RW_MfcPresenceCheck(nfa_rw_cb.mifare_auth_cmd);
+  } else if (NFC_PROTOCOL_MIFARE == protocol) {
+    if (nfa_rw_cb.mifare_pres_check_status ==
+        NFA_RW_MIFARE_PRES_CHECK_AUTH_ON) {
+      // Read last authenticated block address
+      status = RW_MfcPresenceCheck(nfa_rw_cb.mifare_auth_cmd);
+    } else if (nfa_rw_cb.mifare_pres_check_status ==
+               NFA_RW_MIFARE_PRES_CHECK_IDLE) {
+      nfa_dm_rf_deactivate(NFA_DEACTIVATE_TYPE_IDLE);
+      nfa_dm_cb.disc_cb.mifare_pc_tle.p_cback =
+          (TIMER_CBACK*)nfa_dm_disc_mifare_idle_timeout_cback;
+      nfa_sys_start_timer(&nfa_dm_cb.disc_cb.mifare_pc_tle, 0,
+                          NFA_DM_DISC_TIMEOUT_MIFARE_IDLE_PRESENCE_CHECK);
+      return;
+    } else if (nfa_rw_cb.mifare_pres_check_status ==
+               NFA_RW_MIFARE_PRES_CHECK_NONE) {
+      nfa_rw_cb.mifare_pres_check_status = NFA_RW_MIFARE_PRES_CHECK_START;
+      unsupported = true;
+    } else if (nfa_rw_cb.mifare_pres_check_status ==
+               NFA_RW_MIFARE_PRES_CHECK_NORMAL) {
+      unsupported = true;
+    }
   } else {
     /* Protocol unsupported by RW module... */
     unsupported = true;
@@ -2884,6 +2907,8 @@ bool nfa_rw_activate_ntf(tNFA_RW_MSG* p_data) {
     return true;
   }
 
+  /* If protocol not supported by RW module, notify app of NFA_ACTIVATED_EVT and
+   * start presence check if needed */
   if (!nfa_dm_is_protocol_supported(
           p_activate_params->protocol,
           p_activate_params->rf_tech_param.param.pa.sel_rsp)

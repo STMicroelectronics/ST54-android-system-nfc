@@ -1,5 +1,4 @@
 #pragma once
-
 #include <android/hardware/nfc/1.0/INfc.h>
 #include <android/hardware/nfc/1.1/INfc.h>
 #include <android/hardware/nfc/1.2/INfc.h>

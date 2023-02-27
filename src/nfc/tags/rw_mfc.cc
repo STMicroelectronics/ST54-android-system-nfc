@@ -1009,7 +1009,6 @@ static bool rw_mfc_authenticate(int block, bool KeyA) {
       KeyToUse = KeyNDEF;
     }
   }
-
   ARRAY_TO_BE_STREAM(p, KeyToUse, 6);
 
   mfcbuf->len = 12;

@@ -2006,7 +2006,6 @@ void nfc_ncif_proc_get_config_rsp(NFC_HDR* p_evt) {
   if (p_cback) {
     p = (uint8_t*)(p_evt + 1) + p_evt->offset;
     evt_data.get_config.status = *p++;
-    // evt_data.get_config.tlv_size = (p_evt->len - 1);  // Minus status ??
     evt_data.get_config.tlv_size = p_evt->len;
     evt_data.get_config.p_param_tlvs = p;
     (*p_cback)(NFC_GET_CONFIG_REVT, &evt_data);

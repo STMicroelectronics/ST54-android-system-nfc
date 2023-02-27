@@ -110,7 +110,6 @@ class NfcAdaptation {
   static android::sp<android::hardware::nfc::V1_1::INfc> mHal_1_1;
   static android::sp<android::hardware::nfc::V1_2::INfc> mHal_1_2;
   static android::hardware::nfc::V1_1::INfcClientCallback* mCallback;
-
   sp<NfcHalDeathRecipient> mNfcHalDeathRecipient;
 
   static tHAL_NFC_CBACK* mHalCallback;

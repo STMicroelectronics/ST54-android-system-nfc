@@ -23,18 +23,17 @@
  ******************************************************************************/
 #include <android-base/stringprintf.h>
 #include <base/logging.h>
+#include <statslog.h>
 #include <string.h>
 
 #include "include/debug_lmrt.h"
+#include "metrics.h"
 #include "nfa_api.h"
 #include "nfa_dm_int.h"
 #include "nfa_ee_int.h"
 #include "nfa_hci_int.h"
 #include "nfc_config.h"
 #include "nfc_int.h"
-
-#include <statslog.h>
-#include "metrics.h"
 
 using android::base::StringPrintf;
 
@@ -349,6 +348,7 @@ void NFA_SetBlockingBit(bool block) {
     }
   }
 }
+
 static void nfa_ee_add_tech_route_to_ecb(tNFA_EE_ECB* p_cb, uint8_t* pp,
                                          uint8_t* p, uint8_t* ps,
                                          int* p_cur_offset) {
@@ -519,6 +519,7 @@ static void nfa_ee_add_aid_route_to_ecb(tNFA_EE_ECB* p_cb, uint8_t* pp,
                                         uint8_t* p, uint8_t* ps,
                                         int* p_cur_offset, int* p_max_len) {
   uint8_t num_tlv = *ps;
+
   /* add the AID routing */
   if (p_cb->aid_entries) {
     int start_offset = 0;
@@ -813,7 +814,7 @@ tNFA_EE_ECB* nfa_ee_find_sys_code_offset(uint16_t sys_code, int* p_offset,
       for (uint8_t yy = 0; yy < p_ecb->sys_code_cfg_entries; yy++) {
         if (offset >=
             (NFA_EE_MAX_SYSTEM_CODE_ENTRIES * NFA_EE_SYSTEM_CODE_LEN)) {
-          LOG(ERROR) << StringPrintf("%s; offset higer than 4", __func__);
+          LOG(ERROR) << StringPrintf("%s; offset higher than 4", __func__);
           return nullptr;
         }
         if ((memcmp(&p_ecb->sys_code_cfg[offset], &sys_code,
@@ -1002,6 +1003,7 @@ void nfa_ee_api_mode_set(tNFA_EE_MSG* p_data) {
     if (p_cb->conn_st == NFA_EE_CONN_ST_CONN) {
       p_cb->conn_st = NFA_EE_CONN_ST_DISC;
       NFC_ConnClose(p_cb->conn_id);
+      usleep(50 * 1000);
     }
   }
   /* report the NFA_EE_MODE_SET_EVT status on the response from NFCC */
@@ -1074,7 +1076,6 @@ void nfa_ee_api_set_tech_cfg(tNFA_EE_MSG* p_data) {
        * configured */
       nfa_ee_cb.ee_cfged |= nfa_ee_ecb_to_mask(p_cb);
     }
-
     nfa_ee_start_timer();
   }
   nfa_ee_report_event(p_cb->p_ee_cback, NFA_EE_SET_TECH_CFG_EVT, &evt_data);
@@ -1195,7 +1196,6 @@ void nfa_ee_api_set_proto_cfg(tNFA_EE_MSG* p_data) {
        * configured */
       nfa_ee_cb.ee_cfged |= nfa_ee_ecb_to_mask(p_cb);
     }
-
     nfa_ee_start_timer();
   }
   nfa_ee_report_event(p_cb->p_ee_cback, NFA_EE_SET_PROTO_CFG_EVT, &evt_data);
@@ -1829,7 +1829,7 @@ void nfa_ee_api_force_routing(tNFA_EE_MSG* p_data) {
 
 /*******************************************************************************
 **
-** Function         nfa_ee_api_stop_orce_routing
+** Function         nfa_ee_api_stop_force_routing
 **
 ** Description      Stop forcing routing.
 **
@@ -1845,6 +1845,15 @@ void nfa_ee_api_stop_force_routing(__attribute__((unused))
   nfa_ee_cb.forced_routing_on_dh = false;
 }
 
+/*******************************************************************************
+**
+** Function         nfa_ee_api_clear_routing_table
+**
+** Description      As the name indicates
+**
+** Returns          void
+**
+*******************************************************************************/
 void nfa_ee_api_clear_routing_table(tNFA_EE_MSG* p_data) {
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s", __func__);
 
@@ -2398,7 +2407,6 @@ static void nfa_ee_build_discover_req_evt(tNFA_EE_DISCOVER_REQ* p_evt_data) {
         (p_cb->ee_status != NFA_EE_STATUS_ACTIVE)) {
       continue;
     }
-
     p_info->ee_handle = (tNFA_HANDLE)p_cb->nfcee_id | NFA_HANDLE_GROUP_EE;
     p_info->la_protocol = p_cb->la_protocol;
     p_info->lb_protocol = p_cb->lb_protocol;

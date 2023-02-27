@@ -53,7 +53,6 @@ async fn dispatch_incoming<R>(
     in_data_tx: UnboundedSender<DataPacket>,
     mut reader: R,
 ) -> Result<()>
-
 where
     R: AsyncReadExt + Unpin,
 {
@@ -113,7 +112,6 @@ where
     debug!("Dispatch outgoing finished.");
     Ok(())
 }
-
 
 async fn write_nci<W, P>(writer: &mut W, cmd: P) -> Result<()>
 where

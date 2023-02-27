@@ -43,6 +43,7 @@ extern bool nfc_debug_enabled;
 *****************************************************************************/
 
 tNFA_HCI_CB nfa_hci_cb;
+pthread_mutex_t nfa_hci_mutex;
 
 #ifndef NFA_HCI_NV_READ_TIMEOUT_VAL
 #define NFA_HCI_NV_READ_TIMEOUT_VAL 1000
@@ -196,6 +197,10 @@ void nfa_hci_init(void) {
 
   nfa_hci_cb.hci_state = NFA_HCI_STATE_STARTUP;
   nfa_hci_cb.num_nfcee = NFA_HCI_MAX_HOST_IN_NETWORK;
+
+  /* Initialize Mutex to protect nfa_hci_cb.hci_state change */
+  nfa_hci_mutex = PTHREAD_MUTEX_INITIALIZER;
+
   /* register message handler on NFA SYS */
   nfa_sys_register(NFA_ID_HCI, &nfa_hci_sys_reg);
 }
@@ -522,14 +527,18 @@ void nfa_hci_startup_complete(tNFA_STATUS status) {
     nfa_sys_cback_notify_nfcc_power_mode_proc_complete(NFA_ID_HCI);
   } else {
     evt_data.hci_init.status = status;
-
+    pthread_mutex_lock(&nfa_hci_mutex);
+    if (status == NFA_STATUS_OK)
+      nfa_hci_cb.hci_state = NFA_HCI_STATE_IDLE;
+    else
+      nfa_hci_cb.hci_state = NFA_HCI_STATE_DISABLED;
+    pthread_mutex_unlock(&nfa_hci_mutex);
     nfa_hciu_send_to_all_apps(NFA_HCI_INIT_EVT, &evt_data);
     nfa_sys_cback_notify_enable_complete(NFA_ID_HCI);
   }
 
   if (status == NFA_STATUS_OK)
     nfa_hci_cb.hci_state = NFA_HCI_STATE_IDLE;
-
   else
     nfa_hci_cb.hci_state = NFA_HCI_STATE_DISABLED;
 }

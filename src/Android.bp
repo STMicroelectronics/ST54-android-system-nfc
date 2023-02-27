@@ -107,7 +107,7 @@ genrule {
     tools: [
         "bluetooth_packetgen",
     ],
-    cmd: "$(location bluetooth_packetgen) --include=vendor/st/nfc/system/nfc/src --out=$(genDir) $(in) --rust",
+    cmd: "$(location bluetooth_packetgen) --include=vendor/st/opensource/commonsys/system/nfc/src --out=$(genDir) $(in) --rust",
     srcs: [
         "nci_packets.pdl",
     ],

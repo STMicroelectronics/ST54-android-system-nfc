@@ -311,14 +311,10 @@
 #endif
 
 /* CE Type 4 Tag, Frame Waiting time Integer */
-#ifndef CE_T4T_ISO_DEP_FWI
 #define CE_T4T_LI_A_RATS 0x70
-#endif
-/* ST-NFC - Begin */
 #ifndef RW_CI_TOUT_RESP
 #define RW_CI_TOUT_RESP 1000
 #endif
-/* ST-NFC - End */
 
 /* RW Type 4 Tag timeout for each API call, in ms */
 #ifndef RW_T4T_TOUT_RESP
@@ -538,7 +534,7 @@
 #endif
 
 #ifndef NFA_HCI_MAX_HOST_IN_NETWORK
-#define NFA_HCI_MAX_HOST_IN_NETWORK 0x06
+#define NFA_HCI_MAX_HOST_IN_NETWORK (NFA_EE_MAX_EE_SUPPORTED + 2)
 #endif
 
 /* Max number of Application that can be registered to NFA-HCI */
@@ -603,6 +599,10 @@
 #define NFA_DM_DISC_TIMEOUT_KOVIO_PRESENCE_CHECK (1000)
 #endif
 
+#ifndef NFA_DM_DISC_TIMEOUT_MIFARE_IDLE_PRESENCE_CHECK
+#define NFA_DM_DISC_TIMEOUT_MIFARE_IDLE_PRESENCE_CHECK (200)
+#endif
+
 /* Max number of NDEF type handlers that can be registered (including the
  * default handler) */
 #ifndef NFA_NDEF_MAX_HANDLERS
@@ -649,7 +649,7 @@
 /* Max number of NFCEE supported */
 #ifndef NFA_EE_MAX_EE_SUPPORTED
 /* Modified for NFC-A until we add dynamic support */
-#define NFA_EE_MAX_EE_SUPPORTED 4
+#define NFA_EE_MAX_EE_SUPPORTED 5
 #endif
 
 /* Maximum number of AID entries per target_handle  */

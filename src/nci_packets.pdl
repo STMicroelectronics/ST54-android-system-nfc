@@ -452,7 +452,6 @@ packet ConnCreditsNotification : Notification (cmd_op = CORE_CONN_CREDITS) {
   conns : CreditsPerConn[],
 }
 
-
 packet GenericError : Notification (cmd_op = CORE_GENERIC_ERROR) {
   status : Status,
 }
