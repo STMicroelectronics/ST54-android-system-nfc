@@ -21,10 +21,11 @@
  *  NFA interface to HCI
  *
  ******************************************************************************/
+#include "nfa_hci_api.h"
+
 #include <android-base/stringprintf.h>
 #include <base/logging.h>
 
-#include "nfa_hci_api.h"
 #include "nfa_hci_defs.h"
 #include "nfa_hci_int.h"
 
@@ -225,7 +226,6 @@ tNFA_STATUS NFA_HciAllocGate(tNFA_HANDLE hci_handle, uint8_t gate) {
         << StringPrintf("%s; Invalid hci_handle:0x%04x", __func__, hci_handle);
     return (NFA_STATUS_FAILED);
   }
-
 
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
       "%s; hci_handle:0x%04x, Gate:0x%02x", __func__, hci_handle, gate);

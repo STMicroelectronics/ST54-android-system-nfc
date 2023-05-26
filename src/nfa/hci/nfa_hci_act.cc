@@ -21,11 +21,10 @@
  *  This file contains the action functions for the NFA HCI.
  *
  ******************************************************************************/
-#include <string.h>
-
 #include <android-base/stringprintf.h>
 #include <base/logging.h>
 #include <log/log.h>
+#include <string.h>
 
 #include "nfa_dm_int.h"
 #include "nfa_ee_int.h"

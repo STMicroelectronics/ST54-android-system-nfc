@@ -365,9 +365,6 @@ uint8_t LLCP_RegisterServer(uint8_t reg_sap, uint8_t link_type,
                             tLLCP_APP_CBACK* p_app_cback) {
   uint8_t sap;
   uint16_t length;
-  tLLCP_APP_CB* p_app_cb = {
-      nullptr,
-  };
 
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
       "%s; SAP:0x%x, link_type:0x%x, ServiceName:<%s>", __func__, reg_sap,
@@ -387,7 +384,6 @@ uint8_t LLCP_RegisterServer(uint8_t reg_sap, uint8_t link_type,
     /* allocate a SAP between 0x10 and 0x1F */
     for (sap = 0; sap < LLCP_MAX_SERVER; sap++) {
       if (llcp_cb.server_cb[sap].p_app_cback == nullptr) {
-        p_app_cb = &llcp_cb.server_cb[sap];
         reg_sap = LLCP_LOWER_BOUND_SDP_SAP + sap;
         break;
       }
@@ -410,8 +406,6 @@ uint8_t LLCP_RegisterServer(uint8_t reg_sap, uint8_t link_type,
       LOG(ERROR) << StringPrintf("%s; SAP (0x%x) is already registered",
                                  __func__, reg_sap);
       return LLCP_INVALID_SAP;
-    } else {
-      p_app_cb = &llcp_cb.wks_cb[reg_sap];
     }
   } else if (reg_sap <= LLCP_UPPER_BOUND_SDP_SAP) {
     if (reg_sap - LLCP_LOWER_BOUND_SDP_SAP >= LLCP_MAX_SERVER) {
@@ -423,16 +417,12 @@ uint8_t LLCP_RegisterServer(uint8_t reg_sap, uint8_t link_type,
       LOG(ERROR) << StringPrintf("%s; SAP (0x%x) is already registered",
                                  __func__, reg_sap);
       return LLCP_INVALID_SAP;
-    } else {
-      p_app_cb = &llcp_cb.server_cb[reg_sap - LLCP_LOWER_BOUND_SDP_SAP];
     }
   } else if (reg_sap >= LLCP_LOWER_BOUND_LOCAL_SAP) {
     LOG(ERROR) << StringPrintf("%s; SAP (0x%x) must be less than 0x%x",
                                __func__, reg_sap, LLCP_LOWER_BOUND_LOCAL_SAP);
     return LLCP_INVALID_SAP;
   }
-
-  memset(p_app_cb, 0x00, sizeof(tLLCP_APP_CB));
 
   if (!p_service_name.empty()) {
     length = p_service_name.length();
@@ -441,20 +431,7 @@ uint8_t LLCP_RegisterServer(uint8_t reg_sap, uint8_t link_type,
                                  __func__, length);
       return LLCP_INVALID_SAP;
     }
-
-    p_app_cb->p_service_name = (char*)GKI_getbuf((uint16_t)(length + 1));
-    if (p_app_cb->p_service_name == nullptr) {
-      LOG(ERROR) << StringPrintf("%s; Out of resource", __func__);
-      return LLCP_INVALID_SAP;
-    }
-
-    strlcpy(p_app_cb->p_service_name, p_service_name.c_str(), length + 1);
-    p_app_cb->p_service_name[length] = 0;
-  } else
-    p_app_cb->p_service_name = nullptr;
-
-  p_app_cb->p_app_cback = p_app_cback;
-  p_app_cb->link_type = link_type;
+  }
 
   if (reg_sap <= LLCP_UPPER_BOUND_WK_SAP) {
     llcp_cb.lcb.wks |= (1 << reg_sap);

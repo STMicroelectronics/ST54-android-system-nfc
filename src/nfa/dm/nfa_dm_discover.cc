@@ -1129,28 +1129,28 @@ void nfa_dm_start_rf_discover(void) {
   num_params = nfa_dm_get_rf_discover_config(dm_disc_mask, disc_params,
                                              NFA_DM_MAX_DISC_PARAMS);
 
-    /*
-    ** NFCC will abort programming personality slots if not available.
-    ** NFCC programs the personality slots in the following order of RF
-    ** technologies: NFC-A, NFC-B, NFC-BP, NFC-I93
-    */
+  /*
+  ** NFCC will abort programming personality slots if not available.
+  ** NFCC programs the personality slots in the following order of RF
+  ** technologies: NFC-A, NFC-B, NFC-BP, NFC-I93
+  */
 
-    /* if this is not for exclusive control */
-    if (!nfa_dm_cb.disc_cb.excl_disc_entry.in_use) {
-      /* update listening protocols in each NFC technology */
-      nfa_dm_set_rf_listen_mode_config(dm_disc_mask);
-    }
+  /* if this is not for exclusive control */
+  if (!nfa_dm_cb.disc_cb.excl_disc_entry.in_use) {
+    /* update listening protocols in each NFC technology */
+    nfa_dm_set_rf_listen_mode_config(dm_disc_mask);
+  }
 
-    /* Set polling duty cycle */
-    nfa_dm_set_total_duration();
-    nfa_dm_cb.disc_cb.dm_disc_mask = dm_disc_mask;
+  /* Set polling duty cycle */
+  nfa_dm_set_total_duration();
+  nfa_dm_cb.disc_cb.dm_disc_mask = dm_disc_mask;
 
-    NFC_DiscoveryStart(num_params, disc_params, nfa_dm_disc_discovery_cback);
-    /* set flag about waiting for response in IDLE state */
-    nfa_dm_cb.disc_cb.disc_flags |= NFA_DM_DISC_FLAGS_W4_RSP;
+  NFC_DiscoveryStart(num_params, disc_params, nfa_dm_disc_discovery_cback);
+  /* set flag about waiting for response in IDLE state */
+  nfa_dm_cb.disc_cb.disc_flags |= NFA_DM_DISC_FLAGS_W4_RSP;
 
-    /* register callback to get interface error NTF */
-    NFC_SetStaticRfCback(nfa_dm_disc_data_cback);
+  /* register callback to get interface error NTF */
+  NFC_SetStaticRfCback(nfa_dm_disc_data_cback);
 
   /* if Kovio presence check timer is running, timeout callback will reset the
    * activation information */
@@ -1288,22 +1288,21 @@ static tNFA_STATUS nfa_dm_disc_notify_activation(tNFC_DISCOVER* p_data) {
    * listening UICC */
   if (p_data->activate.intf_param.type == NFC_INTERFACE_EE_DIRECT_RF) {
     xx = 0;
-        nfa_dm_cb.disc_cb.activated_rf_disc_id = p_data->activate.rf_disc_id;
-        nfa_dm_cb.disc_cb.activated_rf_interface =
-            p_data->activate.intf_param.type;
-        nfa_dm_cb.disc_cb.activated_protocol = NFC_PROTOCOL_UNKNOWN;
-        nfa_dm_cb.disc_cb.activated_handle = xx;
+    nfa_dm_cb.disc_cb.activated_rf_disc_id = p_data->activate.rf_disc_id;
+    nfa_dm_cb.disc_cb.activated_rf_interface = p_data->activate.intf_param.type;
+    nfa_dm_cb.disc_cb.activated_protocol = NFC_PROTOCOL_UNKNOWN;
+    nfa_dm_cb.disc_cb.activated_handle = xx;
 
-        DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-            "%s; activated_rf_interface:0x%x, activated_handle: 0x%x", __func__,
-            nfa_dm_cb.disc_cb.activated_rf_interface,
-            nfa_dm_cb.disc_cb.activated_handle);
+    DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+        "%s; activated_rf_interface:0x%x, activated_handle: 0x%x", __func__,
+        nfa_dm_cb.disc_cb.activated_rf_interface,
+        nfa_dm_cb.disc_cb.activated_handle);
 
-        if (nfa_dm_cb.disc_cb.entry[xx].p_disc_cback)
-          (*(nfa_dm_cb.disc_cb.entry[xx].p_disc_cback))(
-              NFA_DM_RF_DISC_ACTIVATED_EVT, p_data);
+    if (nfa_dm_cb.disc_cb.entry[xx].p_disc_cback)
+      (*(nfa_dm_cb.disc_cb.entry[xx].p_disc_cback))(
+          NFA_DM_RF_DISC_ACTIVATED_EVT, p_data);
 
-        return (NFA_STATUS_OK);
+    return (NFA_STATUS_OK);
   }
 
   /* get bit mask of technolgies/mode and protocol */
@@ -1995,8 +1994,7 @@ static void nfa_dm_disc_sm_idle(tNFA_DM_RF_DISC_SM_EVENT event,
               << StringPrintf("%s; Starting polling loop ", __func__);
         }
         /* Otherwise, deactivating when getting unexpected activation */
-      }
-      else  // error, CLF needs to be restarted
+      } else  // error, CLF needs to be restarted
       {
         DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
             "%s; RF_DEACTIVATE_RSP returned non OK status, "
@@ -2456,7 +2454,6 @@ static void nfa_dm_disc_sm_poll_active(tNFA_DM_RF_DISC_SM_EVENT event,
       if ((p_data->nfc_discover.deactivate.reason !=
            NFC_DEACTIVATE_REASON_DH_REQ_FAILED) ||
           (appl_dta_mode_flag == 1)) {
-
         if (nfa_dm_cb.deactivate_cmd_retry_count > 0) {
           nfa_dm_cb.deactivate_cmd_retry_count = 0;
         }

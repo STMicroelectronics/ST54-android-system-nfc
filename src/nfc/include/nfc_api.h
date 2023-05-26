@@ -201,21 +201,21 @@ enum {
   NFC_NFCEE_DISCOVER_REVT,          /* 4  Discover NFCEE response       */
   NFC_NFCEE_INFO_REVT,              /* 5  Discover NFCEE Notification   */
   NFC_NFCEE_MODE_SET_REVT,          /* 6  NFCEE Mode Set response       */
-  NFC_NFCEE_FORCE_ROUTING_REVT, /* 7 Force Routing RSP */
-  NFC_RF_FIELD_REVT,              /* 8  RF Field information          */
-  NFC_EE_ACTION_REVT,             /* 9  EE Action notification        */
-  NFC_EE_DISCOVER_REQ_REVT,       /* 10  EE Discover Req notification  */
-  NFC_SET_ROUTING_REVT,           /* 11 Configure Routing response    */
-  NFC_GET_ROUTING_REVT,           /* 12 Retrieve Routing response     */
-  NFC_RF_COMM_PARAMS_UPDATE_REVT, /* 13 RF Communication Param Update */
-  NFC_GEN_ERROR_REVT,             /* 14 generic error notification    */
-  NFC_NFCC_RESTART_REVT,          /* 15 NFCC has been re-initialized  */
-  NFC_NFCC_TIMEOUT_REVT,          /* 16 NFCC is not responding        */
-  NFC_NFCC_TRANSPORT_ERR_REVT,    /* 17 NCI Tranport error            */
-  NFC_NFCC_POWER_OFF_REVT,        /* 18 NFCC turned off               */
-  NFC_SET_POWER_SUB_STATE_REVT,   /* 19 Set power sub state response  */
-  NFC_NFCEE_PL_CONTROL_REVT,      /* 20 NFCEE Power/Link Ctrl response*/
-  NFC_NFCEE_STATUS_REVT           /* 21 NFCEE Status Notification     */
+  NFC_NFCEE_FORCE_ROUTING_REVT,     /* 7 Force Routing RSP */
+  NFC_RF_FIELD_REVT,                /* 8  RF Field information          */
+  NFC_EE_ACTION_REVT,               /* 9  EE Action notification        */
+  NFC_EE_DISCOVER_REQ_REVT,         /* 10  EE Discover Req notification  */
+  NFC_SET_ROUTING_REVT,             /* 11 Configure Routing response    */
+  NFC_GET_ROUTING_REVT,             /* 12 Retrieve Routing response     */
+  NFC_RF_COMM_PARAMS_UPDATE_REVT,   /* 13 RF Communication Param Update */
+  NFC_GEN_ERROR_REVT,               /* 14 generic error notification    */
+  NFC_NFCC_RESTART_REVT,            /* 15 NFCC has been re-initialized  */
+  NFC_NFCC_TIMEOUT_REVT,            /* 16 NFCC is not responding        */
+  NFC_NFCC_TRANSPORT_ERR_REVT,      /* 17 NCI Tranport error            */
+  NFC_NFCC_POWER_OFF_REVT,          /* 18 NFCC turned off               */
+  NFC_SET_POWER_SUB_STATE_REVT,     /* 19 Set power sub state response  */
+  NFC_NFCEE_PL_CONTROL_REVT,        /* 20 NFCEE Power/Link Ctrl response*/
+  NFC_NFCEE_STATUS_REVT             /* 21 NFCEE Status Notification     */
 
 };
 typedef uint16_t tNFC_RESPONSE_EVT;
@@ -678,9 +678,9 @@ typedef struct {
   uint8_t ats_res[NFC_MAX_ATS_LEN]; /* ATS RES                          */
   bool nad_used;                    /* NAD is used or not               */
   uint8_t fwi;                      /* Frame Waiting time Integer       */
-  uint8_t li_a_rats_tb1; /* RATS response interface TB1      */
-  uint8_t sfgi;         /* Start-up Frame Guard time Integer*/
-  uint8_t his_byte_len; /* len of historical bytes          */
+  uint8_t li_a_rats_tb1;            /* RATS response interface TB1      */
+  uint8_t sfgi;                     /* Start-up Frame Guard time Integer*/
+  uint8_t his_byte_len;             /* len of historical bytes          */
   uint8_t his_byte[NFC_MAX_HIS_BYTES_LEN]; /* historical bytes             */
 } tNFC_INTF_PA_ISO_DEP;
 

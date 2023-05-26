@@ -23,18 +23,16 @@
  *  (callback). On the transmit side, it manages the command transmission.
  *
  ******************************************************************************/
-#include <string.h>
-
 #include <android-base/stringprintf.h>
 #include <base/logging.h>
 #include <log/log.h>
-
-#include "nfc_target.h"
+#include <string.h>
 
 #include "bt_types.h"
 #include "nci_hmsgs.h"
 #include "nfc_api.h"
 #include "nfc_int.h"
+#include "nfc_target.h"
 #include "rw_api.h"
 #include "rw_int.h"
 
@@ -341,8 +339,7 @@ tNFC_STATUS RW_SetActivatedTagType(tNFC_ACTIVATE_DEVT* p_activate_params,
            (p_activate_params->rf_tech_param.mode ==
             NFC_DISCOVERY_TYPE_POLL_B)) {
     status = rw_ci_select();
-  }
-  else {
+  } else {
     rw_cb.tcb_type = RW_CB_TYPE_UNKNOWN;
     LOG(ERROR) << StringPrintf("%s; Invalid protocol", __func__);
   }

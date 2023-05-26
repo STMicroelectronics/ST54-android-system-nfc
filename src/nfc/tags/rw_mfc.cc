@@ -24,12 +24,12 @@
 #include <base/logging.h>
 #include <log/log.h>
 #include <string.h>
-#include "bt_types.h"
-#include "nfc_target.h"
 
+#include "bt_types.h"
 #include "gki.h"
 #include "nfc_api.h"
 #include "nfc_int.h"
+#include "nfc_target.h"
 #include "rw_api.h"
 #include "rw_int.h"
 #include "tags_int.h"
@@ -494,6 +494,7 @@ static void rw_mfc_handle_write_op() {
   if (p_mfc->work_offset >= p_mfc->ndef_length) {
     evt_data.status = NFC_STATUS_OK;
     evt_data.p_data = NULL;
+    rw_mfc_handle_op_complete();
     (*rw_cb.p_cback)(RW_MFC_NDEF_WRITE_CPLT_EVT, (tRW_DATA*)&evt_data);
   } else {
     p_mfc->last_block_accessed.block = p_mfc->current_block;
@@ -522,6 +523,7 @@ static void rw_mfc_handle_write_op() {
     if (rw_mfc_writeBlock(p_mfc->next_block.block) != NFC_STATUS_OK) {
       evt_data.status = NFC_STATUS_FAILED;
       evt_data.p_data = NULL;
+      rw_mfc_handle_op_complete();
       (*rw_cb.p_cback)(RW_MFC_NDEF_WRITE_FAIL_EVT, (tRW_DATA*)&evt_data);
     }
   }
@@ -637,7 +639,6 @@ void rw_mfc_process_timeout(TIMER_LIST_ENT* p_tle) {
     LOG(ERROR) << __func__ << "; unknown event=" << p_tle->event;
   }
 }
-
 
 /*******************************************************************************
  **
@@ -1301,8 +1302,7 @@ static void rw_mfc_handle_read_op(uint8_t* data) {
         p_mfc->ndef_status = MFC_NDEF_DETECTED;
         p_mfc->ndef_first_block = p_mfc->last_block_accessed.block;
         rw_mfc_ntf_tlv_detect_complete(NFC_STATUS_OK);
-      }
-      else {
+      } else {
         tRW_DETECT_NDEF_DATA ndef_data;
         ndef_data.status = NFC_STATUS_FAILED;
         ndef_data.protocol = NFC_PROTOCOL_MIFARE;
@@ -1325,14 +1325,13 @@ static void rw_mfc_handle_read_op(uint8_t* data) {
       saved_length = p_mfc->ndef_length;
 
       if (p_mfc->work_offset == 0) {
-        /* The Ndef Message offset may be present in the read 16 bytes */
-        offset = p_mfc->ndef_start_pos;
-
         if (!rw_nfc_decodeTlv(data)) {
           failed = true;
           DLOG_IF(INFO, nfc_debug_enabled)
               << __func__ << "; FAILED finding TLV";
         }
+        /* Ndef message offset update post response TLV decode */
+        offset = p_mfc->ndef_start_pos;
       }
 
       if (!failed && saved_length >= p_mfc->ndef_length) {
@@ -1593,6 +1592,7 @@ static void rw_mfc_handle_op_complete(void) {
 
   p_mfc->last_block_accessed.auth = false;
   p_mfc->next_block.auth = false;
+  p_mfc->current_block = 0;
   p_mfc->state = RW_MFC_STATE_IDLE;
   p_mfc->substate = RW_MFC_SUBSTATE_NONE;
   return;

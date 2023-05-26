@@ -274,9 +274,9 @@ typedef struct {
 
 /* Union of all DM callback structures */
 typedef union {
-  tNFA_STATUS status; /* NFA_DM_ENABLE_EVT        */
-  tNFA_ENABLE enable;                 /* NFA_DM_ENABLE_EVT        */
-  tNFA_INTF_ACTIVATED intf_activated; /* NFA_DM_INTF_ACTIVATED_EVT */
+  tNFA_STATUS status;                  /* NFA_DM_ENABLE_EVT        */
+  tNFA_ENABLE enable;                  /* NFA_DM_ENABLE_EVT        */
+  tNFA_INTF_ACTIVATED intf_activated;  /* NFA_DM_INTF_ACTIVATED_EVT */
   tNFA_SET_CONFIG set_config;          /* NFA_DM_SET_CONFIG_EVT    */
   tNFA_GET_CONFIG get_config;          /* NFA_DM_GET_CONFIG_EVT    */
   tNFA_DM_PWR_MODE_CHANGE power_mode;  /* NFA_DM_PWR_MODE_CHANGE_EVT   */
@@ -654,8 +654,8 @@ typedef struct {
   uint8_t
       lb_nfcid0[NFA_LB_MAX_NFCID0_LEN]; /*         if empty, NFCC will decide */
   uint8_t lb_app_data[NCI_PARAM_LEN_LB_APPDATA]; /* Bytes 6 - 9 in SENSB_RES */
-  uint8_t lb_sfgi;   /* Start-Up Frame Guard Time                */
-  uint8_t lb_adc_fo; /* Byte 12 in SENSB_RES                     */
+  uint8_t lb_sfgi;     /* Start-Up Frame Guard Time                */
+  uint8_t lb_adc_fo;   /* Byte 12 in SENSB_RES                     */
   uint8_t lb_bit_rate; /* Maximum bit rate for NFC-B               */
 
   /*
@@ -674,10 +674,10 @@ typedef struct {
   /*
   ** Discovery Configuration Parameters for Listen ISO-DEP
   */
-  bool li_enable; /* TRUE if listening ISO-DEP            */
-  uint8_t li_fwi; /* Frame Waiting Time Integer           */
-  uint8_t li_a_rats_tb1; /* RATS response interface Byte TB1     */
-  uint8_t li_a_rats_tc1; /* RATS response interface Byte TC1     */
+  bool li_enable;            /* TRUE if listening ISO-DEP            */
+  uint8_t li_fwi;            /* Frame Waiting Time Integer           */
+  uint8_t li_a_rats_tb1;     /* RATS response interface Byte TB1     */
+  uint8_t li_a_rats_tc1;     /* RATS response interface Byte TC1     */
   uint8_t la_hist_bytes_len; /* historical bytes for Listen-A        */
   uint8_t la_hist_bytes[NFA_LA_MAX_HIST_BYTES];
   uint8_t lb_h_info_resp_len; /* higher layer response for Listen-B   */

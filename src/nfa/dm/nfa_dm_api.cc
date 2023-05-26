@@ -996,7 +996,6 @@ tNFA_STATUS NFA_SendRawFrame(uint8_t* p_raw_data, uint16_t data_len,
   DLOG_IF(INFO, nfc_debug_enabled)
       << StringPrintf("%s; data_len:%d", __func__, data_len);
 
-
   size = NFC_HDR_SIZE + NCI_MSG_OFFSET_SIZE + NCI_DATA_HDR_SIZE + data_len;
   /* Check for integer overflow */
   if (size < data_len) {

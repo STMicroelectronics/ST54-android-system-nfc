@@ -412,66 +412,66 @@ tLLCP_STATUS llcp_sdp_proc_snl(uint16_t sdu_length, uint8_t* p) {
           p_value = p;
           BE_STREAM_TO_UINT8(tid, p_value);
           sap = llcp_sdp_get_sap_by_name((char*)p_value, (uint8_t)(length - 1));
+          llcp_sdp_send_sdres(tid, sap);
+        } else {
+          tid = 0x01;
+          sap = 0x00;
+
+          if ((!appl_dta_mode_flag) ||
+              (appl_dta_mode_flag &&
+               ((nfa_dm_cb.eDtaMode & 0xF0) == NFA_DTA_CR12))) {
+            /* Applicable to NFC Forum CR11 and before */
             llcp_sdp_send_sdres(tid, sap);
-        } else {
-            tid = 0x01;
-            sap = 0x00;
-
-            if ((!appl_dta_mode_flag) ||
-                (appl_dta_mode_flag &&
-                 ((nfa_dm_cb.eDtaMode & 0xF0) == NFA_DTA_CR12))) {
-              /* Applicable to NFC Forum CR11 and before */
-              llcp_sdp_send_sdres(tid, sap);
-            } else {
-              if (length == 1) {
-                /* For P2P in LLCP mode TC_CTO_TAR_BI_03_x(x=3) fix */
-                LOG(ERROR) << StringPrintf(
-                    "%s; Empty service name URI in LLCP_SDREQ_TYPE", __func__);
-                llcp_sdp_send_sdres(tid, sap);
-                break;
-              } else {
-                /* For P2P in LLCP mode TC_CTO_TAR_BI_03_x(x=5) fix */
-                /* Bad service name length, send SYMM */
-              }
-            }
-            LOG(ERROR) << StringPrintf("%s; bad length (%d) in LLCP_SDREQ_TYPE",
-                                       __func__, length);
-          }
-          break;
-
-          case LLCP_SDRES_TYPE:
-            if ((length == LLCP_SDRES_LEN)     /* TID and SAP */
-                && (sdu_length >= 2 + length)) /* type, length, TID and SAP */
-            {
-              p_value = p;
-              BE_STREAM_TO_UINT8(tid, p_value);
-              BE_STREAM_TO_UINT8(sap, p_value);
-              llcp_sdp_return_sap(tid, sap);
-            } else {
+          } else {
+            if (length == 1) {
+              /* For P2P in LLCP mode TC_CTO_TAR_BI_03_x(x=3) fix */
               LOG(ERROR) << StringPrintf(
-                  "%s; bad length (%d) in LLCP_SDRES_TYPE", __func__, length);
+                  "%s; Empty service name URI in LLCP_SDREQ_TYPE", __func__);
+              llcp_sdp_send_sdres(tid, sap);
+              break;
+            } else {
+              /* For P2P in LLCP mode TC_CTO_TAR_BI_03_x(x=5) fix */
+              /* Bad service name length, send SYMM */
             }
-            break;
-
-          default:
-            LOG(WARNING) << StringPrintf("%s; Unknown type (0x%x) is ignored",
-                                         __func__, type);
-            break;
+          }
+          LOG(ERROR) << StringPrintf("%s; bad length (%d) in LLCP_SDREQ_TYPE",
+                                     __func__, length);
         }
+        break;
 
-        if (sdu_length >= 2 + length) /* type, length, value */
+      case LLCP_SDRES_TYPE:
+        if ((length == LLCP_SDRES_LEN)     /* TID and SAP */
+            && (sdu_length >= 2 + length)) /* type, length, TID and SAP */
         {
-          sdu_length -= 2 + length;
-          p += length;
+          p_value = p;
+          BE_STREAM_TO_UINT8(tid, p_value);
+          BE_STREAM_TO_UINT8(sap, p_value);
+          llcp_sdp_return_sap(tid, sap);
         } else {
-          break;
+          LOG(ERROR) << StringPrintf("%s; bad length (%d) in LLCP_SDRES_TYPE",
+                                     __func__, length);
         }
+        break;
+
+      default:
+        LOG(WARNING) << StringPrintf("%s; Unknown type (0x%x) is ignored",
+                                     __func__, type);
+        break;
     }
 
-    if (sdu_length) {
-      LOG(ERROR) << StringPrintf("%s; Bad format of SNL", __func__);
-      return LLCP_STATUS_FAIL;
+    if (sdu_length >= 2 + length) /* type, length, value */
+    {
+      sdu_length -= 2 + length;
+      p += length;
     } else {
-      return LLCP_STATUS_SUCCESS;
+      break;
     }
   }
+
+  if (sdu_length) {
+    LOG(ERROR) << StringPrintf("%s; Bad format of SNL", __func__);
+    return LLCP_STATUS_FAIL;
+  } else {
+    return LLCP_STATUS_SUCCESS;
+  }
+}

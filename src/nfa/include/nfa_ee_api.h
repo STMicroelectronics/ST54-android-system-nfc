@@ -671,5 +671,4 @@ extern tNFA_STATUS NFA_EeClearRoutingTable(bool clear_sc);
 *******************************************************************************/
 extern void NFA_SetBlockingBit(bool block);
 
-
 #endif /* NFA_EE_API_H */

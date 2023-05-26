@@ -92,7 +92,7 @@ genrule {
 
 cc_library_static {
     name: "st_libnfc_hidl_hal_cxx",
-    defaults: ["st_nfc_ffi_defaults"],
+    defaults: ["rust_static_cc_lib_defaults", "st_nfc_ffi_defaults"],
     srcs: ["hal/ffi/hidl.cc"],
     local_include_dirs: ["hal/ffi"],
     generated_headers: ["libnfc_hidl_hal_bridge_header", "cxx-bridge-header"],

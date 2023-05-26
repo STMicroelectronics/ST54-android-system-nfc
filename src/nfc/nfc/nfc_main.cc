@@ -75,8 +75,7 @@ static const tNCI_DISCOVER_MAPS nfc_interface_mapping[NFC_NUM_INTERFACE_MAP] = {
     /* Protocols that use Frame Interface do not need to be included in the
        interface mapping */
     {NCI_PROTOCOL_ISO_DEP, NCI_INTERFACE_MODE_POLL_N_LISTEN,
-     NCI_INTERFACE_ISO_DEP}
-    ,
+     NCI_INTERFACE_ISO_DEP},
     {NCI_PROTOCOL_MIFARE, NCI_INTERFACE_MODE_POLL, NCI_INTERFACE_MIFARE}
 #if (NFC_RW_ONLY == FALSE)
     ,
@@ -338,16 +337,18 @@ void nfc_enabled(tNFC_STATUS nfc_status, NFC_HDR* p_init_rsp_msg) {
   /* else not successful. the buffers will be freed in nfc_free_conn_cb () */
   else {
   plen_err:
-      nfc_free_conn_cb(p_cb);
+    nfc_free_conn_cb(p_cb);
 
-      /* if NFCC didn't respond to CORE_RESET or CORE_INIT */
-      if (nfc_cb.nfc_state == NFC_STATE_W4_HAL_OPEN ||
-          nfc_cb.nfc_state == NFC_STATE_CORE_INIT) {
-        /* report status after closing HAL */
-        nfc_cb.p_hal->close();
-        return;
-      } else
-        nfc_set_state(NFC_STATE_NONE);
+    /* if NFCC didn't respond to CORE_RESET or CORE_INIT */
+    if (nfc_cb.nfc_state == NFC_STATE_W4_HAL_OPEN) {
+      nfc_set_state(NFC_STATE_NONE);
+    } else if (nfc_cb.nfc_state == NFC_STATE_W4_HAL_OPEN ||
+               nfc_cb.nfc_state == NFC_STATE_CORE_INIT) {
+      /* report status after closing HAL */
+      nfc_cb.p_hal->close();
+      return;
+    } else
+      nfc_set_state(NFC_STATE_NONE);
   }
 
   nfc_main_notify_enable_status(nfc_status);

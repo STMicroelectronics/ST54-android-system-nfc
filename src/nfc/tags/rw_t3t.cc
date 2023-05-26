@@ -22,18 +22,16 @@
  *  mode.
  *
  ******************************************************************************/
-#include <string.h>
-
 #include <android-base/stringprintf.h>
 #include <base/logging.h>
 #include <log/log.h>
-
-#include "nfc_target.h"
+#include <string.h>
 
 #include "bt_types.h"
 #include "nci_hmsgs.h"
 #include "nfc_api.h"
 #include "nfc_int.h"
+#include "nfc_target.h"
 #include "rw_api.h"
 #include "rw_int.h"
 
@@ -168,21 +166,17 @@ const uint8_t rw_t3t_default_attrib_info[T3T_MSG_BLOCKSIZE] = {
     RW_T3T_DEFAULT_FELICALITE_NBW,            /* NBw (max block write per cmd)*/
     (RW_T3T_DEFAULT_FELICALITE_NMAXB >> 8),   /* Nmaxb (max size in blocks)   */
     (RW_T3T_DEFAULT_FELICALITE_NMAXB & 0xFF), /* Nmaxb (max size in blocks)   */
-    0,
-    0,
-    0,
-    0,                       /* Unused                       */
-    T3T_MSG_NDEF_WRITEF_OFF, /* WriteF                       */
-    T3T_MSG_NDEF_RWFLAG_RW,  /* RW Flag                      */
-    0,
-    0,
-    0, /* Ln (current size in bytes)   */
-
-    (RW_T3T_DEFAULT_FELICALITE_ATTRIB_INFO_CHECKSUM >>
-     8), /* checksum (high-byte) */
-    (RW_T3T_DEFAULT_FELICALITE_ATTRIB_INFO_CHECKSUM &
-     0xFF) /* checksum (low-byte)  */
-
+    0, /* Unused                                                              */
+    0, /* Unused                                                              */
+    0, /* Unused                                                              */
+    0, /* Unused                                                              */
+    T3T_MSG_NDEF_WRITEF_OFF, /* WriteF                                        */
+    T3T_MSG_NDEF_RWFLAG_RW,  /* RW Flag                                       */
+    0, /* Byte 11-13 Ln (current size in bytes)                               */
+    0, /* Byte 11-13 Ln (current size in bytes)                               */
+    0, /* Byte 11-13 Ln (current size in bytes)                               */
+    (RW_T3T_DEFAULT_FELICALITE_ATTRIB_INFO_CHECKSUM >> 8), /* checksum        */
+    (RW_T3T_DEFAULT_FELICALITE_ATTRIB_INFO_CHECKSUM & 0xFF) /* checksum       */
 };
 
 /* This is (T/t3t * 4^E) , E is the index of the array. The unit is .0001 ms */
@@ -336,6 +330,25 @@ void rw_t3t_process_error(tNFC_STATUS status) {
 void rw_t3t_start_poll_timer(tRW_T3T_CB* p_cb) {
   nfc_start_quick_timer(&p_cb->poll_timer, NFC_TTYPE_RW_T3T_RESPONSE,
                         RW_T3T_POLL_CMD_TIMEOUT_TICKS);
+}
+
+/*******************************************************************************
+**
+** Function         rw_t3t_handle_nci_poll_rsp
+**
+** Description      Handle NCI_T3T_POLLING_RSP
+**
+** Returns          none
+**
+*******************************************************************************/
+void rw_t3t_handle_nci_poll_rsp(uint8_t nci_status) {
+  if (nci_status != NFC_STATUS_OK) {
+    tRW_T3T_CB* p_cb = &rw_cb.tcb.t3t;
+    /* in case of STATUS_REJECTED or other errors, */
+    /* NFCC MAY NOT send RF_T3T_POLLING_NTF */
+    /* stop timer for poll response */
+    nfc_stop_quick_timer(&p_cb->poll_timer);
+  }
 }
 
 /*******************************************************************************
@@ -768,6 +781,11 @@ tNFC_STATUS rw_t3t_send_next_ndef_update_cmd(tRW_T3T_CB* p_cb) {
     /* Construct T3T message */
     p = p_cmd_start = (uint8_t*)(p_cmd_buf + 1) + p_cmd_buf->offset;
 
+    if (p_cb->ndef_msg_len < p_cb->ndef_msg_bytes_sent) {
+      GKI_freebuf(p_cmd_buf);
+      return NFC_STATUS_FAILED;
+    }
+
     /* Calculate number of ndef bytes remaining to write */
     ndef_bytes_remaining = p_cb->ndef_msg_len - p_cb->ndef_msg_bytes_sent;
 
@@ -908,6 +926,11 @@ tNFC_STATUS rw_t3t_send_next_ndef_check_cmd(tRW_T3T_CB* p_cb) {
   if (p_cmd_buf != nullptr) {
     /* Construct T3T message */
     p = p_cmd_start = (uint8_t*)(p_cmd_buf + 1) + p_cmd_buf->offset;
+
+    if (p_cb->ndef_attrib.ln < p_cb->ndef_rx_offset) {
+      GKI_freebuf(p_cmd_buf);
+      return NFC_STATUS_FAILED;
+    }
 
     /* Calculate number of ndef bytes remaining to read */
     ndef_bytes_remaining = p_cb->ndef_attrib.ln - p_cb->ndef_rx_offset;
@@ -1330,22 +1353,18 @@ void rw_t3t_act_handle_ndef_detect_rsp(tRW_T3T_CB* p_cb, NFC_HDR* p_msg_rsp) {
          * compatible with our version. */
 
         /* Update NDEF info */
-        STREAM_TO_UINT8(p_cb->ndef_attrib.nbr,
-                        p); /* NBr: number of blocks that can be read using one
-                               Check command */
-        STREAM_TO_UINT8(p_cb->ndef_attrib.nbw,
-                        p); /* Nbw: number of blocks that can be written using
-                               one Update command */
-        BE_STREAM_TO_UINT16(
-            p_cb->ndef_attrib.nmaxb,
-            p); /* Nmaxb: maximum number of blocks available for NDEF data */
+        /* NBr: number of blocks that can be read using one Check command */
+        STREAM_TO_UINT8(p_cb->ndef_attrib.nbr, p);
+        /* Nbw: number of blocks that can be written using one Update command */
+        STREAM_TO_UINT8(p_cb->ndef_attrib.nbw, p);
+        /* Nmaxb: maximum number of blocks available for NDEF data */
+        BE_STREAM_TO_UINT16(p_cb->ndef_attrib.nmaxb, p);
         BE_STREAM_TO_UINT32(temp, p);
-        STREAM_TO_UINT8(p_cb->ndef_attrib.writef,
-                        p); /* WriteFlag: 00h if writing data finished; 0Fh if
-                               writing data in progress */
-        STREAM_TO_UINT8(
-            p_cb->ndef_attrib.rwflag,
-            p); /* RWFlag: 00h NDEF is read-only; 01h if read/write available */
+        /* WriteFlag: 00h if writing data finished; 0Fh if writing data in
+         * progress */
+        STREAM_TO_UINT8(p_cb->ndef_attrib.writef, p);
+        /* RWFlag: 00h NDEF is read-only; 01h if read/write available */
+        STREAM_TO_UINT8(p_cb->ndef_attrib.rwflag, p);
 
         /* Get length (3-byte, big-endian) */
         STREAM_TO_UINT8(temp, p);                     /* Ln: high-byte */
@@ -1587,6 +1606,12 @@ void rw_t3t_act_handle_check_ndef_rsp(tRW_T3T_CB* p_cb, NFC_HDR* p_msg_rsp) {
        * bytes (do not include padding to 16-byte boundary) */
       if ((p_cb->flags & RW_T3T_FL_IS_FINAL_NDEF_SEGMENT) &&
           (p_cb->ndef_attrib.ln & 0x000F)) {
+        if (rsp_num_bytes_rx < (16 - (p_cb->ndef_attrib.ln & 0x000F))) {
+          nfc_status = NFC_STATUS_FAILED;
+          GKI_freebuf(p_msg_rsp);
+          android_errorWriteLog(0x534e4554, "224002331");
+          return;
+        }
         rsp_num_bytes_rx -= (16 - (p_cb->ndef_attrib.ln & 0x000F));
       }
 

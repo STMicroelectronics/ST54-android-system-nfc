@@ -48,7 +48,6 @@
 static char* rw_ci_get_state_name(uint8_t state);
 #endif
 
-
 static bool rw_ci_send_to_lower(NFC_HDR* p_c_apdu);
 
 static void rw_ci_handle_error(tNFC_STATUS status, uint8_t sw1, uint8_t sw2);
@@ -220,6 +219,7 @@ static void rw_ci_data_cback(__attribute__((unused)) uint8_t conn_id,
 
         (*(rw_cb.p_cback))(RW_CI_PRESENCE_CHECK_EVT, &rw_data);
       } else if (p_ci->state != RW_CI_STATE_IDLE) {
+        rw_data.status = NFC_STATUS_FAILED;
         rw_ci_handle_error(rw_data.status, 0, 0);
       } else {
         p_ci->state = RW_CI_STATE_IDLE;
@@ -532,4 +532,3 @@ static char* rw_ci_get_state_name(uint8_t state) {
 }
 
 #endif
-

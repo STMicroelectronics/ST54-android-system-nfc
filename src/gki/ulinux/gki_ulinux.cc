@@ -15,12 +15,11 @@
  *  limitations under the License.
  *
  ******************************************************************************/
+#include <android-base/stringprintf.h>
+#include <base/logging.h>
 #include <errno.h>
 #include <malloc.h>
 #include <pthread.h> /* must be 1st header defined  */
-
-#include <android-base/stringprintf.h>
-#include <base/logging.h>
 
 #include "gki_int.h"
 
@@ -43,8 +42,7 @@ extern bool nfc_debug_enabled;
 
 #endif
 
-/* Define the structure that holds the GKI variables
- */
+/* Define the structure that holds the GKI variables */
 tGKI_CB gki_cb;
 
 #define NANOSEC_PER_MILLISEC (1000000)
@@ -156,8 +154,7 @@ void GKI_init(void) {
 **
 *******************************************************************************/
 uint32_t GKI_get_os_tick_count(void) {
-  /* TODO - add any OS specific code here
-   **/
+  /* TODO - add any OS specific code here */
   return (gki_cb.com.OSTicks);
 }
 
@@ -309,17 +306,26 @@ void GKI_shutdown(void) {
             TASK_MBOX_3_EVT_MASK);
       GKI_send_event(task_id - 1, EVENT_MASK(GKI_SHUTDOWN_EVT));
 
+      if (((task_id - 1) == BTU_TASK)) {
+        gki_cb.com.system_tick_running = false;
+        *p_run_cond = GKI_TIMER_TICK_EXIT_COND; /* stop system tick */
+      }
 #if (FALSE == GKI_PTHREAD_JOINABLE)
       i = 0;
 
       while ((gki_cb.com.OSWaitEvt[task_id - 1] != 0) && (++i < 10))
         usleep(100 * 1000);
 #else
-      /* wait for proper Arnold Schwarzenegger task state */
-      result = pthread_join(gki_cb.os.thread_id[task_id - 1], NULL);
-      if (result < 0) {
-        DLOG_IF(INFO, nfc_debug_enabled)
-            << StringPrintf("FAILED: result: %d", result);
+      /* Skip BTU_TASK due to BTU_TASK is used for GKI_run() and it terminates
+       * after GKI_shutdown().
+       */
+      if ((task_id - 1) != BTU_TASK) {
+        /* wait for proper Arnold Schwarzenegger task state */
+        result = pthread_join(gki_cb.os.thread_id[task_id - 1], NULL);
+        if (result < 0) {
+          DLOG_IF(INFO, nfc_debug_enabled)
+              << StringPrintf("FAILED: result: %d", result);
+        }
       }
 #endif
       DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
@@ -327,7 +333,6 @@ void GKI_shutdown(void) {
       GKI_exit_task(task_id - 1);
     }
   }
-
 
 #if (FALSE == GKI_PTHREAD_JOINABLE)
   i = 0;
@@ -338,7 +343,8 @@ void GKI_shutdown(void) {
 #endif
   oldCOnd = *p_run_cond;
   *p_run_cond = GKI_TIMER_TICK_EXIT_COND;
-  if (oldCOnd == GKI_TIMER_TICK_STOP_COND)
+  if (oldCOnd == GKI_TIMER_TICK_STOP_COND ||
+      oldCOnd == GKI_TIMER_TICK_EXIT_COND)
     pthread_cond_signal(&gki_cb.os.gki_timer_cond);
 
   pthread_mutex_lock(&gki_cb.os.gki_end_mutex);
@@ -521,7 +527,8 @@ void GKI_run(__attribute__((unused)) void* p_task_id) {
   pthread_cond_signal(&gki_cb.os.gki_end_cond);
   pthread_mutex_unlock(&gki_cb.os.gki_end_mutex);
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s; exit", __func__);
+  gki_cb.com.OSWaitEvt[BTU_TASK] = 0;
+  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s exit", __func__);
 }
 
 /*******************************************************************************

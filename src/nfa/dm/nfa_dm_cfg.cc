@@ -38,8 +38,7 @@ const uint8_t nfa_dm_ce_cfg[] = {
     0xFF,
     NFC_PMID_FWI, /* FWI for ISO-DEP */
     1,
-    CE_T4T_LI_A_RATS
-};
+    CE_T4T_LI_A_RATS};
 
 uint8_t* p_nfa_dm_ce_cfg = (uint8_t*)nfa_dm_ce_cfg;
 

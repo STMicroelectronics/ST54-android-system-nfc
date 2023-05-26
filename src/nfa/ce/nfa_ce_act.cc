@@ -21,11 +21,10 @@
  *  This file contains the action functions the NFA_CE state machine.
  *
  ******************************************************************************/
-#include <log/log.h>
-#include <string.h>
-
 #include <android-base/stringprintf.h>
 #include <base/logging.h>
+#include <log/log.h>
+#include <string.h>
 
 #include "ce_api.h"
 #include "ndef_utils.h"

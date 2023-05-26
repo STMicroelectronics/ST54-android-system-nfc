@@ -17,6 +17,7 @@
  ******************************************************************************/
 #include <android-base/stringprintf.h>
 #include <base/logging.h>
+
 #include "gki_int.h"
 
 /* Make sure that this has been defined in target.h */
@@ -871,8 +872,7 @@ void GKI_remove_from_timer_list(TIMER_LIST_Q* p_timer_listq,
     p_timer_listq->last_ticks -= p_tle->ticks;
   }
 
-  /* Unlink timer from the list.
-   */
+  /* Unlink timer from the list. */
   if (p_timer_listq->p_first == p_tle) {
     p_timer_listq->p_first = p_tle->p_next;
 
@@ -915,6 +915,9 @@ void GKI_remove_from_timer_list(TIMER_LIST_Q* p_timer_listq,
         break;
       }
     }
+    /* Recovering from unexpected state.
+       e.g. when TIMER_LIST_ENT is cleared before stop */
+    if (p_timer_listq->last_ticks) p_timer_listq->last_ticks = 0;
   }
 
   return;

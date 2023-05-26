@@ -21,11 +21,12 @@
  *  NFA interface to NFCEE - API functions
  *
  ******************************************************************************/
+#include "nfa_ee_api.h"
+
 #include <android-base/stringprintf.h>
 #include <base/logging.h>
 
 #include "nfa_dm_int.h"
-#include "nfa_ee_api.h"
 #include "nfa_ee_int.h"
 #include "nfc_int.h"
 
@@ -121,8 +122,7 @@ tNFA_STATUS NFA_EeGetInfo(uint8_t* p_num_nfcee, tNFA_EE_INFO* p_info) {
     DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
         "%s; xx:%d max_ret:%d, num_ret:%d nfcee_id: 0x%x ee_status:0x%x",
         __func__, xx, max_ret, num_ret, p_cb->nfcee_id, p_cb->ee_status);
-    if ((p_cb->ee_status & NFA_EE_STATUS_INT_MASK)
-    ) {
+    if ((p_cb->ee_status & NFA_EE_STATUS_INT_MASK)) {
       continue;
     }
     p_info->ee_handle = NFA_HANDLE_GROUP_EE | (tNFA_HANDLE)p_cb->nfcee_id;
@@ -570,14 +570,13 @@ tNFA_STATUS NFA_EeAddAidRouting(tNFA_HANDLE ee_handle, uint8_t aid_len,
   tNFA_EE_ECB* p_cb;
 
   if (aid_len == 0) {
-    p_cb = &nfa_ee_cb.ecb[NFA_EE_EMPTY_AID_ECB];
     DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
         "%s; handle:<0x%x>, default AID route", __func__, ee_handle);
   } else {
     DLOG_IF(INFO, nfc_debug_enabled)
         << StringPrintf("%s; handle:<0x%x>", __func__, ee_handle);
-    p_cb = nfa_ee_find_ecb(nfcee_id);
   }
+  p_cb = nfa_ee_find_ecb(nfcee_id);
 
   /* validate parameters; make sure the AID is in valid length range */
   if ((p_cb == nullptr) ||
@@ -590,7 +589,6 @@ tNFA_STATUS NFA_EeAddAidRouting(tNFA_HANDLE ee_handle, uint8_t aid_len,
                                aid_len);
     status = NFA_STATUS_INVALID_PARAM;
   } else {
-    p_cb->nfcee_id = nfcee_id;
     p_msg = (tNFA_EE_API_ADD_AID*)GKI_getbuf(size);
     if (p_msg != nullptr) {
       if (p_aid != nullptr)

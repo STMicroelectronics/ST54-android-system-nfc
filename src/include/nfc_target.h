@@ -26,9 +26,8 @@
 #endif
 
 /* Include common GKI definitions used by this platform */
-#include "gki_target.h"
-
 #include "bt_types.h" /* This must be defined AFTER buildcfg.h */
+#include "gki_target.h"
 
 #ifndef USERIAL_DEBUG
 #define USERIAL_DEBUG FALSE
@@ -59,7 +58,6 @@
 #ifndef NFC_MBOX_SLOW_ID
 #define NFC_MBOX_SLOW_ID (TASK_MBOX_1)
 #endif
-
 
 /* Mailbox event mask for NFA */
 #ifndef NFA_MBOX_EVT_MASK

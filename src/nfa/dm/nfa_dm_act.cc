@@ -287,7 +287,6 @@ static void nfa_dm_nfc_response_cback(tNFC_RESPONSE_EVT event,
 
       /* NFC stack enabled. Enable nfa sub-systems */
       if (p_data->enable.status == NFC_STATUS_OK) {
-
         memcpy(nfa_dm_cb.manu_specific_info, p_data->enable.manu_specific_info,
                sizeof(p_data->enable.manu_specific_info));
         /* Initialize NFA subsystems */
@@ -1358,8 +1357,7 @@ bool nfa_dm_act_stop_rf_discovery(__attribute__((unused)) tNFA_DM_MSG* p_data) {
       if (nfa_dm_cb.disc_cb.kovio_tle.in_use)
         nfa_sys_stop_timer(&nfa_dm_cb.disc_cb.kovio_tle);
       nfa_rw_stop_presence_check_timer();
-    }
-    else {
+    } else {
       // Stop RF discovery failed, need to restore flags
       nfa_dm_cb.disc_cb.disc_flags = disc_flags;
     }
@@ -1577,6 +1575,7 @@ static void nfa_dm_excl_disc_cback(tNFA_DM_RF_DISC_EVT event,
 
         nfa_dm_conn_cback_event_notify(NFA_ACTIVATED_EVT, &evt_data);
       } else {
+        // Free bufffer if it has not yet been done to avoid buffer leak
         if (nfa_dm_cb.p_activate_ntf) {
           GKI_freebuf(nfa_dm_cb.p_activate_ntf);
           nfa_dm_cb.p_activate_ntf = nullptr;
@@ -1674,10 +1673,12 @@ static void nfa_dm_poll_disc_cback(tNFA_DM_RF_DISC_EVT event,
             p_data->activate.rf_tech_param.param.pa.sel_rsp;
       }
 
+      // Free bufffer if it has not yet been done to avoid buffer leak
       if (nfa_dm_cb.p_activate_ntf) {
         GKI_freebuf(nfa_dm_cb.p_activate_ntf);
         nfa_dm_cb.p_activate_ntf = nullptr;
       }
+
       /* holding activation notification until sub-module is ready */
       nfa_dm_cb.p_activate_ntf =
           (uint8_t*)GKI_getbuf(sizeof(tNFC_ACTIVATE_DEVT));

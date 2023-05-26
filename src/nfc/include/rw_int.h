@@ -593,7 +593,7 @@ typedef struct {
   uint32_t rw_offset;     /* remaining offset to read/write   */
 
   NFC_HDR* p_data_to_free; /* GKI buffet to delete after done  */
-  NFC_HDR* p_retry_cmd; /* buffer to store cmd sent last    */
+  NFC_HDR* p_retry_cmd;    /* buffer to store cmd sent last    */
 
   tRW_T4T_CC cc_file; /* Capability Container File        */
 
@@ -670,7 +670,7 @@ typedef struct {
 
   bool mifare_ndefsector[MFC_MAX_SECTOR_NUMBER]; /* buffer to check ndef
                                                     compatible sector */
-  uint8_t ndef_status; /* bitmap for NDEF status */
+  uint8_t ndef_status;                           /* bitmap for NDEF status */
 } tRW_MFC_CB;
 
 /* ISO 15693 RW Control Block */
@@ -910,6 +910,7 @@ void rw_t2t_handle_op_complete(void);
 extern void rw_t3t_process_timeout(TIMER_LIST_ENT* p_tle);
 extern tNFC_STATUS rw_t3t_select(uint8_t peer_nfcid2[NCI_RF_F_UID_LEN],
                                  uint8_t mrti_check, uint8_t mrti_update);
+void rw_t3t_handle_nci_poll_rsp(uint8_t nci_status);
 void rw_t3t_handle_nci_poll_ntf(uint8_t nci_status, uint8_t num_responses,
                                 uint8_t sensf_res_buf_size,
                                 uint8_t* p_sensf_res_buf);

@@ -199,7 +199,6 @@ tLLCP_STATUS llcp_link_activate(tLLCP_ACTIVATE_CONFIG* p_config) {
      * disconnect of LLCP PDU.
      * This is fix for TC_MAC_TAR_BI_01 LLCP test case */
 
-
     (*llcp_cb.lcb.p_link_cback)(LLCP_LINK_ACTIVATION_FAILED_EVT,
                                 LLCP_LINK_BAD_GEN_BYTES);
 
@@ -450,8 +449,7 @@ void llcp_link_deactivate(uint8_t reason) {
         (appl_dta_mode_flag &&
          ((nfa_dm_cb.eDtaMode & 0xF00) != NFA_DTA_CR11_DEACT_SYMM) &&
          (reason == LLCP_LINK_TIMEOUT) &&
-         (llcp_cb.lcb.agreed_minor_version > 1))))
-  ) {
+         (llcp_cb.lcb.agreed_minor_version > 1))))) {
     /* get rid of the data pending in NFC tx queue, so DISC PDU can be sent ASAP
      */
     NFC_FlushData(NFC_RF_CONN_ID);
@@ -1413,7 +1411,6 @@ static void llcp_link_proc_rx_data(NFC_HDR* p_msg) {
         llcp_link_check_send_data();
       }
     }
-
   } else {
     LOG(ERROR) << StringPrintf(
         "%s; Received PDU in state of SYMM_MUST_XMIT_NEXT", __func__);
@@ -1673,13 +1670,11 @@ void llcp_link_connection_cback(__attribute__((unused)) uint8_t conn_id,
       if (llcp_cb.lcb.agreed_minor_version > 1) /* NFC Forum CR12 */
         llcp_util_send_disc(LLCP_SAP_LM, LLCP_SAP_LM);
       else
-      /* NFC Forum CR11 */
-        /* responding SYMM while LLCP is deactivated but RF link is not
+        /* NFC Forum CR11 */
+        /* respoding SYMM while LLCP is deactivated but RF link is not
          * deactivated yet */
         llcp_link_send_SYMM();
-      /* release memory for SYMM PDU */
       GKI_freebuf((NFC_HDR*)p_data->data.p_data);
-
     } else if (llcp_cb.lcb.link_state == LLCP_LINK_STATE_ACTIVATION_FAILED) {
       /* respoding with invalid LLC PDU until initiator deactivates RF link
        *after LLCP activation was failed,

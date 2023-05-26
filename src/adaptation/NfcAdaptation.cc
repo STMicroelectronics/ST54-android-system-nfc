@@ -27,6 +27,7 @@
 // aidl => syslog.h
 #undef LOG_INFO
 #undef LOG_WARNING
+#include <android-base/properties.h>
 #include <android-base/stringprintf.h>
 #include <android/hardware/nfc/1.1/INfc.h>
 #include <android/hardware/nfc/1.2/INfc.h>
@@ -71,6 +72,10 @@ using NfcAidlEvent = ::aidl::android::hardware::nfc::NfcEvent;
 using NfcAidlStatus = ::aidl::android::hardware::nfc::NfcStatus;
 using ::aidl::android::hardware::nfc::NfcCloseType;
 using Status = ::ndk::ScopedAStatus;
+
+#define VERBOSE_VENDOR_LOG_PROPERTY "persist.nfc.vendor_debug_enabled"
+#define VERBOSE_VENDOR_LOG_ENABLED "true"
+#define VERBOSE_VENDOR_LOG_DISABLED "false"
 
 std::string NFC_AIDL_HAL_SERVICE_NAME = "android.hardware.nfc.INfc/default";
 
@@ -178,6 +183,7 @@ class NfcHalDeathRecipient : public hidl_death_recipient {
       return false;
     }
   }
+
  public:
   android::sp<android::hardware::nfc::V1_0::INfc> mNfcDeathHal;
   NfcHalDeathRecipient(android::sp<android::hardware::nfc::V1_0::INfc>& mHal) {
@@ -326,7 +332,6 @@ NfcAdaptation& NfcAdaptation::GetInstance() {
   return *mpInstance;
 }
 
-
 void NfcAdaptation::GetVendorConfigs(
     std::map<std::string, ConfigValue>& configMap) {
   NfcVendorConfigV1_2 configValue;
@@ -405,60 +410,61 @@ void NfcAdaptation::GetVendorConfigs(
           ConfigValue((uint32_t)aidlConfigValue.presenceCheckAlgorithm));
     }
   } else if (mHal_1_1 || mHal_1_2) {
-  std::vector<uint8_t> nfaPropCfg = {
-      configValue.v1_1.nfaProprietaryCfg.protocol18092Active,
-      configValue.v1_1.nfaProprietaryCfg.protocolBPrime,
-      configValue.v1_1.nfaProprietaryCfg.protocolDual,
-      configValue.v1_1.nfaProprietaryCfg.protocol15693,
-      configValue.v1_1.nfaProprietaryCfg.protocolKovio,
-      configValue.v1_1.nfaProprietaryCfg.protocolMifare,
-      configValue.v1_1.nfaProprietaryCfg.discoveryPollKovio,
-      configValue.v1_1.nfaProprietaryCfg.discoveryPollBPrime,
-      configValue.v1_1.nfaProprietaryCfg.discoveryListenBPrime};
-  configMap.emplace(NAME_NFA_PROPRIETARY_CFG, ConfigValue(nfaPropCfg));
-  configMap.emplace(NAME_NFA_POLL_BAIL_OUT_MODE,
-                    ConfigValue(configValue.v1_1.nfaPollBailOutMode ? 1 : 0));
-  configMap.emplace(NAME_DEFAULT_OFFHOST_ROUTE,
-                    ConfigValue(configValue.v1_1.defaultOffHostRoute));
-  if (configValue.offHostRouteUicc.size() != 0) {
-    configMap.emplace(NAME_OFFHOST_ROUTE_UICC,
-                      ConfigValue(configValue.offHostRouteUicc));
-  }
-  if (configValue.offHostRouteEse.size() != 0) {
-    configMap.emplace(NAME_OFFHOST_ROUTE_ESE,
-                      ConfigValue(configValue.offHostRouteEse));
-  }
-  configMap.emplace(NAME_DEFAULT_ROUTE,
-                    ConfigValue(configValue.v1_1.defaultRoute));
-  configMap.emplace(NAME_DEFAULT_NFCF_ROUTE,
-                    ConfigValue(configValue.v1_1.defaultOffHostRouteFelica));
-  configMap.emplace(NAME_DEFAULT_ISODEP_ROUTE,
-                    ConfigValue(configValue.defaultIsoDepRoute));
-  configMap.emplace(NAME_DEFAULT_SYS_CODE_ROUTE,
-                    ConfigValue(configValue.v1_1.defaultSystemCodeRoute));
-  configMap.emplace(NAME_DEFAULT_SYS_CODE_PWR_STATE,
-                    ConfigValue(configValue.v1_1.defaultSystemCodePowerState));
-  configMap.emplace(NAME_OFF_HOST_SIM_PIPE_ID,
-                    ConfigValue(configValue.v1_1.offHostSIMPipeId));
-  configMap.emplace(NAME_OFF_HOST_ESE_PIPE_ID,
-                    ConfigValue(configValue.v1_1.offHostESEPipeId));
-  configMap.emplace(NAME_ISO_DEP_MAX_TRANSCEIVE,
-                    ConfigValue(configValue.v1_1.maxIsoDepTransceiveLength));
-  if (configValue.v1_1.hostWhitelist.size() != 0) {
-    configMap.emplace(NAME_DEVICE_HOST_ALLOW_LIST,
-                      ConfigValue(configValue.v1_1.hostWhitelist));
-  }
-  /* For Backwards compatibility */
-  if (configValue.v1_1.presenceCheckAlgorithm ==
-      PresenceCheckAlgorithm::ISO_DEP_NAK) {
-    configMap.emplace(NAME_PRESENCE_CHECK_ALGORITHM,
-                      ConfigValue((uint32_t)NFA_RW_PRES_CHK_ISO_DEP_NAK));
-  } else {
+    std::vector<uint8_t> nfaPropCfg = {
+        configValue.v1_1.nfaProprietaryCfg.protocol18092Active,
+        configValue.v1_1.nfaProprietaryCfg.protocolBPrime,
+        configValue.v1_1.nfaProprietaryCfg.protocolDual,
+        configValue.v1_1.nfaProprietaryCfg.protocol15693,
+        configValue.v1_1.nfaProprietaryCfg.protocolKovio,
+        configValue.v1_1.nfaProprietaryCfg.protocolMifare,
+        configValue.v1_1.nfaProprietaryCfg.discoveryPollKovio,
+        configValue.v1_1.nfaProprietaryCfg.discoveryPollBPrime,
+        configValue.v1_1.nfaProprietaryCfg.discoveryListenBPrime};
+    configMap.emplace(NAME_NFA_PROPRIETARY_CFG, ConfigValue(nfaPropCfg));
+    configMap.emplace(NAME_NFA_POLL_BAIL_OUT_MODE,
+                      ConfigValue(configValue.v1_1.nfaPollBailOutMode ? 1 : 0));
+    configMap.emplace(NAME_DEFAULT_OFFHOST_ROUTE,
+                      ConfigValue(configValue.v1_1.defaultOffHostRoute));
+    if (configValue.offHostRouteUicc.size() != 0) {
+      configMap.emplace(NAME_OFFHOST_ROUTE_UICC,
+                        ConfigValue(configValue.offHostRouteUicc));
+    }
+    if (configValue.offHostRouteEse.size() != 0) {
+      configMap.emplace(NAME_OFFHOST_ROUTE_ESE,
+                        ConfigValue(configValue.offHostRouteEse));
+    }
+    configMap.emplace(NAME_DEFAULT_ROUTE,
+                      ConfigValue(configValue.v1_1.defaultRoute));
+    configMap.emplace(NAME_DEFAULT_NFCF_ROUTE,
+                      ConfigValue(configValue.v1_1.defaultOffHostRouteFelica));
+    configMap.emplace(NAME_DEFAULT_ISODEP_ROUTE,
+                      ConfigValue(configValue.defaultIsoDepRoute));
+    configMap.emplace(NAME_DEFAULT_SYS_CODE_ROUTE,
+                      ConfigValue(configValue.v1_1.defaultSystemCodeRoute));
     configMap.emplace(
-        NAME_PRESENCE_CHECK_ALGORITHM,
-        ConfigValue((uint32_t)configValue.v1_1.presenceCheckAlgorithm));
+        NAME_DEFAULT_SYS_CODE_PWR_STATE,
+        ConfigValue(configValue.v1_1.defaultSystemCodePowerState));
+    configMap.emplace(NAME_OFF_HOST_SIM_PIPE_ID,
+                      ConfigValue(configValue.v1_1.offHostSIMPipeId));
+    configMap.emplace(NAME_OFF_HOST_ESE_PIPE_ID,
+                      ConfigValue(configValue.v1_1.offHostESEPipeId));
+    configMap.emplace(NAME_ISO_DEP_MAX_TRANSCEIVE,
+                      ConfigValue(configValue.v1_1.maxIsoDepTransceiveLength));
+    if (configValue.v1_1.hostWhitelist.size() != 0) {
+      configMap.emplace(NAME_DEVICE_HOST_ALLOW_LIST,
+                        ConfigValue(configValue.v1_1.hostWhitelist));
+    }
+    /* For Backwards compatibility */
+    if (configValue.v1_1.presenceCheckAlgorithm ==
+        PresenceCheckAlgorithm::ISO_DEP_NAK) {
+      configMap.emplace(NAME_PRESENCE_CHECK_ALGORITHM,
+                        ConfigValue((uint32_t)NFA_RW_PRES_CHK_ISO_DEP_NAK));
+    } else {
+      configMap.emplace(
+          NAME_PRESENCE_CHECK_ALGORITHM,
+          ConfigValue((uint32_t)configValue.v1_1.presenceCheckAlgorithm));
+    }
   }
-}
 }
 /*******************************************************************************
 **
@@ -481,9 +487,8 @@ void NfcAdaptation::Initialize() {
   initializeGlobalDebugEnabledFlag();
   initializeNciResetTypeFlag();
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s: enter", func);
-  LOG(INFO) << StringPrintf("%s; ver=%s nfa=%s st=130-20230215-23W07p0", func,
-                            "AndroidQ", "ST");
+  LOG(INFO) << StringPrintf("%s; ver=%s nfa=%s st=140-20230525-23W21p0",
+                            __func__, "AndroidQ", "ST");
 
   nfc_storage_path = NfcConfig::getString(NAME_NFA_STORAGE, "/data/nfc");
 
@@ -544,7 +549,6 @@ void NfcAdaptation::Initialize() {
     nfa_hci_cfg.p_allowlist = &host_allowlist[0];
   }
 
-
   GKI_init();
   GKI_enable();
   GKI_create_task((TASKPTR)NFCA_TASK, BTU_TASK, (int8_t*)"NFCA_TASK", nullptr,
@@ -578,22 +582,24 @@ void NfcAdaptation::Finalize() {
 
   NfcConfig::clear();
 
-  if (mHal != nullptr) {
+  if (mAidlHal != nullptr) {
+    AIBinder_unlinkToDeath(mAidlHal->asBinder().get(), mDeathRecipient.get(),
+                           this);
+  } else if (mHal != nullptr) {
     mNfcHalDeathRecipient->finalize();
   }
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s: exit", func);
   delete this;
 }
 
-
 void NfcAdaptation::FactoryReset() {
-    if (mAidlHal != nullptr) {
-      mAidlHal->factoryReset();
-    } else if (mHal_1_2 != nullptr) {
-      mHal_1_2->factoryReset();
-    } else if (mHal_1_1 != nullptr) {
-      mHal_1_1->factoryReset();
-    }
+  if (mAidlHal != nullptr) {
+    mAidlHal->factoryReset();
+  } else if (mHal_1_2 != nullptr) {
+    mHal_1_2->factoryReset();
+  } else if (mHal_1_1 != nullptr) {
+    mHal_1_1->factoryReset();
+  }
 }
 
 void NfcAdaptation::DeviceShutdown() {
@@ -601,6 +607,7 @@ void NfcAdaptation::DeviceShutdown() {
     mAidlHal->close(NfcCloseType::HOST_SWITCHED_OFF);
     AIBinder_unlinkToDeath(mAidlHal->asBinder().get(), mDeathRecipient.get(),
                            this);
+    mAidlHal = nullptr;
   } else {
     if (mHal_1_2 != nullptr) {
       mHal_1_2->closeForPowerOffCase();
@@ -802,11 +809,20 @@ void NfcAdaptation::HalOpen(tHAL_NFC_CBACK* p_hal_cback,
                  << ::aidl::android::hardware::nfc::toString(
                         static_cast<NfcAidlStatus>(
                             status.getServiceSpecificError()));
+    } else {
+      bool verbose_vendor_log =
+          android::base::GetProperty(VERBOSE_VENDOR_LOG_PROPERTY, "")
+                  .compare(VERBOSE_VENDOR_LOG_ENABLED)
+              ? false
+              : true;
+      mAidlHal->setEnableVerboseLogging(verbose_vendor_log);
+      DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+          "%s: verbose_vendor_log=%u", __func__, verbose_vendor_log);
     }
   } else if (mHal_1_1 != nullptr) {
     mCallback = new NfcClientCallback(p_hal_cback, p_data_cback);
     mHal_1_1->open_1_1(mCallback);
-  } else {
+  } else if (mHal != nullptr) {
     mCallback = new NfcClientCallback(p_hal_cback, p_data_cback);
     mHal->open(mCallback);
   }
@@ -827,7 +843,7 @@ void NfcAdaptation::HalClose() {
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s", func);
   if (mAidlHal != nullptr) {
     mAidlHal->close(NfcCloseType::DISABLE);
-  } else {
+  } else if (mHal != nullptr) {
     mHal->close();
   }
 }
@@ -849,7 +865,7 @@ void NfcAdaptation::HalWrite(uint16_t data_len, uint8_t* p_data) {
     int ret;
     std::vector<uint8_t> aidl_data(p_data, p_data + data_len);
     mAidlHal->write(aidl_data, &ret);
-  } else {
+  } else if (mHal != nullptr) {
     ::android::hardware::nfc::V1_0::NfcData data;
     data.setToExternal(p_data, data_len);
     mHal->write(data);
@@ -866,7 +882,6 @@ void NfcAdaptation::HalWrite(uint16_t data_len, uint8_t* p_data) {
 **
 *******************************************************************************/
 
-
 void NfcAdaptation::HalCoreInitialized(uint16_t data_len,
                                        uint8_t* p_core_init_rsp_params) {
   const char* func = "NfcAdaptation::HalCoreInitialized";
@@ -874,7 +889,7 @@ void NfcAdaptation::HalCoreInitialized(uint16_t data_len,
   if (mAidlHal != nullptr) {
     // AIDL coreInitialized doesn't send data to HAL.
     mAidlHal->coreInitialized();
-  } else {
+  } else if (mHal != nullptr) {
     hidl_vec<uint8_t> data;
     data.setToExternal(p_core_init_rsp_params, data_len);
     mHal->coreInitialized(data);
@@ -896,7 +911,6 @@ void NfcAdaptation::HalCoreInitialized(uint16_t data_len,
 **
 *******************************************************************************/
 
-
 bool NfcAdaptation::HalPrediscover() {
   const char* func = "NfcAdaptation::HalPrediscover";
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s", func);
@@ -907,7 +921,7 @@ bool NfcAdaptation::HalPrediscover() {
           << StringPrintf("%s wait for NFC_PRE_DISCOVER_CPLT_EVT", func);
       return true;
     }
-  } else {
+  } else if (mHal != nullptr) {
     mHal->prediscover();
   }
 
@@ -933,7 +947,7 @@ void NfcAdaptation::HalControlGranted() {
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s", func);
   if (mAidlHal != nullptr) {
     LOG(ERROR) << StringPrintf("Unsupported function %s", func);
-  } else {
+  } else if (mHal != nullptr) {
     mHal->controlGranted();
   }
 }
@@ -953,7 +967,7 @@ void NfcAdaptation::HalPowerCycle() {
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s", func);
   if (mAidlHal != nullptr) {
     mAidlHal->powerCycle();
-  } else {
+  } else if (mHal != nullptr) {
     mHal->powerCycle();
   }
 }
