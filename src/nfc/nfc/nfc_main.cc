@@ -340,10 +340,8 @@ void nfc_enabled(tNFC_STATUS nfc_status, NFC_HDR* p_init_rsp_msg) {
     nfc_free_conn_cb(p_cb);
 
     /* if NFCC didn't respond to CORE_RESET or CORE_INIT */
-    if (nfc_cb.nfc_state == NFC_STATE_W4_HAL_OPEN) {
-      nfc_set_state(NFC_STATE_NONE);
-    } else if (nfc_cb.nfc_state == NFC_STATE_W4_HAL_OPEN ||
-               nfc_cb.nfc_state == NFC_STATE_CORE_INIT) {
+    if (nfc_cb.nfc_state == NFC_STATE_W4_HAL_OPEN ||
+        nfc_cb.nfc_state == NFC_STATE_CORE_INIT) {
       /* report status after closing HAL */
       nfc_cb.p_hal->close();
       return;

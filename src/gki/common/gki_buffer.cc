@@ -308,7 +308,8 @@ void* GKI_getbuf(uint16_t size) {
   Q = &gki_cb.com.freeq[p_hdr->q_id];
   if (++Q->cur_cnt > Q->max_cnt) Q->max_cnt = Q->cur_cnt;
   GKI_enable();
-#if ((!defined(ST21NFC)) || defined(GKI_LEAKAGE_DEBUG))
+  // AOSP deviation: always logged in AOSP logcats
+#ifdef GKI_LEAKAGE_DEBUG
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
       "%s %p %d:%d", __func__, ((uint8_t*)p_hdr + BUFFER_HDR_SIZE), Q->cur_cnt,
       Q->max_cnt);
@@ -1371,18 +1372,8 @@ uint16_t GKI_get_pool_bufsize(uint8_t pool_id) {
 uint16_t GKI_poolutilization(uint8_t pool_id) {
   FREE_QUEUE_T* Q;
 
-#if (defined(ST21NFC) && defined(DYN_ALLOC))
   UNUSED(pool_id);
   Q = &gki_cb.com.freeq[0];
   return (Q->cur_cnt * 100) / (GKI_BUF0_MAX + GKI_BUF1_MAX + GKI_BUF2_MAX +
                                GKI_BUF3_MAX + GKI_BUF4_MAX);
-#else
-  if (pool_id >= GKI_NUM_TOTAL_BUF_POOLS) return (100);
-
-  Q = &gki_cb.com.freeq[pool_id];
-
-  if (Q->total == 0) return (100);
-
-  return ((Q->cur_cnt * 100) / Q->total);
-#endif
 }
