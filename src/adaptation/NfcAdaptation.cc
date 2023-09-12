@@ -205,7 +205,7 @@ class NfcHalDeathRecipient : public hidl_death_recipient {
       ALOGE(
           "NfcHalDeathRecipient::serviceDied - no skip Killing "
           "NfcService");
-      abort();
+      exit(0);
     }
   }
   void finalize() {
@@ -487,7 +487,7 @@ void NfcAdaptation::Initialize() {
   initializeGlobalDebugEnabledFlag();
   initializeNciResetTypeFlag();
 
-  LOG(INFO) << StringPrintf("%s; ver=%s nfa=%s st=140-20230616-23W24p0",
+  LOG(INFO) << StringPrintf("%s; ver=%s nfa=%s st=140-20230909-23W36p0",
                             __func__, "AndroidQ", "ST");
 
   nfc_storage_path = NfcConfig::getString(NAME_NFA_STORAGE, "/data/nfc");
@@ -678,8 +678,6 @@ uint32_t NfcAdaptation::Thread(__attribute__((unused)) uint32_t arg) {
   }
 
   NfcAdaptation::GetInstance().signal();
-
-  GKI_exit_task(GKI_get_taskid());
   return 0;
 }
 
@@ -1079,7 +1077,7 @@ void NfcAdaptation::HalAidlBinderDiedImpl() {
                            this);
     mAidlHal = nullptr;
   }
-  abort();
+  exit(0);
 }
 
 // static

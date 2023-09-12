@@ -1,4 +1,3 @@
-// START system version
 package {
     // See: http://go/android-license-faq
     // A large-scale-change added 'default_applicable_licenses' to import
@@ -43,6 +42,7 @@ cc_library {
         "-DDYN_ALLOC=1",
         // "-DGKI_LEAKAGE_DEBUG",
         "-DBUILDCFG=1",
+        "-DGKI_PTHREAD_JOINABLE",
         "-Wall",
         "-Werror",
         "-Wimplicit-fallthrough",
@@ -190,4 +190,3 @@ rust_test_host {
     ],
 }
 
-// END system version
