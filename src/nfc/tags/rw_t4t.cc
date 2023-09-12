@@ -22,15 +22,17 @@
  *  mode.
  *
  ******************************************************************************/
-#include <android-base/stringprintf.h>
-#include <base/logging.h>
 #include <log/log.h>
 #include <string.h>
+
+#include <android-base/stringprintf.h>
+#include <base/logging.h>
+
+#include "nfc_target.h"
 
 #include "bt_types.h"
 #include "nfc_api.h"
 #include "nfc_int.h"
-#include "nfc_target.h"
 #include "rw_api.h"
 #include "rw_int.h"
 

@@ -378,10 +378,6 @@ static void nfa_dm_nfc_response_cback(tNFC_RESPONSE_EVT event,
       break;
 
     case NFC_GEN_ERROR_REVT: /* generic error command or notification */
-      if (p_data->status == 0xE1) {
-        LOG(ERROR) << __func__ << " - Got FW buffer overflow !";
-        NFC_RestartOrAbort();
-      }
       if (appl_dta_mode_flag) {
         dm_cback_data.status = p_data->status;
         (*nfa_dm_cb.p_dm_cback)(NFA_DM_GEN_ERROR_EVT, &dm_cback_data);
@@ -839,11 +835,14 @@ bool nfa_dm_act_deactivate(tNFA_DM_MSG* p_data) {
       }
       return true;
     } else {
-      if (nfa_dm_rf_deactivate(deact_type) == NFA_STATUS_OK) {
-        if (nfa_dm_cb.disc_cb.kovio_tle.in_use)
-          nfa_sys_stop_timer(&nfa_dm_cb.disc_cb.kovio_tle);
-        nfa_rw_stop_presence_check_timer();
-        return true;
+      if ((nfa_dm_cb.disc_cb.activated_protocol != NFC_PROTOCOL_KOVIO) ||
+          (nfa_dm_cb.disc_cb.disc_state == NFA_DM_RFST_POLL_ACTIVE)) {
+        if (nfa_dm_rf_deactivate(deact_type) == NFA_STATUS_OK) {
+          if (nfa_dm_cb.disc_cb.kovio_tle.in_use)
+            nfa_sys_stop_timer(&nfa_dm_cb.disc_cb.kovio_tle);
+          nfa_rw_stop_presence_check_timer();
+          return true;
+        }
       }
     }
   }
@@ -1575,7 +1574,6 @@ static void nfa_dm_excl_disc_cback(tNFA_DM_RF_DISC_EVT event,
 
         nfa_dm_conn_cback_event_notify(NFA_ACTIVATED_EVT, &evt_data);
       } else {
-        // Free bufffer if it has not yet been done to avoid buffer leak
         if (nfa_dm_cb.p_activate_ntf) {
           GKI_freebuf(nfa_dm_cb.p_activate_ntf);
           nfa_dm_cb.p_activate_ntf = nullptr;
@@ -1673,12 +1671,10 @@ static void nfa_dm_poll_disc_cback(tNFA_DM_RF_DISC_EVT event,
             p_data->activate.rf_tech_param.param.pa.sel_rsp;
       }
 
-      // Free bufffer if it has not yet been done to avoid buffer leak
       if (nfa_dm_cb.p_activate_ntf) {
         GKI_freebuf(nfa_dm_cb.p_activate_ntf);
         nfa_dm_cb.p_activate_ntf = nullptr;
       }
-
       /* holding activation notification until sub-module is ready */
       nfa_dm_cb.p_activate_ntf =
           (uint8_t*)GKI_getbuf(sizeof(tNFC_ACTIVATE_DEVT));

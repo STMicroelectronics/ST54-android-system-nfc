@@ -28,18 +28,18 @@
 #include <fcntl.h>
 #include <log/log.h>
 #include <sys/stat.h>
-#include <sys/time.h>
+
+#include "nfc_target.h"
 
 #include "include/debug_nfcsnoop.h"
 #include "nci_defs.h"
 #include "nci_hmsgs.h"
 #include "nfc_api.h"
 #include "nfc_int.h"
-#include "nfc_target.h"
 #include "rw_api.h"
 #include "rw_int.h"
 
-#include <statslog_nfc_st.h>
+#include <statslog.h>
 #include "metrics.h"
 #include <pthread.h>
 
@@ -328,8 +328,8 @@ uint8_t nfc_ncif_send_data(tNFC_CONN_CB* p_cb, NFC_HDR* p_data) {
                              (timer_end.tv_usec - timer_start.tv_usec) / 1000;
     memset(&timer_start, 0, sizeof(timer_start));
     memset(&timer_end, 0, sizeof(timer_end));
-    nfc::stats::stats_write(nfc::stats::NFC_HCE_TRANSACTION_OCCURRED,
-                            (int32_t)delta_time_ms);
+    android::util::stats_write(android::util::NFC_HCE_TRANSACTION_OCCURRED,
+                               (int32_t)delta_time_ms);
   }
   return (NCI_STATUS_OK);
 }
@@ -697,9 +697,9 @@ void nfc_ncif_event_status(tNFC_RESPONSE_EVT event, uint8_t status) {
   tNFC_RESPONSE evt_data;
   if (event == NFC_NFCC_TIMEOUT_REVT && status == NFC_STATUS_HW_TIMEOUT) {
     uint32_t cmd_hdr = (nfc_cb.last_hdr[0] << 8) | nfc_cb.last_hdr[1];
-    nfc::stats::stats_write(nfc::stats::NFC_ERROR_OCCURRED,
-                            (int32_t)NCI_TIMEOUT, (int32_t)cmd_hdr,
-                            (int32_t)status);
+    android::util::stats_write(android::util::NFC_ERROR_OCCURRED,
+                               (int32_t)NCI_TIMEOUT, (int32_t)cmd_hdr,
+                               (int32_t)status);
   }
   if (nfc_cb.p_resp_cback) {
     evt_data.status = (tNFC_STATUS)status;
@@ -724,8 +724,8 @@ void nfc_ncif_error_status(uint8_t conn_id, uint8_t status) {
     nfc_conn.status = status;
     (*p_cb->p_cback)(conn_id, NFC_ERROR_CEVT, &nfc_conn);
   }
-  nfc::stats::stats_write(nfc::stats::NFC_ERROR_OCCURRED, (int32_t)ERROR_NTF,
-                          (int32_t)0, (int32_t)status);
+  android::util::stats_write(android::util::NFC_ERROR_OCCURRED,
+                             (int32_t)ERROR_NTF, (int32_t)0, (int32_t)status);
 }
 
 /*******************************************************************************
@@ -990,18 +990,9 @@ Available after Technology Detection
   } else if (NCI_DISCOVERY_TYPE_POLL_ACTIVE == p_param->mode) {
     acm_p = &p_param->param.acm_p;
 
-    /* Skip RF Tech Specific Parametres +
-     * Skip RF Technology mode, Tx , Rx baud rate & length params
-     * Byte 1         Byte 2     Byte 3    Byte 4
-     * Tech and Mode  Tx BR      Rx BR     Length of Act Param
-     */
-    p = p + len + 3;
-    plen = *p++;
     if (plen < 1) {
       goto invalid_packet;
     }
-    LOG(INFO) << StringPrintf(
-        "RF Tech Specific Params, plen: 0x%x, atr_res_len: 0x%x", plen, *p);
     plen--;
     acm_p->atr_res_len = *p++;
     if (acm_p->atr_res_len > 0) {
@@ -2021,19 +2012,6 @@ void nfc_ncif_proc_get_config_rsp(NFC_HDR* p_evt) {
     evt_data.get_config.p_param_tlvs = p;
     (*p_cback)(NFC_GET_CONFIG_REVT, &evt_data);
   }
-}
-
-/*******************************************************************************
-**
-** Function         nfc_ncif_proc_t3t_polling_rsp
-**
-** Description      Handle NCI_MSG_RF_T3T_POLLING RSP
-**
-** Returns          void
-**
-*******************************************************************************/
-void nfc_ncif_proc_t3t_polling_rsp(uint8_t status) {
-  rw_t3t_handle_nci_poll_rsp(status);
 }
 
 /*******************************************************************************

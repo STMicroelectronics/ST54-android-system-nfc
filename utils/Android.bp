@@ -1,5 +1,4 @@
 
-// START system version
 package {
     // See: http://go/android-license-faq
     // A large-scale-change added 'default_applicable_licenses' to import
@@ -11,9 +10,9 @@ package {
 
 cc_defaults {
     name: "st_nfc_utils_defaults",
-    include_dirs: [
-        "system/nfc",
-    ],
+    // include_dirs: [
+    //     "system/nfc",
+    // ],
     cflags: [
         "-Wall",
         "-Werror",
@@ -48,4 +47,3 @@ cc_library_static {
         "libbase",
     ],
 }
-// END system version

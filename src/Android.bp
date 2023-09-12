@@ -1,4 +1,3 @@
-// START system version
 package {
     // See: http://go/android-license-faq
     // A large-scale-change added 'default_applicable_licenses' to import
@@ -24,7 +23,7 @@ cc_library {
         "libz",
         "libchrome",
         "libbase",
-        "libstatslog_nfc_st",
+        "libstatslog",
 
         // Treble configuration
         "libhidlbase",
@@ -48,12 +47,12 @@ cc_library {
         "-Wimplicit-fallthrough",
         "-DDCHECK_ALWAYS_ON"
     ],
-    header_libs : [
-        "libutils_headers",
+	header_libs : [
+		"libutils_headers",
     ],
-    static: {
-        cflags: ["-fvisibility=hidden"],
-    },
+	static: {
+		cflags: ["-fvisibility=hidden"],
+	},
     local_include_dirs: [
         "include",
         "gki/ulinux",
@@ -101,51 +100,6 @@ cc_library {
 
 }
 
-cc_library {
-    name: "libstatslog_nfc_st",
-    host_supported: true,
-    generated_sources: ["statslog_nfc_st.cpp"],
-    generated_headers: ["statslog_nfc_st.h"],
-    export_generated_headers: ["statslog_nfc_st.h"],
-    system_ext_specific: true,    
-    shared_libs: [
-        "libcutils",
-    ],
-    target: {
-        android: {
-            shared_libs: [
-                "libstatssocket",
-            ],
-        },
-        host: {
-            static_libs: [
-                "libstatssocket",
-            ],
-        },
-        darwin: {
-            enabled: false,
-        },
-    },
-}
-
-genrule {
-    name: "statslog_nfc_st.h",
-    tools: ["stats-log-api-gen"],
-    cmd: "$(location stats-log-api-gen) --header $(genDir)/statslog_nfc_st.h --module nfc --namespace nfc,stats",
-    out: [
-        "statslog_nfc_st.h",
-    ],
-}
-
-genrule {
-    name: "statslog_nfc_st.cpp",
-    tools: ["stats-log-api-gen"],
-    cmd: "$(location stats-log-api-gen) --cpp $(genDir)/statslog_nfc_st.cpp --module nfc --namespace nfc,stats --importHeader statslog_nfc_st.h",
-    out: [
-        "statslog_nfc_st.cpp",
-    ],
-}
-
 
 genrule {
     name: "NfcGeneratedPackets_rust_st",
@@ -190,4 +144,3 @@ rust_test_host {
     ],
 }
 
-// END system version

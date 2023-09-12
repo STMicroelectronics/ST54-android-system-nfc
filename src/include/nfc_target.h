@@ -26,8 +26,9 @@
 #endif
 
 /* Include common GKI definitions used by this platform */
-#include "bt_types.h" /* This must be defined AFTER buildcfg.h */
 #include "gki_target.h"
+
+#include "bt_types.h" /* This must be defined AFTER buildcfg.h */
 
 #ifndef USERIAL_DEBUG
 #define USERIAL_DEBUG FALSE

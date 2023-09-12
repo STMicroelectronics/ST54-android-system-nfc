@@ -22,15 +22,17 @@
  *  mode.
  *
  ******************************************************************************/
-#include <android-base/stringprintf.h>
-#include <base/logging.h>
 #include <log/log.h>
 #include <string.h>
+
+#include <android-base/stringprintf.h>
+#include <base/logging.h>
+
+#include "nfc_target.h"
 
 #include "bt_types.h"
 #include "nfc_api.h"
 #include "nfc_int.h"
-#include "nfc_target.h"
 #include "rw_api.h"
 #include "rw_int.h"
 
@@ -539,6 +541,15 @@ void rw_i93_send_to_upper(NFC_HDR* p_resp) {
     case I93_CMD_EXT_READ_MULTI_BLOCK:
     case I93_CMD_GET_MULTI_BLK_SEC:
     case I93_CMD_EXT_GET_MULTI_BLK_SEC:
+
+      if (UINT16_MAX - length < NFC_HDR_SIZE) {
+        rw_data.i93_cmd_cmpl.status = NFC_STATUS_FAILED;
+        rw_data.i93_cmd_cmpl.command = p_i93->sent_cmd;
+        rw_cb.tcb.i93.sent_cmd = 0;
+
+        event = RW_I93_CMD_CMPL_EVT;
+        break;
+      }
 
       /* forward tag data or security status */
       p_buff = (NFC_HDR*)GKI_getbuf((uint16_t)(length + NFC_HDR_SIZE));
@@ -3089,6 +3100,7 @@ void rw_i93_handle_error(tNFC_STATUS status) {
 
   if (rw_cb.p_cback) {
     rw_data.status = status;
+
     switch (p_i93->state) {
       case RW_I93_STATE_IDLE: /* in case of RawFrame */
         event = RW_I93_INTF_ERROR_EVT;

@@ -24,10 +24,8 @@
 #ifndef NFA_HCI_INT_H
 #define NFA_HCI_INT_H
 
-#include <cstdint>
 #include <string>
 #include <pthread.h>
-
 #include "nfa_ee_api.h"
 #include "nfa_hci_api.h"
 #include "nfa_sys.h"

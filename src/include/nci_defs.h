@@ -27,7 +27,8 @@
 
 #include <stdint.h>
 
-/* Define the message header size for all NCI Commands and Notifications. */
+/* Define the message header size for all NCI Commands and Notifications.
+ */
 #define NCI_MSG_HDR_SIZE 3  /* per NCI spec */
 #define NCI_DATA_HDR_SIZE 3 /* per NCI spec */
 #define NCI_MAX_PAYLOAD_SIZE 0xFE
@@ -265,14 +266,12 @@
 #define NCI_DISCOVER_ACTION_DISABLE 0
 #define NCI_DISCOVER_ACTION_ENABLE 1
 
-/* RF Technology and Mode */
-#define NCI_RF_PARAM_ID_TECH_N_MODE 0x00
-/* Transmit Bit Rate */
-#define NCI_RF_PARAM_ID_TX_BIT_RATE 0x01
-/* Receive Bit Rate */
-#define NCI_RF_PARAM_ID_RX_BIT_RATE 0x02
-/* B Data Exchange config param */
-#define NCI_RF_PARAM_ID_B_DATA_EX_PARAM 0x03
+#define NCI_RF_PARAM_ID_TECH_N_MODE 0x00 /* RF Technology and Mode   */
+#define NCI_RF_PARAM_ID_TX_BIT_RATE 0x01 /* Transmit Bit Rate        */
+#define NCI_RF_PARAM_ID_RX_BIT_RATE 0x02 /* Receive Bit Rate         */
+#define NCI_RF_PARAM_ID_B_DATA_EX_PARAM \
+  0x03 /* B Data Exchange config param  \
+        */
 
 #define NCI_NFCEE_INTERFACE_APDU 0x00
 #define NCI_NFCEE_INTERFACE_HCI_ACCESS 0x01
@@ -331,7 +330,6 @@ typedef uint8_t tNCI_NFCEE_PL_CONFIG;
  * NCI Interface Mode
  **********************************************/
 #define NCI_INTERFACE_MODE_POLL 1
-
 #define NCI_INTERFACE_MODE_POLL_N_LISTEN 3
 
 /**********************************************

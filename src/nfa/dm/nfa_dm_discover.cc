@@ -1734,9 +1734,15 @@ static void nfa_dm_disc_kovio_timeout_cback(__attribute__((unused))
 *******************************************************************************/
 void nfa_dm_disc_mifare_idle_timeout_cback(__attribute__((unused))
                                            TIMER_LIST_ENT* p_tle) {
+  tNFA_CONN_EVT_DATA evt_data;
   DLOG_IF(INFO, nfc_debug_enabled) << __func__;
 
   nfa_rw_cb.mifare_pres_check_status = NFA_RW_MIFARE_PRES_CHECK_NONE;
+
+  evt_data.deactivated.type = NFA_DEACTIVATE_TYPE_DISCOVERY;
+  /* notify deactivation to upper layer */
+  nfa_dm_conn_cback_event_notify(NFA_DEACTIVATED_EVT, &evt_data);
+
   nfa_dm_disc_end_sleep_wakeup(NFA_STATUS_FAILED);
 }
 

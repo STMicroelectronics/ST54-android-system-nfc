@@ -368,7 +368,7 @@ uint32_t nfc_task(__attribute__((unused)) uint32_t arg) {
   /* main loop */
   while (true) {
     event = GKI_wait(0xFFFF, 0);
-    if (event & EVENT_MASK(GKI_SHUTDOWN_EVT)) {
+    if (event == EVENT_MASK(GKI_SHUTDOWN_EVT)) {
       break;
     }
     /* Handle NFC_TASK_EVT_TRANSPORT_READY from NFC HAL */
@@ -380,16 +380,14 @@ uint32_t nfc_task(__attribute__((unused)) uint32_t arg) {
       nfc_set_state(NFC_STATE_CORE_INIT);
 
       /* Reset NCI configurations base on NAME_NCI_RESET_TYPE setting */
-      if (nfc_nci_reset_type == 0x02 || nfc_nci_reset_keep_cfg_enabled) {
+      if (nfc_nci_reset_type == 0x02) {
         /* 0x02, keep configurations. */
         nci_snd_core_reset(NCI_RESET_TYPE_KEEP_CFG);
         nfc_nci_reset_keep_cfg_enabled = true;
       } else if (nfc_nci_reset_type == 0x01 &&
                  !nfc_nci_reset_keep_cfg_enabled) {
         /* 0x01, reset configurations only once every boot. */
-
-        nci_snd_core_reset(NCI_RESET_TYPE_RESET_CFG);
-
+        nci_snd_core_reset(NCI_RESET_TYPE_KEEP_CFG);
         nfc_nci_reset_keep_cfg_enabled = true;
       } else {
         /* Default, reset configurations every time*/
@@ -464,6 +462,5 @@ uint32_t nfc_task(__attribute__((unused)) uint32_t arg) {
 
   DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s; terminated", __func__);
 
-  GKI_exit_task(GKI_get_taskid());
   return 0;
 }

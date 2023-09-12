@@ -17,12 +17,12 @@
  ******************************************************************************/
 #include "CrcChecksum.h"
 
-#include <android-base/stringprintf.h>
-#include <base/logging.h>
 #include <fcntl.h>
 #include <unistd.h>
-
 #include <string>
+
+#include <android-base/stringprintf.h>
+#include <base/logging.h>
 
 using android::base::StringPrintf;
 

@@ -19,7 +19,6 @@
 #include "include/debug_nfcsnoop.h"
 
 #include <android-base/logging.h>
-#include <android-base/properties.h>
 #include <android-base/stringprintf.h>
 #include <cutils/properties.h>
 #include <fcntl.h>
@@ -39,10 +38,6 @@
 
 #define DEFAULT_NFCSNOOP_PATH "/data/misc/nfc/logs/nfcsnoop_nci_logs"
 #define DEFAULT_NFCSNOOP_FILE_SIZE 32 * 1024 * 1024
-
-#define NFCSNOOP_LOG_MODE_PROPERTY "persist.nfc.snoop_log_mode"
-#define NFCSNOOP_MODE_FILTERED "filtered"
-#define NFCSNOOP_MODE_FULL "full"
 
 // Total nfcsnoop memory log buffer size
 #ifndef NFCSNOOP_MEM_BUFFER_SIZE
@@ -64,7 +59,6 @@ static std::mutex buffer_mutex;
 static ringbuffer_t* buffers[BUFFER_SIZE] = {nullptr};
 static uint64_t last_timestamp_ms[BUFFER_SIZE] = {0};
 static bool isDebuggable = false;
-static bool isFullNfcSnoop = false;
 
 using android::base::StringPrintf;
 
@@ -172,10 +166,6 @@ void debug_nfcsnoop_init(void) {
   }
 
   isDebuggable = property_get_int32("ro.debuggable", 0);
-  isFullNfcSnoop = android::base::GetProperty(NFCSNOOP_LOG_MODE_PROPERTY, "")
-                           .compare(NFCSNOOP_MODE_FULL)
-                       ? false
-                       : true;
 }
 
 void debug_nfcsnoop_dump(int fd) {
