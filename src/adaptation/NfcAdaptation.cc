@@ -487,7 +487,7 @@ void NfcAdaptation::Initialize() {
   initializeGlobalDebugEnabledFlag();
   initializeNciResetTypeFlag();
 
-  LOG(INFO) << StringPrintf("%s; ver=%s nfa=%s st=140-20230909-23W36p0",
+  LOG(INFO) << StringPrintf("%s; ver=%s nfa=%s st=140-20231112-23W45p1",
                             __func__, "AndroidQ", "ST");
 
   nfc_storage_path = NfcConfig::getString(NAME_NFA_STORAGE, "/data/nfc");
@@ -736,7 +736,7 @@ void NfcAdaptation::InitializeHalDeviceContext() {
   if (mHal == nullptr) {
     // Try get AIDL
     ::ndk::SpAIBinder binder(
-        AServiceManager_getService(NFC_AIDL_HAL_SERVICE_NAME.c_str()));
+        AServiceManager_waitForService(NFC_AIDL_HAL_SERVICE_NAME.c_str()));
     mAidlHal = INfcAidl::fromBinder(binder);
     if (mAidlHal != nullptr) {
       use_aidl = true;
