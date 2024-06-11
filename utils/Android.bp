@@ -1,5 +1,7 @@
 
+// START system version
 package {
+    default_team: "trendy_team_fwk_nfc",
     // See: http://go/android-license-faq
     // A large-scale-change added 'default_applicable_licenses' to import
     // all of the 'license_kinds' from "system_nfc_license"
@@ -46,4 +48,24 @@ cc_library_static {
     shared_libs: [
         "libbase",
     ],
+    apex_available: [
+        "//apex_available:platform",
+        "com.android.nfcservices",
+    ],
 }
+// END system version
+// START vendor version
+cc_library_static {
+    name: "libstnfcutils-vendor",
+    vendor: true,
+    defaults: ["st_nfc_utils_defaults"],
+    export_include_dirs: ["include"],
+    srcs: [
+        "config.cc",
+        "ringbuffer.cc",
+    ],
+    shared_libs: [
+        "libbase",
+    ],
+}
+// END vendor version

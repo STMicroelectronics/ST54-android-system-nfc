@@ -593,7 +593,6 @@ typedef struct {
   uint32_t rw_offset;     /* remaining offset to read/write   */
 
   NFC_HDR* p_data_to_free; /* GKI buffet to delete after done  */
-  NFC_HDR* p_retry_cmd;    /* buffer to store cmd sent last    */
 
   tRW_T4T_CC cc_file; /* Capability Container File        */
 
@@ -637,9 +636,6 @@ typedef struct {
 #define MFC_NDEF_DETECTED 0x01
 #define MFC_NDEF_READ 0x02
 
-#define MFC_MAX_SECTOR_NUMBER 40
-#define MFC_LAST_4BLOCK_SECTOR 32
-
 typedef uint8_t tRW_MFC_RW_STATE;
 typedef uint8_t tRW_MFC_RW_SUBSTATE;
 typedef struct {
@@ -668,9 +664,7 @@ typedef struct {
   NFC_HDR* p_cur_cmd_buf; /* Copy of current command, for retx/send after sector
                              change */
 
-  bool mifare_ndefsector[MFC_MAX_SECTOR_NUMBER]; /* buffer to check ndef
-                                                    compatible sector */
-  uint8_t ndef_status;                           /* bitmap for NDEF status */
+  uint8_t ndef_status; /* bitmap for NDEF status */
 } tRW_MFC_CB;
 
 /* ISO 15693 RW Control Block */
@@ -791,7 +785,7 @@ typedef struct {
   uint8_t dsfid;                 /* DSFID if I93_INFO_FLAG_DSFID     */
   uint8_t afi;                   /* AFI if I93_INFO_FLAG_AFI         */
   uint8_t block_size;            /* block size of tag, in bytes      */
-  uint16_t num_block;            /* number of blocks in tag          */
+  uint32_t num_block;            /* number of blocks in tag          */
   uint8_t ic_reference;          /* IC Reference of tag              */
   uint8_t product_version;       /* tag product version              */
 
@@ -802,44 +796,34 @@ typedef struct {
   uint8_t addr_mode;
   uint8_t i93_t5t_mode;
   uint8_t t5t_area_start_block;  /* offset of first block of T5T_Area  */
-  uint16_t t5t_area_last_offset; /* offset of last byte of T5T_Area  */
+  uint32_t t5t_area_last_offset; /* offset of last byte of T5T_Area  */
 
   /* Greedy collection with NDEF Detection data */
   uint8_t gre_validity;
   uint8_t gre_cc_content[8];
-  uint16_t gre_ndef_tlv_pos;
-  uint16_t gre_ndef_tlv_length;
-  uint16_t tlv_length; /* currently detected length        */
+  uint32_t gre_ndef_tlv_pos;
+  uint32_t gre_ndef_tlv_length;
+  uint32_t tlv_length; /* currently detected length        */
 
-  uint16_t ndef_tlv_start_offset; /* offset of first byte of NDEF TLV */
-  uint16_t ndef_tlv_last_offset;  /* offset of last byte of NDEF TLV  */
-  uint16_t max_ndef_length;       /* max NDEF length the tag contains */
-  uint16_t ndef_length;           /* length of NDEF data              */
+  uint32_t ndef_tlv_start_offset; /* offset of first byte of NDEF TLV */
+  uint32_t ndef_tlv_last_offset;  /* offset of last byte of NDEF TLV  */
+  uint32_t max_ndef_length;       /* max NDEF length the tag contains */
+  uint32_t ndef_length;           /* length of NDEF data              */
 
   uint8_t* p_update_data; /* pointer of data to update        */
-  uint16_t rw_length;     /* bytes to read/write              */
-  uint16_t rw_offset;     /* offset to read/write             */
+  uint32_t rw_length;     /* bytes to read/write              */
+  uint32_t rw_offset;     /* offset to read/write             */
   bool in_pres_check;
 } tRW_I93_CB;
 
-typedef uint8_t tRW_CI_RW_STATE;
-
-typedef struct {
-  tRW_CI_RW_STATE state; /* main state                       */
-  TIMER_LIST_ENT timer;  /* timeout for each sent command    */
-  uint8_t sent_cmd;      /* last sent command                */
-  uint8_t attrib_res[2];
-  uint8_t uid[8];
-} tRW_CI_CB;
 /* RW memory control blocks */
-typedef struct {
+typedef union {
   tRW_T1T_CB t1t;
   tRW_T2T_CB t2t;
   tRW_T3T_CB t3t;
   tRW_T4T_CB t4t;
   tRW_I93_CB i93;
   tRW_MFC_CB mfc;
-  tRW_CI_CB ci;
 } tRW_TCB;
 
 /* RW callback type */
@@ -927,7 +911,6 @@ extern void rw_t5t_sm_update_ndef(NFC_HDR*);
 extern void rw_t5t_sm_set_read_only(NFC_HDR*);
 
 extern void rw_t4t_handle_isodep_nak_rsp(uint8_t status, bool is_ntf);
-extern void rw_ci_process_timeout(TIMER_LIST_ENT* p_tle);
 
 extern tNFC_STATUS rw_mfc_select(uint8_t selres, uint8_t uid[T1T_CMD_UID_LEN]);
 extern void rw_mfc_process_timeout(TIMER_LIST_ENT* p_tle);

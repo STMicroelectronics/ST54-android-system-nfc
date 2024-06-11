@@ -49,16 +49,6 @@
 #define NFC_MBOX_ID (TASK_MBOX_0)
 #endif
 
-/* Mailbox event mask for NFC stack */
-#ifndef NFC_MBOX_SLOW_EVT_MASK
-#define NFC_MBOX_SLOW_EVT_MASK (TASK_MBOX_1_EVT_MASK)
-#endif
-
-/* Mailbox ID for NFC stack */
-#ifndef NFC_MBOX_SLOW_ID
-#define NFC_MBOX_SLOW_ID (TASK_MBOX_1)
-#endif
-
 /* Mailbox event mask for NFA */
 #ifndef NFA_MBOX_EVT_MASK
 #define NFA_MBOX_EVT_MASK (TASK_MBOX_2_EVT_MASK)
@@ -168,7 +158,7 @@
 #ifndef NCI_VERSION
 #define NCI_VERSION NCI_VERSION_2_0
 #endif
-#define NCI_CORE_RESET_RSP_LEN(X) (((X) == NCI_VERSION_2_0) ? (0x01) : (0x03))
+#define NCI_CORE_RESET_RSP_LEN(X) (((X) >= NCI_VERSION_2_0) ? (0x01) : (0x03))
 
 /* TRUE I2C patch is needed */
 #ifndef NFC_I2C_PATCH_INCLUDED
@@ -193,12 +183,7 @@
 
 /* Timeout for receiving response to NCI command */
 #ifndef NFC_CMD_CMPL_TIMEOUT
-#define NFC_CMD_CMPL_TIMEOUT 5
-#endif
-
-/* Timeout for receiving credits for data connection*/
-#ifndef NFC_CREDITS_RX_TIMEOUT
-#define NFC_CREDITS_RX_TIMEOUT 2
+#define NFC_CMD_CMPL_TIMEOUT 2
 #endif
 
 /* Timeout for waiting on data credit/NFC-DEP */
@@ -250,7 +235,7 @@
 
 /* Maximum time to discover NFCEE */
 #ifndef NFA_EE_DISCV_TIMEOUT_VAL
-#define NFA_EE_DISCV_TIMEOUT_VAL 300
+#define NFA_EE_DISCV_TIMEOUT_VAL 2000
 #endif
 
 /* Number of times reader/writer should attempt to resend a command on failure
@@ -266,7 +251,7 @@
 
 /* RW Type 1 Tag timeout for each API call, in ms */
 #ifndef RW_T1T_TOUT_RESP
-#define RW_T1T_TOUT_RESP 500
+#define RW_T1T_TOUT_RESP 100
 #endif
 
 /* CE Type 2 Tag timeout for controller command, in ms */
@@ -287,7 +272,8 @@
 
 /* RW Type 3 Tag timeout for each API call, in ms */
 #ifndef RW_T3T_TOUT_RESP
-#define RW_T3T_TOUT_RESP 500
+/* NFC-Android will use 100 instead of 75 for T3t presence-check */
+#define RW_T3T_TOUT_RESP 100
 #endif
 
 /* CE Type 3 Tag maximum response timeout index (for check and update, used in
@@ -309,9 +295,8 @@
 #endif
 
 /* CE Type 4 Tag, Frame Waiting time Integer */
-#define CE_T4T_LI_A_RATS 0x70
-#ifndef RW_CI_TOUT_RESP
-#define RW_CI_TOUT_RESP 1000
+#ifndef CE_T4T_ISO_DEP_FWI
+#define CE_T4T_ISO_DEP_FWI 7
 #endif
 
 /* RW Type 4 Tag timeout for each API call, in ms */
@@ -361,170 +346,9 @@
 
 /******************************************************************************
 **
-** LLCP
-**
-******************************************************************************/
-
-#ifndef LLCP_TEST_INCLUDED
-#define LLCP_TEST_INCLUDED FALSE
-#endif
-
-#ifndef LLCP_POOL_ID
-#define LLCP_POOL_ID GKI_POOL_ID_3
-#endif
-
-#ifndef LLCP_POOL_BUF_SIZE
-#define LLCP_POOL_BUF_SIZE GKI_BUF3_SIZE
-#endif
-
-/* LLCP Maximum Information Unit (between LLCP_DEFAULT_MIU(128) and LLCP_MAX_MIU
- * (2175)*/
-#ifndef LLCP_MIU
-#define LLCP_MIU                                             \
-  (LLCP_POOL_BUF_SIZE - NFC_HDR_SIZE - NCI_MSG_OFFSET_SIZE - \
-   NCI_DATA_HDR_SIZE - LLCP_PDU_HEADER_SIZE)
-#endif
-
-/* Link Timeout, LTO */
-#ifndef LLCP_LTO_VALUE
-/* Default is 100ms. It should be sufficiently larger than RWT */
-#define LLCP_LTO_VALUE 1000
-#endif
-
-/*
-** LTO is max time interval between the last bit received and the first bit sent
-** over the air. Link timeout must be delayed as much as time between the packet
-** sent from LLCP and the last bit transmitted at NFCC.
-**  - 200ms, max OTA transmitting time between the first bit and the last bit at
-**    NFCC. Largest MIU(2175bytes) of LLCP must be fragmented and sent on
-**    NFC-DEP over the air. 8 * (DEP_REQ/RES+ACK) + DEP_REQ/RES for 2175 MIU at
-**    106kbps bit rate.
-**  - 10ms, processing time
-*/
-#ifndef LLCP_INTERNAL_TX_DELAY
-#define LLCP_INTERNAL_TX_DELAY 210
-#endif
-
-/*
-** LTO is max time interval between the last bit received and the first bit sent
-** over the air. Link timeout must be delayed as much as time between the first
-** bit received at NFCC and the packet received at LLCP.
-**  - 200ms, max OTA transmitting time between the first bit and the last bit at
-**    NFCC. LLCP cannot receive data packet until all bit are received and
-**    reassembled in NCI. 8 * (DEP_REQ/RES+ACK) + DEP_REQ/RES for 2175 MIU at
-**    106kbps bit rate.
-**  - 10ms, processing time
-*/
-#ifndef LLCP_INTERNAL_RX_DELAY
-#define LLCP_INTERNAL_RX_DELAY 210
-#endif
-
-/* Wait for application layer sending data before sending SYMM */
-#ifndef LLCP_DELAY_RESP_TIME
-#define LLCP_DELAY_RESP_TIME 20 /* in ms */
-#endif
-
-/* LLCP inactivity timeout for initiator */
-#ifndef LLCP_INIT_INACTIVITY_TIMEOUT
-#define LLCP_INIT_INACTIVITY_TIMEOUT 0 /* in ms */
-#endif
-
-/* LLCP inactivity timeout for target */
-#ifndef LLCP_TARGET_INACTIVITY_TIMEOUT
-#define LLCP_TARGET_INACTIVITY_TIMEOUT 0 /* in ms */
-#endif
-
-/* LLCP delay timeout to send the first PDU as initiator */
-#ifndef LLCP_DELAY_TIME_TO_SEND_FIRST_PDU
-#define LLCP_DELAY_TIME_TO_SEND_FIRST_PDU 50 /* in ms */
-#endif
-
-/* Response Waiting Time */
-#ifndef LLCP_WAITING_TIME
-/* its scaled value should be less than LTO */
-#define LLCP_WAITING_TIME 8
-#endif
-
-/* Options Parameters */
-#ifndef LLCP_OPT_VALUE
-#define LLCP_OPT_VALUE LLCP_LSC_3 /* Link Service Class 3 */
-#endif
-
-/* Data link connection timeout */
-#ifndef LLCP_DATA_LINK_CONNECTION_TOUT
-#define LLCP_DATA_LINK_CONNECTION_TOUT 1000
-#endif
-
-/* Max length of service name */
-#ifndef LLCP_MAX_SN_LEN
-#define LLCP_MAX_SN_LEN 255 /* max length of service name */
-#endif
-
-/* Max number of well-known services, at least 2 for LM and SDP and up to 16 */
-#ifndef LLCP_MAX_WKS
-#define LLCP_MAX_WKS 5
-#endif
-
-/* Max number of services advertised by local SDP, up to 16 */
-#ifndef LLCP_MAX_SERVER
-#define LLCP_MAX_SERVER 10
-#endif
-
-/* Max number of services not advertised by local SDP, up to 32 */
-#ifndef LLCP_MAX_CLIENT
-#define LLCP_MAX_CLIENT 20
-#endif
-
-/* Max number of data link connections */
-#ifndef LLCP_MAX_DATA_LINK
-#define LLCP_MAX_DATA_LINK 16
-#endif
-
-/* Max number of outstanding service discovery requests */
-#ifndef LLCP_MAX_SDP_TRANSAC
-#define LLCP_MAX_SDP_TRANSAC 16
-#endif
-
-/* Percentage of LLCP buffer pool for receiving data */
-#ifndef LLCP_RX_BUFF_RATIO
-#define LLCP_RX_BUFF_RATIO 30
-#endif
-
-/* Rx congestion end threshold as percentage of receiving buffers */
-#ifndef LLCP_RX_CONGEST_END
-#define LLCP_RX_CONGEST_END 50
-#endif
-
-/* Rx congestion start threshold as percentage of receiving buffers */
-#ifndef LLCP_RX_CONGEST_START
-#define LLCP_RX_CONGEST_START 70
-#endif
-
-/* limitation of rx UI PDU as percentage of receiving buffers */
-#ifndef LLCP_LL_RX_BUFF_LIMIT
-#define LLCP_LL_RX_BUFF_LIMIT 30
-#endif
-
-/* minimum rx congestion threshold (number of rx I PDU in queue) for data link
- * connection */
-#ifndef LLCP_DL_MIN_RX_CONGEST
-#define LLCP_DL_MIN_RX_CONGEST 4
-#endif
-
-/* limitation of tx UI PDU as percentage of transmitting buffers */
-#ifndef LLCP_LL_TX_BUFF_LIMIT
-#define LLCP_LL_TX_BUFF_LIMIT 30
-#endif
-
-/******************************************************************************
-**
 ** NFA
 **
 ******************************************************************************/
-
-#ifndef NFA_P2P_INCLUDED
-#define NFA_P2P_INCLUDED TRUE
-#endif
 
 /* Maximum Idle time (no hcp) to wait for EE DISC REQ Ntf(s) */
 #ifndef NFA_HCI_NETWK_INIT_IDLE_TIMEOUT
@@ -532,7 +356,7 @@
 #endif
 
 #ifndef NFA_HCI_MAX_HOST_IN_NETWORK
-#define NFA_HCI_MAX_HOST_IN_NETWORK (NFA_EE_MAX_EE_SUPPORTED + 2)
+#define NFA_HCI_MAX_HOST_IN_NETWORK 0x06
 #endif
 
 /* Max number of Application that can be registered to NFA-HCI */
@@ -547,12 +371,12 @@
 
 /* Max number of HCI pipes that can be created for the whole system */
 #ifndef NFA_HCI_MAX_PIPE_CB
-#define NFA_HCI_MAX_PIPE_CB 0x08
+#define NFA_HCI_MAX_PIPE_CB 0x0A
 #endif
 
 /* Timeout for waiting for the response to HCP Command packet */
 #ifndef NFA_HCI_RESPONSE_TIMEOUT
-#define NFA_HCI_RESPONSE_TIMEOUT 3000
+#define NFA_HCI_RESPONSE_TIMEOUT 1000
 #endif
 
 /* Default poll duration (may be over-ridden using NFA_SetRfDiscoveryDuration)
@@ -595,10 +419,6 @@
 /* Timeout for reactivation of Kovio bar code tag (presence check) */
 #ifndef NFA_DM_DISC_TIMEOUT_KOVIO_PRESENCE_CHECK
 #define NFA_DM_DISC_TIMEOUT_KOVIO_PRESENCE_CHECK (1000)
-#endif
-
-#ifndef NFA_DM_DISC_TIMEOUT_MIFARE_IDLE_PRESENCE_CHECK
-#define NFA_DM_DISC_TIMEOUT_MIFARE_IDLE_PRESENCE_CHECK (200)
 #endif
 
 /* Max number of NDEF type handlers that can be registered (including the
@@ -647,12 +467,12 @@
 /* Max number of NFCEE supported */
 #ifndef NFA_EE_MAX_EE_SUPPORTED
 /* Modified for NFC-A until we add dynamic support */
-#define NFA_EE_MAX_EE_SUPPORTED 5
+#define NFA_EE_MAX_EE_SUPPORTED 6
 #endif
 
 /* Maximum number of AID entries per target_handle  */
 #ifndef NFA_EE_MAX_AID_ENTRIES
-#define NFA_EE_MAX_AID_ENTRIES (60)
+#define NFA_EE_MAX_AID_ENTRIES (32)
 #endif
 
 /* Maximum number of callback functions can be registered through

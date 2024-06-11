@@ -23,16 +23,14 @@
  ******************************************************************************/
 #include "nfa_ee_api.h"
 
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
 
 #include "nfa_dm_int.h"
 #include "nfa_ee_int.h"
 #include "nfc_int.h"
 
 using android::base::StringPrintf;
-
-extern bool nfc_debug_enabled;
 
 /*****************************************************************************
 **  APIs
@@ -56,15 +54,14 @@ tNFA_STATUS NFA_EeDiscover(tNFA_EE_CBACK* p_cback) {
   tNFA_EE_API_DISCOVER* p_msg;
   tNFA_STATUS status = NFA_STATUS_FAILED;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   if (nfa_ee_cb.em_state != NFA_EE_EM_STATE_INIT_DONE) {
-    LOG(ERROR) << StringPrintf("%s; bad em state: %d", __func__,
+    LOG(ERROR) << StringPrintf("NFA_EeDiscover bad em state: %d",
                                nfa_ee_cb.em_state);
     status = NFA_STATUS_FAILED;
   } else if ((nfa_ee_cb.p_ee_disc_cback != nullptr) || (p_cback == nullptr)) {
-    LOG(ERROR) << StringPrintf("%s; in progress or NULL callback function",
-                               __func__);
+    LOG(ERROR) << StringPrintf("in progress or NULL callback function");
     status = NFA_STATUS_INVALID_PARAM;
   } else {
     p_msg = (tNFA_EE_API_DISCOVER*)GKI_getbuf(sizeof(tNFA_EE_API_DISCOVER));
@@ -100,48 +97,43 @@ tNFA_STATUS NFA_EeGetInfo(uint8_t* p_num_nfcee, tNFA_EE_INFO* p_info) {
   uint8_t max_ret;
   uint8_t num_ret = 0;
 
+  LOG(DEBUG) << StringPrintf("NFA_EeGetInfo em_state:%d cur_ee:%d",
+                             nfa_ee_cb.em_state, nfa_ee_cb.cur_ee);
   /* validate parameters */
   if (p_info == nullptr || p_num_nfcee == nullptr) {
-    LOG(ERROR) << StringPrintf("%s; bad parameter", __func__);
+    LOG(ERROR) << StringPrintf("NFA_EeGetInfo bad parameter");
     return (NFA_STATUS_INVALID_PARAM);
   }
   max_ret = *p_num_nfcee;
   *p_num_nfcee = 0;
   if (nfa_ee_cb.em_state == NFA_EE_EM_STATE_INIT) {
-    LOG(ERROR) << StringPrintf("%s; bad em state: %d", __func__,
+    LOG(ERROR) << StringPrintf("NFA_EeGetInfo bad em state: %d",
                                nfa_ee_cb.em_state);
     return (NFA_STATUS_FAILED);
   }
 
-  // Reset the target array as we may have less elements than in previous call
-  // if some activations failed.
-  memset(p_info, 0, sizeof(tNFA_EE_INFO) * max_ret);
-
   /* compose output */
   for (xx = 0; (xx < ret) && (num_ret < max_ret); xx++, p_cb++) {
-    DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-        "%s; xx:%d max_ret:%d, num_ret:%d nfcee_id: 0x%x ee_status:0x%x",
-        __func__, xx, max_ret, num_ret, p_cb->nfcee_id, p_cb->ee_status);
-    if ((p_cb->ee_status & NFA_EE_STATUS_INT_MASK)) {
+    LOG(DEBUG) << StringPrintf("xx:%d max_ret:%d, num_ret:%d ee_status:0x%x",
+                               xx, max_ret, num_ret, p_cb->ee_status);
+    if ((p_cb->ee_status & NFA_EE_STATUS_INT_MASK) ||
+        (p_cb->ee_status == NFA_EE_STATUS_REMOVED)) {
       continue;
     }
     p_info->ee_handle = NFA_HANDLE_GROUP_EE | (tNFA_HANDLE)p_cb->nfcee_id;
     p_info->ee_status = p_cb->ee_status;
-
-    if (p_cb->ee_status != NFA_EE_STATUS_UNRESPONSIVE) {
-      p_info->num_interface = p_cb->num_interface;
-      p_info->num_tlvs = p_cb->num_tlvs;
-      p_info->la_protocol = p_cb->la_protocol;
-      p_info->lb_protocol = p_cb->lb_protocol;
-      p_info->lf_protocol = p_cb->lf_protocol;
-      memcpy(p_info->ee_interface, p_cb->ee_interface, p_cb->num_interface);
-      memcpy(p_info->ee_tlv, p_cb->ee_tlv,
-             p_cb->num_tlvs * sizeof(tNFA_EE_TLV));
-      p_info->ee_power_supply_status = p_cb->ee_power_supply_status;
-    }
+    p_info->num_interface = p_cb->num_interface;
+    p_info->num_tlvs = p_cb->num_tlvs;
+    p_info->la_protocol = p_cb->la_protocol;
+    p_info->lb_protocol = p_cb->lb_protocol;
+    p_info->lf_protocol = p_cb->lf_protocol;
+    memcpy(p_info->ee_interface, p_cb->ee_interface, p_cb->num_interface);
+    memcpy(p_info->ee_tlv, p_cb->ee_tlv, p_cb->num_tlvs * sizeof(tNFA_EE_TLV));
+    p_info->ee_power_supply_status = p_cb->ee_power_supply_status;
     p_info++;
     num_ret++;
   }
+  LOG(DEBUG) << StringPrintf("num_ret:%d", num_ret);
   *p_num_nfcee = num_ret;
   return (NFA_STATUS_OK);
 }
@@ -162,10 +154,10 @@ tNFA_STATUS NFA_EeRegister(tNFA_EE_CBACK* p_cback) {
   tNFA_EE_API_REGISTER* p_msg;
   tNFA_STATUS status = NFA_STATUS_FAILED;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   if (p_cback == nullptr) {
-    LOG(ERROR) << StringPrintf("%s; with NULL callback function", __func__);
+    LOG(ERROR) << StringPrintf("with NULL callback function");
     status = NFA_STATUS_INVALID_PARAM;
   } else {
     p_msg = (tNFA_EE_API_REGISTER*)GKI_getbuf(sizeof(tNFA_EE_API_REGISTER));
@@ -207,8 +199,7 @@ tNFA_STATUS NFA_EeDeregister(tNFA_EE_CBACK* p_cback) {
     }
   }
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; %d, status:%d", __func__, index, status);
+  LOG(DEBUG) << StringPrintf("%d, status:%d", index, status);
   if ((status != NFA_STATUS_INVALID_PARAM) &&
       (p_msg = (tNFA_EE_API_DEREGISTER*)GKI_getbuf(
            sizeof(tNFA_EE_API_DEREGISTER))) != nullptr) {
@@ -252,11 +243,10 @@ tNFA_STATUS NFA_EeModeSet(tNFA_HANDLE ee_handle, tNFA_EE_MD mode) {
       break;
     }
   }
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; handle:<0x%x>, mode:0x%02X", __func__, ee_handle, mode);
+  LOG(DEBUG) << StringPrintf("handle:<0x%x>, mode:0x%02X", ee_handle, mode);
 
   if (p_found == nullptr) {
-    LOG(ERROR) << StringPrintf("%s; invalid NFCEE:0x%04x", __func__, ee_handle);
+    LOG(ERROR) << StringPrintf("invalid NFCEE:0x%04x", ee_handle);
     status = NFA_STATUS_INVALID_PARAM;
   } else {
     p_msg = (tNFA_EE_API_MODE_SET*)GKI_getbuf(sizeof(tNFA_EE_API_MODE_SET));
@@ -308,16 +298,16 @@ tNFA_STATUS NFA_EeSetDefaultTechRouting(
   uint8_t nfcee_id = (uint8_t)(ee_handle & 0xFF);
   tNFA_EE_ECB* p_cb;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; "
+  LOG(DEBUG) << StringPrintf(
+      ""
       "handle:<0x%x>technology_mask:<0x%x>/<0x%x>/<0x%x><0x%x><0x%x><0x%x>",
-      __func__, ee_handle, technologies_switch_on, technologies_switch_off,
+      ee_handle, technologies_switch_on, technologies_switch_off,
       technologies_battery_off, technologies_screen_lock,
       technologies_screen_off, technologies_screen_off_lock);
   p_cb = nfa_ee_find_ecb(nfcee_id);
 
   if (p_cb == nullptr) {
-    LOG(ERROR) << StringPrintf("%s; Bad ee_handle", __func__);
+    LOG(ERROR) << StringPrintf("Bad ee_handle");
     status = NFA_STATUS_INVALID_PARAM;
   } else {
     p_msg =
@@ -370,12 +360,10 @@ tNFA_STATUS NFA_EeClearDefaultTechRouting(
   uint8_t nfcee_id = (uint8_t)(ee_handle & 0xFF);
   tNFA_EE_ECB* p_cb;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; handle:<0x%x>clear technology_mask:<0x%x>", __func__,
-                      ee_handle, clear_technology);
+  LOG(DEBUG) << StringPrintf("handle:<0x%x>clear technology_mask:<0x%x>",
+                             ee_handle, clear_technology);
   if (!clear_technology) {
-    DLOG_IF(INFO, nfc_debug_enabled)
-        << StringPrintf("%s; nothing to clear", __func__);
+    LOG(DEBUG) << StringPrintf("nothing to clear");
     status = NFA_STATUS_OK;
     return status;
   }
@@ -383,7 +371,7 @@ tNFA_STATUS NFA_EeClearDefaultTechRouting(
   p_cb = nfa_ee_find_ecb(nfcee_id);
 
   if (p_cb == nullptr) {
-    LOG(ERROR) << StringPrintf("%s; Bad ee_handle", __func__);
+    LOG(ERROR) << StringPrintf("Bad ee_handle");
     status = NFA_STATUS_INVALID_PARAM;
   } else {
     p_msg = (tNFA_EE_API_CLEAR_TECH_CFG*)GKI_getbuf(
@@ -441,15 +429,15 @@ tNFA_STATUS NFA_EeSetDefaultProtoRouting(
   uint8_t nfcee_id = (uint8_t)(ee_handle & 0xFF);
   tNFA_EE_ECB* p_cb;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; handle:<0x%x>protocol_mask:<0x%x>/<0x%x>/<0x%x><0x%x><0x%x><0x%x>",
-      __func__, ee_handle, protocols_switch_on, protocols_switch_off,
+  LOG(DEBUG) << StringPrintf(
+      "handle:<0x%x>protocol_mask:<0x%x>/<0x%x>/<0x%x><0x%x><0x%x><0x%x>",
+      ee_handle, protocols_switch_on, protocols_switch_off,
       protocols_battery_off, protocols_screen_lock, protocols_screen_off,
       protocols_screen_off_lock);
   p_cb = nfa_ee_find_ecb(nfcee_id);
 
   if (p_cb == nullptr) {
-    LOG(ERROR) << StringPrintf("%s; Bad ee_handle", __func__);
+    LOG(ERROR) << StringPrintf("Bad ee_handle");
     status = NFA_STATUS_INVALID_PARAM;
   } else {
     p_msg = (tNFA_EE_API_SET_PROTO_CFG*)GKI_getbuf(
@@ -502,12 +490,10 @@ tNFA_STATUS NFA_EeClearDefaultProtoRouting(tNFA_HANDLE ee_handle,
   uint8_t nfcee_id = (uint8_t)(ee_handle & 0xFF);
   tNFA_EE_ECB* p_cb;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; handle:<0x%x>clear protocol_mask:<0x%x>", __func__,
-                      ee_handle, clear_protocol);
+  LOG(DEBUG) << StringPrintf("handle:<0x%x>clear protocol_mask:<0x%x>",
+                             ee_handle, clear_protocol);
   if (!clear_protocol) {
-    DLOG_IF(INFO, nfc_debug_enabled)
-        << StringPrintf("%s; nothing to clear", __func__);
+    LOG(DEBUG) << StringPrintf("nothing to clear");
     status = NFA_STATUS_OK;
     return status;
   }
@@ -515,7 +501,7 @@ tNFA_STATUS NFA_EeClearDefaultProtoRouting(tNFA_HANDLE ee_handle,
   p_cb = nfa_ee_find_ecb(nfcee_id);
 
   if (p_cb == nullptr) {
-    LOG(ERROR) << StringPrintf("%s; Bad ee_handle", __func__);
+    LOG(ERROR) << StringPrintf("Bad ee_handle");
     status = NFA_STATUS_INVALID_PARAM;
   } else {
     p_msg = (tNFA_EE_API_SET_PROTO_CFG*)GKI_getbuf(
@@ -569,31 +555,23 @@ tNFA_STATUS NFA_EeAddAidRouting(tNFA_HANDLE ee_handle, uint8_t aid_len,
   uint8_t nfcee_id = (uint8_t)(ee_handle & 0xFF);
   tNFA_EE_ECB* p_cb;
 
-  if (aid_len == 0) {
-    DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-        "%s; handle:<0x%x>, default AID route", __func__, ee_handle);
-  } else {
-    DLOG_IF(INFO, nfc_debug_enabled)
-        << StringPrintf("%s; handle:<0x%x>", __func__, ee_handle);
-  }
+  LOG(DEBUG) << StringPrintf("handle:<0x%x>", ee_handle);
   p_cb = nfa_ee_find_ecb(nfcee_id);
 
-  /* validate parameters; make sure the AID is in valid length range */
+  /* validate parameters - make sure the AID is in valid length range */
   if ((p_cb == nullptr) ||
-      ((NFA_GetNCIVersion() == NCI_VERSION_2_0) && (aid_len != 0) &&
+      ((NFA_GetNCIVersion() >= NCI_VERSION_2_0) && (aid_len != 0) &&
        (p_aid == nullptr)) ||
-      ((NFA_GetNCIVersion() != NCI_VERSION_2_0) &&
+      ((NFA_GetNCIVersion() < NCI_VERSION_2_0) &&
        ((aid_len == 0) || (p_aid == nullptr) || (aid_len < NFA_MIN_AID_LEN))) ||
       (aid_len > NFA_MAX_AID_LEN)) {
-    LOG(ERROR) << StringPrintf("%s; Bad ee_handle or AID (len=%d)", __func__,
-                               aid_len);
+    LOG(ERROR) << StringPrintf("Bad ee_handle or AID (len=%d)", aid_len);
     status = NFA_STATUS_INVALID_PARAM;
   } else {
     p_msg = (tNFA_EE_API_ADD_AID*)GKI_getbuf(size);
     if (p_msg != nullptr) {
       if (p_aid != nullptr)
-        DLOG_IF(INFO, nfc_debug_enabled)
-            << StringPrintf("%s; aid:<%02x%02x>", __func__, p_aid[0], p_aid[1]);
+        LOG(DEBUG) << StringPrintf("aid:<%02x%02x>", p_aid[0], p_aid[1]);
       p_msg->hdr.event = NFA_EE_API_ADD_AID_EVT;
       p_msg->nfcee_id = nfcee_id;
       p_msg->p_cb = p_cb;
@@ -638,13 +616,13 @@ tNFA_STATUS NFA_EeRemoveAidRouting(uint8_t aid_len, uint8_t* p_aid) {
   tNFA_STATUS status = NFA_STATUS_FAILED;
   uint16_t size = sizeof(tNFA_EE_API_REMOVE_AID) + aid_len;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
-  if (((NFA_GetNCIVersion() == NCI_VERSION_2_0) && (aid_len != 0) &&
+  LOG(DEBUG) << __func__;
+  if (((NFA_GetNCIVersion() >= NCI_VERSION_2_0) && (aid_len != 0) &&
        (p_aid == nullptr)) ||
-      ((NFA_GetNCIVersion() != NCI_VERSION_2_0) &&
+      ((NFA_GetNCIVersion() < NCI_VERSION_2_0) &&
        ((aid_len == 0) || (p_aid == nullptr) || (aid_len < NFA_MIN_AID_LEN))) ||
       (aid_len > NFA_MAX_AID_LEN)) {
-    LOG(ERROR) << StringPrintf("%s; Bad AID", __func__);
+    LOG(ERROR) << StringPrintf("Bad AID");
     status = NFA_STATUS_INVALID_PARAM;
   } else {
     p_msg = (tNFA_EE_API_REMOVE_AID*)GKI_getbuf(size);
@@ -688,17 +666,16 @@ tNFA_STATUS NFA_EeAddSystemCodeRouting(uint16_t systemcode,
                                        tNFA_EE_PWR_STATE power_state) {
   tNFA_STATUS status = NFA_STATUS_FAILED;
   uint8_t nfcee_id = (uint8_t)(ee_handle & 0xFF);
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; handle:<0x%x>", __func__, ee_handle);
+  LOG(DEBUG) << StringPrintf("NFA_EeAddSystemCodeRouting(): handle:<0x%x>",
+                             ee_handle);
   tNFA_EE_ECB* p_cb = nfa_ee_find_ecb(nfcee_id);
 
   if (p_cb == nullptr || systemcode == 0) {
-    LOG(ERROR) << StringPrintf("%s; Bad ee_handle or System Code", __func__);
+    LOG(ERROR) << StringPrintf("Bad ee_handle or System Code");
     status = NFA_STATUS_INVALID_PARAM;
-  } else if ((NFA_GetNCIVersion() != NCI_VERSION_2_0) &&
+  } else if ((NFA_GetNCIVersion() < NCI_VERSION_2_0) &&
              (nfc_cb.isScbrSupported == false)) {
-    LOG(ERROR) << StringPrintf("%s; Invalid NCI Version/SCBR not supported",
-                               __func__);
+    LOG(ERROR) << StringPrintf("Invalid NCI Version/SCBR not supported");
     status = NFA_STATUS_NOT_SUPPORTED;
   } else {
     tNFA_EE_API_ADD_SYSCODE* p_msg =
@@ -744,7 +721,7 @@ tNFA_STATUS NFA_EeRemoveSystemCodeRouting(uint16_t systemcode) {
   if (systemcode == 0) {
     LOG(ERROR) << "Bad ee_handle or System Code";
     status = NFA_STATUS_INVALID_PARAM;
-  } else if ((NFA_GetNCIVersion() != NCI_VERSION_2_0) &&
+  } else if ((NFA_GetNCIVersion() < NCI_VERSION_2_0) &&
              (nfc_cb.isScbrSupported == false)) {
     LOG(ERROR) << "Invalid NCI Version/SCBR Not supported";
     status = NFA_STATUS_NOT_SUPPORTED;
@@ -789,7 +766,7 @@ tNFA_STATUS NFA_EeGetLmrtRemainingSize(void) {
   tNFA_EE_API_LMRT_SIZE* p_msg;
   tNFA_STATUS status = NFA_STATUS_FAILED;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
   p_msg = (tNFA_EE_API_LMRT_SIZE*)GKI_getbuf(sizeof(tNFA_EE_API_LMRT_SIZE));
   if (p_msg != nullptr) {
     p_msg->event = NFA_EE_API_LMRT_SIZE_EVT;
@@ -820,9 +797,9 @@ tNFA_STATUS NFA_EeUpdateNow(void) {
   NFC_HDR* p_msg;
   tNFA_STATUS status = NFA_STATUS_FAILED;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
   if (nfa_ee_cb.ee_wait_evt & NFA_EE_WAIT_UPDATE_ALL) {
-    LOG(ERROR) << StringPrintf("%s; update in progress", __func__);
+    LOG(ERROR) << StringPrintf("update in progress");
     status = NFA_STATUS_SEMANTIC_ERROR;
   } else {
     p_msg = (NFC_HDR*)GKI_getbuf(NFC_HDR_SIZE);
@@ -859,13 +836,12 @@ tNFA_STATUS NFA_EeConnect(tNFA_HANDLE ee_handle, uint8_t ee_interface,
   uint8_t nfcee_id = (uint8_t)(ee_handle & 0xFF);
   tNFA_EE_ECB* p_cb;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; handle:<0x%x> ee_interface:0x%x", __func__, ee_handle, ee_interface);
+  LOG(DEBUG) << StringPrintf("handle:<0x%x> ee_interface:0x%x", ee_handle,
+                             ee_interface);
   p_cb = nfa_ee_find_ecb(nfcee_id);
 
   if ((p_cb == nullptr) || (p_cback == nullptr)) {
-    LOG(ERROR) << StringPrintf("%s; Bad ee_handle or NULL callback function",
-                               __func__);
+    LOG(ERROR) << StringPrintf("Bad ee_handle or NULL callback function");
     status = NFA_STATUS_INVALID_PARAM;
   } else {
     p_msg = (tNFA_EE_API_CONNECT*)GKI_getbuf(sizeof(tNFA_EE_API_CONNECT));
@@ -906,14 +882,13 @@ tNFA_STATUS NFA_EeSendData(tNFA_HANDLE ee_handle, uint16_t data_len,
   uint8_t nfcee_id = (uint8_t)(ee_handle & 0xFF);
   tNFA_EE_ECB* p_cb;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; handle:<0x%x>", __func__, ee_handle);
+  LOG(DEBUG) << StringPrintf("handle:<0x%x>", ee_handle);
 
   p_cb = nfa_ee_find_ecb(nfcee_id);
 
   if ((p_cb == nullptr) || (p_cb->conn_st != NFA_EE_CONN_ST_CONN) ||
       (p_data == nullptr)) {
-    LOG(ERROR) << StringPrintf("%s; Bad ee_handle or NULL data", __func__);
+    LOG(ERROR) << StringPrintf("Bad ee_handle or NULL data");
     status = NFA_STATUS_INVALID_PARAM;
   } else {
     p_msg = (tNFA_EE_API_SEND_DATA*)GKI_getbuf(
@@ -954,12 +929,11 @@ tNFA_STATUS NFA_EeDisconnect(tNFA_HANDLE ee_handle) {
   uint8_t nfcee_id = (uint8_t)(ee_handle & 0xFF);
   tNFA_EE_ECB* p_cb;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; handle:<0x%x>", __func__, ee_handle);
+  LOG(DEBUG) << StringPrintf("handle:<0x%x>", ee_handle);
   p_cb = nfa_ee_find_ecb(nfcee_id);
 
   if ((p_cb == nullptr) || (p_cb->conn_st != NFA_EE_CONN_ST_CONN)) {
-    LOG(ERROR) << StringPrintf("%s; Bad ee_handle", __func__);
+    LOG(ERROR) << StringPrintf("Bad ee_handle");
     status = NFA_STATUS_INVALID_PARAM;
   } else {
     p_msg = (tNFA_EE_API_DISCONNECT*)GKI_getbuf(sizeof(tNFA_EE_API_DISCONNECT));
@@ -996,12 +970,11 @@ tNFA_STATUS NFA_EePowerAndLinkCtrl(tNFA_HANDLE ee_handle, uint8_t config) {
   uint8_t nfcee_id = (uint8_t)(ee_handle & 0xFF);
   tNFA_EE_ECB* p_cb;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; handle:<0x%x>, config:<0x%x>", __func__, ee_handle, config);
+  LOG(DEBUG) << StringPrintf("handle:<0x%x>, config:<0x%x>", ee_handle, config);
   p_cb = nfa_ee_find_ecb(nfcee_id);
 
   if ((p_cb == nullptr) || (p_cb->ee_status != NFA_EE_STATUS_ACTIVE)) {
-    LOG(ERROR) << StringPrintf("%s; Bad ee_handle", __func__);
+    LOG(ERROR) << StringPrintf("Bad ee_handle");
     status = NFA_STATUS_INVALID_PARAM;
   } else {
     p_msg = (tNFA_EE_API_PWR_AND_LINK_CTRL*)GKI_getbuf(
@@ -1015,106 +988,6 @@ tNFA_STATUS NFA_EePowerAndLinkCtrl(tNFA_HANDLE ee_handle, uint8_t config) {
 
       status = NFA_STATUS_OK;
     }
-  }
-
-  return status;
-}
-
-/*******************************************************************************
-**
-** Function         NFA_EeForceRouting
-**
-** Description      Force the routing to a particular NFCEE. The result of this
-**                  operation is reported with the NFA_EE_FORCE_ROUTING_EVT.
-**
-** Returns          NFA_STATUS_OK if successful
-**
-*******************************************************************************/
-tNFA_STATUS NFA_EeForceRouting(tNFA_HANDLE ee_handle, uint8_t config) {
-  tNFA_EE_API_FORCE_ROUTING* p_msg;
-  tNFA_STATUS status = NFA_STATUS_FAILED;
-  uint8_t nfcee_id = (uint8_t)(ee_handle & 0xFF);
-  tNFA_EE_ECB* p_cb;
-
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; handle:<0x%x>", __func__, ee_handle);
-  p_cb = nfa_ee_find_ecb(nfcee_id);
-
-  if (p_cb == nullptr) {
-    LOG(ERROR) << StringPrintf("%s; Bad ee_handle", __func__);
-    status = NFA_STATUS_INVALID_PARAM;
-  } else if ((p_msg = (tNFA_EE_API_FORCE_ROUTING*)GKI_getbuf(
-                  sizeof(tNFA_EE_API_FORCE_ROUTING))) != NULL) {
-    p_msg->hdr.event = NFA_EE_API_FORCE_ROUTING_EVT;
-    p_msg->nfcee_id = nfcee_id;
-    p_msg->p_cb = p_cb;
-    p_msg->config = config;
-
-    nfa_sys_sendmsg(p_msg);
-
-    status = NFA_STATUS_OK;
-  }
-
-  return status;
-}
-
-/*******************************************************************************
-**
-** Function         NFA_EeStopForceRouting
-**
-** Description      Stop forcing the routing to a particular NFCEE. The result
-*of this
-**                  operation is reported with the NFA_EE_FORCE_ROUTING_EVT.
-**
-** Returns          NFA_STATUS_OK if successful
-**
-*******************************************************************************/
-tNFA_STATUS NFA_EeStopForceRouting() {
-  tNFA_EE_API_FORCE_ROUTING* p_msg;
-  tNFA_STATUS status = NFA_STATUS_FAILED;
-
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s", __func__);
-
-  if ((p_msg = (tNFA_EE_API_FORCE_ROUTING*)GKI_getbuf(
-           sizeof(tNFA_EE_API_FORCE_ROUTING))) != NULL) {
-    p_msg->hdr.event = NFA_EE_API_STOP_FORCE_ROUTING_EVT;
-    p_msg->nfcee_id = 0;
-    p_msg->p_cb = 0;
-    p_msg->config = 0;
-
-    nfa_sys_sendmsg(p_msg);
-
-    status = NFA_STATUS_OK;
-  }
-
-  return status;
-}
-
-/*******************************************************************************
-**
-** Function         NFA_EeClearRoutingTable
-**
-** Description      Clears all AID, SC, tech and protocol entries in RT
-**
-** Returns          NFA_STATUS_OK if successful
-**
-*******************************************************************************/
-tNFA_STATUS NFA_EeClearRoutingTable(bool clear_sc) {
-  tNFA_EE_API_CLEAR_ROUTING_TABLE* p_msg;
-  tNFA_STATUS status = NFA_STATUS_FAILED;
-
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; clear_sc: %d", __func__, clear_sc);
-
-  if ((p_msg = (tNFA_EE_API_CLEAR_ROUTING_TABLE*)GKI_getbuf(
-           sizeof(tNFA_EE_API_CLEAR_ROUTING_TABLE))) != nullptr) {
-    p_msg->hdr.event = NFA_EE_API_CLEAR_ROUTING_TABLE_EVT;
-    p_msg->clear_sc = clear_sc;
-    p_msg->p_cb = 0;
-
-    nfa_sys_sendmsg(p_msg);
-
-    status = NFA_STATUS_OK;
   }
 
   return status;

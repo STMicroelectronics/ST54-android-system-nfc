@@ -371,9 +371,6 @@ typedef uint8_t tT3T_POLL_RC;
  * with Lc and Le coded using Extended Field Coding */
 #define T4T_CMD_MAX_EXT_HDR_SIZE 15
 
-/* CLA, INS, P1, P2, Le on 3 bytes (Lc absent) using Extended Field Coding */
-#define T4T_CMD_MAX_EFC_NO_LC_HDR_SIZE 7
-
 #define T4T_VERSION_3_0 0x30 /* version 3.0 */
 #define T4T_VERSION_2_0 0x20 /* version 2.0 */
 #define T4T_VERSION_1_0 0x10 /* version 1.0 */
@@ -697,6 +694,21 @@ typedef uint8_t tT3T_POLL_RC;
  * or 0x200
  */
 #define I93_IC_REF_STM_ST25DVHIK 0x26
+
+/* Product code family for LRI2K */
+#define I93_PROD_CODE_STM_LRI2K_MASK I93_IC_REF_STM_LRI2K /* 0x20 */
+/* Product code family for LRIS2K */
+#define I93_PROD_CODE_STM_LRIS2K_MASK I93_IC_REF_STM_LRIS2K /* 0x28 */
+/* Product code family for LRIS64K */
+#define I93_PROD_CODE_STM_LRIS64K_MASK I93_IC_REF_STM_LRIS64K /* 0x44 */
+/* Product code family for M24LR04E_R */
+#define I93_PROD_CODE_STM_M24LR04E_R_MASK 0x58
+/* Product code family for M24LR64_R */
+#define I93_PROD_CODE_STM_M24LR64_R_MASK I93_IC_REF_STM_M24LR64_R /* 0x2C */
+/* Product code family for M24LR16E_R */
+#define I93_PROD_CODE_STM_M24LR16E_R_MASK 0x4C
+/* Product code family for M24LR64E_R */
+#define I93_PROD_CODE_STM_M24LR64E_R_MASK 0x5C
 
 /* ONS, product version (IC manufacturer code) */
 /* IC Reference for N36RW02:  00011010(b), blockSize: 4, numberBlocks: 0x40 */

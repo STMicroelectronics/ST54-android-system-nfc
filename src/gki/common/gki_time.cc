@@ -15,8 +15,8 @@
  *  limitations under the License.
  *
  ******************************************************************************/
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
 
 #include "gki_int.h"
 
@@ -32,8 +32,6 @@
 #define GKI_MAX_INT32 (0x7fffffffL)
 
 using android::base::StringPrintf;
-
-extern bool nfc_debug_enabled;
 
 /*******************************************************************************
 **
@@ -728,19 +726,17 @@ uint32_t GKI_get_remaining_ticks(TIMER_LIST_Q* p_timer_listq,
       p_tle = p_tle->p_next;
     }
 
-    if (p_tle == nullptr) {
-      LOG(ERROR) << StringPrintf("%s; p_tle is null", __func__);
-      return (0);
-    }
     /* if found target entry */
     if (p_tle == p_target_tle) {
       rem_ticks += p_tle->ticks;
     } else {
-      LOG(ERROR) << StringPrintf("%s; No timer entry in the list", __func__);
+      LOG(ERROR) << StringPrintf(
+          "GKI_get_remaining_ticks: No timer entry in the list");
       return (0);
     }
   } else {
-    LOG(ERROR) << StringPrintf("%s; timer entry is not active", __func__);
+    LOG(ERROR) << StringPrintf(
+        "GKI_get_remaining_ticks: timer entry is not active");
   }
 
   return (rem_ticks);
@@ -769,7 +765,7 @@ void GKI_add_to_timer_list(TIMER_LIST_Q* p_timer_listq, TIMER_LIST_ENT* p_tle) {
   uint8_t tt;
   TIMER_LIST_ENT* p_temp;
   if (p_tle == nullptr || p_timer_listq == nullptr) {
-    DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+    LOG(DEBUG) << StringPrintf(
         "%s: invalid argument %p, %p****************************<<", __func__,
         p_timer_listq, p_tle);
     return;

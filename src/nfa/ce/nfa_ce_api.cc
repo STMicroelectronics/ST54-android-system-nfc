@@ -21,16 +21,14 @@
  *  NFA interface for card emulation
  *
  ******************************************************************************/
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
 #include <string.h>
 
 #include "nfa_api.h"
 #include "nfa_ce_int.h"
 
 using android::base::StringPrintf;
-
-extern bool nfc_debug_enabled;
 
 /*******************************************************************************
 **
@@ -52,7 +50,7 @@ tNFA_STATUS nfa_ce_api_deregister_listen(tNFA_HANDLE handle,
   /* Validate handle */
   if ((listen_info != NFA_CE_LISTEN_INFO_UICC) &&
       ((handle & NFA_HANDLE_GROUP_MASK) != NFA_HANDLE_GROUP_CE)) {
-    LOG(ERROR) << StringPrintf("%s; Invalid handle", __func__);
+    LOG(ERROR) << StringPrintf("nfa_ce_api_reregister_listen: Invalid handle");
     return (NFA_STATUS_BAD_HANDLE);
   }
 
@@ -66,7 +64,7 @@ tNFA_STATUS nfa_ce_api_deregister_listen(tNFA_HANDLE handle,
 
     return (NFA_STATUS_OK);
   } else {
-    LOG(ERROR) << StringPrintf("%s; Out of buffers", __func__);
+    LOG(ERROR) << StringPrintf("nfa_ce_api_reregister_listen: Out of buffers");
     return (NFA_STATUS_FAILED);
   }
 }
@@ -124,26 +122,28 @@ tNFA_STATUS NFA_CeConfigureLocalTag(tNFA_PROTOCOL_MASK protocol_mask,
 {
   tNFA_CE_MSG* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   if (protocol_mask) {
     /* If any protocols are specified, then NDEF buffer pointer must be non-NULL
      */
     if (p_ndef_data == nullptr) {
-      LOG(ERROR) << StringPrintf("%s; NULL ndef data pointer", __func__);
+      LOG(ERROR) << StringPrintf(
+          "NFA_CeConfigureLocalTag: NULL ndef data pointer");
       return (NFA_STATUS_INVALID_PARAM);
     }
 
     if ((protocol_mask & NFA_PROTOCOL_MASK_T1T) ||
         (protocol_mask & NFA_PROTOCOL_MASK_T2T)) {
-      LOG(ERROR) << StringPrintf("%s; Cannot emulate Type 1 / Type 2 tag",
-                                 __func__);
+      LOG(ERROR) << StringPrintf(
+          "NFA_CeConfigureLocalTag: Cannot emulate Type 1 / Type 2 tag");
       return (NFA_STATUS_INVALID_PARAM);
     }
 
     if (uid_len) {
-      LOG(ERROR) << StringPrintf("%s; Cannot Set UID for Protocol_mask: 0x%x",
-                                 __func__, protocol_mask);
+      LOG(ERROR) << StringPrintf(
+          "NFA_CeConfigureLocalTag: Cannot Set UID for Protocol_mask: 0x%x",
+          protocol_mask);
       return (NFA_STATUS_INVALID_PARAM);
     }
   }
@@ -199,8 +199,7 @@ tNFA_STATUS NFA_CeConfigureUiccListenTech(tNFA_HANDLE ee_handle,
 #if (NFC_NFCEE_INCLUDED == TRUE)
   tNFA_CE_MSG* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; ee_handle = 0x%x", __func__, ee_handle);
+  LOG(DEBUG) << StringPrintf("ee_handle = 0x%x", ee_handle);
 
   /* If tech_mask is zero, then app is disabling listening for specified uicc */
   if (tech_mask == 0) {
@@ -223,9 +222,8 @@ tNFA_STATUS NFA_CeConfigureUiccListenTech(tNFA_HANDLE ee_handle,
   }
 #else
   LOG(ERROR) << StringPrintf(
-      "%s; NFCEE related functions are not "
-      "enabled!",
-      __func__);
+      "NFCEE related functions are not "
+      "enabled!");
 #endif
   return (NFA_STATUS_FAILED);
 }
@@ -254,7 +252,7 @@ tNFA_STATUS NFA_CeRegisterFelicaSystemCodeOnDH(uint16_t system_code,
                                                tNFA_CONN_CBACK* p_conn_cback) {
   tNFA_CE_MSG* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   /* Validate parameters */
   if (p_conn_cback == nullptr) return (NFA_STATUS_INVALID_PARAM);
@@ -299,8 +297,7 @@ tNFA_STATUS NFA_CeRegisterFelicaSystemCodeOnDH(uint16_t system_code,
 **
 *******************************************************************************/
 tNFA_STATUS NFA_CeDeregisterFelicaSystemCodeOnDH(tNFA_HANDLE handle) {
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; handle:0x%X", __func__, handle);
+  LOG(DEBUG) << StringPrintf("handle:0x%X", handle);
   return (nfa_ce_api_deregister_listen(handle, NFA_CE_LISTEN_INFO_FELICA));
 }
 
@@ -330,7 +327,7 @@ tNFA_STATUS NFA_CeRegisterAidOnDH(uint8_t aid[NFC_MAX_AID_LEN], uint8_t aid_len,
                                   tNFA_CONN_CBACK* p_conn_cback) {
   tNFA_CE_MSG* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   /* Validate parameters */
   if (p_conn_cback == nullptr) return (NFA_STATUS_INVALID_PARAM);
@@ -342,14 +339,7 @@ tNFA_STATUS NFA_CeRegisterAidOnDH(uint8_t aid[NFC_MAX_AID_LEN], uint8_t aid_len,
     p_msg->reg_listen.listen_type = NFA_CE_REG_TYPE_ISO_DEP;
 
     /* Listen info */
-    if ((aid_len == 0) && (aid != nullptr)) {
-      GKI_freebuf(p_msg);
-      return (NFA_STATUS_INVALID_PARAM);
-    }
-
-    if (aid_len != 0) {
-      memcpy(p_msg->reg_listen.aid, aid, aid_len);
-    }
+    memcpy(p_msg->reg_listen.aid, aid, aid_len);
     p_msg->reg_listen.aid_len = aid_len;
 
     nfa_sys_sendmsg(p_msg);
@@ -380,8 +370,7 @@ tNFA_STATUS NFA_CeRegisterAidOnDH(uint8_t aid[NFC_MAX_AID_LEN], uint8_t aid_len,
 **
 *******************************************************************************/
 tNFA_STATUS NFA_CeDeregisterAidOnDH(tNFA_HANDLE handle) {
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; handle:0x%X", __func__, handle);
+  LOG(DEBUG) << StringPrintf("handle:0x%X", handle);
   return (nfa_ce_api_deregister_listen(handle, NFA_CE_LISTEN_INFO_T4T_AID));
 }
 
@@ -416,10 +405,10 @@ tNFA_STATUS NFA_CeSetIsoDepListenTech(tNFA_TECHNOLOGY_MASK tech_mask) {
   tNFA_TECHNOLOGY_MASK use_mask =
       (NFA_TECHNOLOGY_MASK_A | NFA_TECHNOLOGY_MASK_B);
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; 0x%x", __func__, tech_mask);
+  LOG(DEBUG) << StringPrintf("0x%x", tech_mask);
   if (((tech_mask & use_mask) == 0) || ((tech_mask & ~use_mask) != 0)) {
-    LOG(ERROR) << StringPrintf("%s; Invalid technology mask", __func__);
+    LOG(ERROR) << StringPrintf(
+        "NFA_CeSetIsoDepListenTech: Invalid technology mask");
     return (NFA_STATUS_INVALID_PARAM);
   }
 

@@ -64,7 +64,6 @@
 #define NFC_STATUS_ACTIVATION_FAILED NCI_STATUS_ACTIVATION_FAILED
 /* Tear Down Error      */
 #define NFC_STATUS_TEAR_DOWN NCI_STATUS_TEAR_DOWN
-/* RF frame corrupted   */
 #define NFC_STATUS_RF_FRAME_CORRUPTED NCI_STATUS_RF_FRAME_CORRUPTED
 /* RF transmission error*/
 #define NFC_STATUS_RF_TRANSMISSION_ERR NCI_STATUS_RF_TRANSMISSION_ERR
@@ -115,16 +114,6 @@ typedef uint8_t tNFC_STATUS;
  * NFC Config Parameter IDs defined by NCI
  **********************************************/
 #define NFC_PMID_TOTAL_DURATION NCI_PARAM_ID_TOTAL_DURATION
-
-#define NFC_PMID_PA_DEVICES_LIMIT NCI_PARAM_ID_PA_DEVICES_LIMIT
-#define NFC_PMID_PB_BAILOUT NCI_PARAM_ID_PB_BAILOUT
-#define NFC_PMID_PB_DEVICES_LIMIT NCI_PARAM_ID_PB_DEVICES_LIMIT
-#define NFC_PMID_PF_BIT_RATE NCI_PARAM_ID_PF_BIT_RATE
-#define NFC_PMID_PF_BAILOUT NCI_PARAM_ID_PF_BAILOUT
-#define NFC_PMID_PF_DEVICES_LIMIT NCI_PARAM_ID_PF_DEVICES_LIMIT
-#define NFC_PMID_ATR_REQ_CONFIG NCI_PARAM_ID_ATR_REQ_CONFIG
-#define NFC_PMID_PV_DEVICES_LIMIT NCI_PARAM_ID_PV_DEVICES_LIMIT
-
 #define NFC_PMID_PA_BAILOUT NCI_PARAM_ID_PA_BAILOUT
 #define NFC_PMID_PF_RC NCI_PARAM_ID_PF_RC
 #define NFC_PMID_PB_BAILOUT NCI_PARAM_ID_PB_BAILOUT
@@ -144,16 +133,12 @@ typedef uint8_t tNFC_STATUS;
 #define NFC_PMID_LB_APPDATA NCI_PARAM_ID_LB_APPDATA
 #define NFC_PMID_LB_SFGI NCI_PARAM_ID_LB_SFGI
 #define NFC_PMID_LB_ADC_FO NCI_PARAM_ID_LB_ADC_FO
-#define NFC_PMID_LB_BIT_RATE NCI_PARAM_ID_LB_BIT_RATE
 #define NFC_PMID_LF_T3T_ID1 NCI_PARAM_ID_LF_T3T_ID1
 #define NFC_PMID_LF_PROTOCOL NCI_PARAM_ID_LF_PROTOCOL
 #define NFC_PMID_LF_T3T_PMM NCI_PARAM_ID_LF_T3T_PMM
 #define NFC_PMID_LF_T3T_FLAGS2 NCI_PARAM_ID_LF_T3T_FLAGS2
 #define NFC_PMID_FWI NCI_PARAM_ID_FWI
-#define NFC_PMID_LI_A_RATS_TB1 NCI_PARAM_ID_LI_A_RATS_TB1
-#define NFC_PMID_LI_A_RATS_TC1 NCI_PARAM_ID_LI_A_RATS_TC1
 #define NFC_PMID_LF_CON_BITR_F NCI_PARAM_ID_LF_CON_BITR_F
-#define NFC_PMID_LF_T3T_RD_ALLOWED NCI_PARAM_ID_LF_T3T_RD_ALLOWED
 #define NFC_PMID_WT NCI_PARAM_ID_WT
 #define NFC_PMID_ATR_RES_GEN_BYTES NCI_PARAM_ID_ATR_RES_GEN_BYTES
 #define NFC_PMID_ATR_RSP_CONFIG NCI_PARAM_ID_ATR_RSP_CONFIG
@@ -201,22 +186,21 @@ enum {
   NFC_NFCEE_DISCOVER_REVT,          /* 4  Discover NFCEE response       */
   NFC_NFCEE_INFO_REVT,              /* 5  Discover NFCEE Notification   */
   NFC_NFCEE_MODE_SET_REVT,          /* 6  NFCEE Mode Set response       */
-  NFC_NFCEE_FORCE_ROUTING_REVT,     /* 7 Force Routing RSP */
-  NFC_RF_FIELD_REVT,                /* 8  RF Field information          */
-  NFC_EE_ACTION_REVT,               /* 9  EE Action notification        */
-  NFC_EE_DISCOVER_REQ_REVT,         /* 10  EE Discover Req notification  */
-  NFC_SET_ROUTING_REVT,             /* 11 Configure Routing response    */
-  NFC_GET_ROUTING_REVT,             /* 12 Retrieve Routing response     */
-  NFC_RF_COMM_PARAMS_UPDATE_REVT,   /* 13 RF Communication Param Update */
-  NFC_GEN_ERROR_REVT,               /* 14 generic error notification    */
-  NFC_NFCC_RESTART_REVT,            /* 15 NFCC has been re-initialized  */
-  NFC_NFCC_TIMEOUT_REVT,            /* 16 NFCC is not responding        */
-  NFC_NFCC_TRANSPORT_ERR_REVT,      /* 17 NCI Tranport error            */
-  NFC_NFCC_POWER_OFF_REVT,          /* 18 NFCC turned off               */
-  NFC_SET_POWER_SUB_STATE_REVT,     /* 19 Set power sub state response  */
-  NFC_NFCEE_PL_CONTROL_REVT,        /* 20 NFCEE Power/Link Ctrl response*/
-  NFC_NFCEE_STATUS_REVT             /* 21 NFCEE Status Notification     */
-
+  NFC_RF_FIELD_REVT,                /* 7  RF Field information          */
+  NFC_EE_ACTION_REVT,               /* 8  EE Action notification        */
+  NFC_EE_DISCOVER_REQ_REVT,         /* 9  EE Discover Req notification  */
+  NFC_SET_ROUTING_REVT,             /* 10 Configure Routing response    */
+  NFC_GET_ROUTING_REVT,             /* 11 Retrieve Routing response     */
+  NFC_RF_COMM_PARAMS_UPDATE_REVT,   /* 12 RF Communication Param Update */
+  NFC_GEN_ERROR_REVT,               /* 13 generic error notification    */
+  NFC_NFCC_RESTART_REVT,            /* 14 NFCC has been re-initialized  */
+  NFC_NFCC_TIMEOUT_REVT,            /* 15 NFCC is not responding        */
+  NFC_NFCC_TRANSPORT_ERR_REVT,      /* 16 NCI Tranport error            */
+  NFC_NFCC_POWER_OFF_REVT,          /* 17 NFCC turned off               */
+  NFC_SET_POWER_SUB_STATE_REVT,     /* 18 Set power sub state response  */
+  NFC_NFCEE_PL_CONTROL_REVT,        /* NFCEE Power/Link Ctrl response*/
+  NFC_NFCEE_STATUS_REVT             /* NFCEE Status Notification     */
+                                    /* First vendor-specific rsp event  */
 };
 typedef uint16_t tNFC_RESPONSE_EVT;
 
@@ -249,7 +233,6 @@ typedef struct {
   uint8_t hci_packet_size;                             /*HCI payload size*/
   uint8_t hci_conn_credits; /*max number of HCI credits*/
   uint16_t max_nfc_v_size;  /* maximum frame size for NFC-V*/
-  uint8_t manu_specific_info[40];
 } tNFC_ENABLE_REVT;
 
 #define NFC_MAX_NUM_IDS 125
@@ -300,7 +283,6 @@ typedef struct {
 /* NFCEE removed                */
 #define NFC_NFCEE_STATUS_REMOVED NCI_NFCEE_STS_REMOVED
 
-#define NFC_NFCEE_STATUS_UNRESPONSIVE NCI_NFCEE_STS_UNRESPONSIVE
 /* the data type associated with NFC_NFCEE_INFO_REVT */
 typedef struct {
   tNFC_STATUS status;    /* The event status - place holder  */
@@ -332,11 +314,6 @@ typedef struct {
 } tNFC_FW_VERSION;
 #endif
 #define NFC_MAX_AID_LEN NCI_MAX_AID_LEN /* 16 */
-
-typedef struct {
-  /* The event status.*/
-  tNFC_STATUS status;
-} tNFC_NFCEE_FORCE_ROUTING_REVT;
 
 /* the data type associated with NFC_CE_GET_ROUTING_REVT */
 typedef struct {
@@ -403,8 +380,7 @@ extern uint8_t NFC_GetNCIVersion();
 /* Type5Tag    - NFC-V/ISO15693*/
 #define NFC_PROTOCOL_T5T NFC_PROTOCOL_T5T_(NFC_GetNCIVersion())
 #define NFC_PROTOCOL_T5T_(x) \
-  (((x) == NCI_VERSION_2_0) ? NCI_PROTOCOL_T5T : NCI_PROTOCOL_15693)
-#define NFC_PROTOCOL_CI NCI_PROTOCOL_CI
+  (((x) >= NCI_VERSION_2_0) ? NCI_PROTOCOL_T5T : NCI_PROTOCOL_15693)
 /* Type 4A,4B  - NFC-A or NFC-B   */
 #define NFC_PROTOCOL_ISO_DEP NCI_PROTOCOL_ISO_DEP
 /* NFCDEP/LLCP - NFC-A or NFC-F       */
@@ -419,18 +395,12 @@ typedef uint8_t tNFC_PROTOCOL;
 #define NFC_DISCOVERY_TYPE_POLL_A NCI_DISCOVERY_TYPE_POLL_A
 #define NFC_DISCOVERY_TYPE_POLL_B NCI_DISCOVERY_TYPE_POLL_B
 #define NFC_DISCOVERY_TYPE_POLL_F NCI_DISCOVERY_TYPE_POLL_F
-#define NFC_DISCOVERY_TYPE_POLL_A_ACTIVE NCI_DISCOVERY_TYPE_POLL_A_ACTIVE
-#define NFC_DISCOVERY_TYPE_POLL_F_ACTIVE NCI_DISCOVERY_TYPE_POLL_F_ACTIVE
-#define NFC_DISCOVERY_TYPE_POLL_ACTIVE NCI_DISCOVERY_TYPE_POLL_ACTIVE
 #define NFC_DISCOVERY_TYPE_POLL_V NCI_DISCOVERY_TYPE_POLL_V
 #define NFC_DISCOVERY_TYPE_POLL_B_PRIME NCI_DISCOVERY_TYPE_POLL_B_PRIME
 #define NFC_DISCOVERY_TYPE_POLL_KOVIO NCI_DISCOVERY_TYPE_POLL_KOVIO
 #define NFC_DISCOVERY_TYPE_LISTEN_A NCI_DISCOVERY_TYPE_LISTEN_A
 #define NFC_DISCOVERY_TYPE_LISTEN_B NCI_DISCOVERY_TYPE_LISTEN_B
 #define NFC_DISCOVERY_TYPE_LISTEN_F NCI_DISCOVERY_TYPE_LISTEN_F
-#define NFC_DISCOVERY_TYPE_LISTEN_A_ACTIVE NCI_DISCOVERY_TYPE_LISTEN_A_ACTIVE
-#define NFC_DISCOVERY_TYPE_LISTEN_F_ACTIVE NCI_DISCOVERY_TYPE_LISTEN_F_ACTIVE
-#define NFC_DISCOVERY_TYPE_LISTEN_ACTIVE NCI_DISCOVERY_TYPE_LISTEN_ACTIVE
 #define NFC_DISCOVERY_TYPE_LISTEN_ISO15693 NCI_DISCOVERY_TYPE_LISTEN_ISO15693
 #define NFC_DISCOVERY_TYPE_LISTEN_B_PRIME NCI_DISCOVERY_TYPE_LISTEN_B_PRIME
 typedef uint8_t tNFC_DISCOVERY_TYPE;
@@ -441,10 +411,8 @@ typedef uint8_t tNFC_RF_TECH_N_MODE;
 #define NFC_SEL_RES_MF_CLASSIC 0x08
 
 /* Bit Rates */
-#define NFC_BIT_RATE_106 NCI_BIT_RATE_106 /* ST21NFC : for factory tool */
 #define NFC_BIT_RATE_212 NCI_BIT_RATE_212 /* 212 kbit/s */
 #define NFC_BIT_RATE_424 NCI_BIT_RATE_424 /* 424 kbit/s */
-#define NFC_BIT_RATE_848 NCI_BIT_RATE_848 /* ST21NFC : for factory tool */
 typedef uint8_t tNFC_BIT_RATE;
 
 /**********************************************
@@ -454,7 +422,7 @@ typedef uint8_t tNFC_BIT_RATE;
 #define NFC_INTERFACE_FRAME NCI_INTERFACE_FRAME
 #define NFC_INTERFACE_ISO_DEP NCI_INTERFACE_ISO_DEP
 #define NFC_INTERFACE_NFC_DEP NCI_INTERFACE_NFC_DEP
-#define NFC_INTERFACE_MIFARE NCI_INTERFACE_MIFARE
+#define NFC_INTERFACE_MIFARE NCI_INTERFACE_VS_MIFARE
 typedef tNCI_INTF_TYPE tNFC_INTF_TYPE;
 
 /**********************************************
@@ -464,7 +432,6 @@ typedef tNCI_INTF_TYPE tNFC_INTF_TYPE;
 #define NFC_DEACTIVATE_TYPE_SLEEP NCI_DEACTIVATE_TYPE_SLEEP
 #define NFC_DEACTIVATE_TYPE_SLEEP_AF NCI_DEACTIVATE_TYPE_SLEEP_AF
 #define NFC_DEACTIVATE_TYPE_DISCOVERY NCI_DEACTIVATE_TYPE_DISCOVERY
-#define NFC_DEACTIVATE_TYPE_LPTD NCI_DEACTIVATE_TYPE_LPTD
 typedef uint8_t tNFC_DEACT_TYPE;
 
 /**********************************************
@@ -577,8 +544,6 @@ typedef uint8_t tNFC_VS_EVT;
 typedef void(tNFC_VS_CBACK)(tNFC_VS_EVT event, uint16_t data_len,
                             uint8_t* p_data);
 
-typedef void(tNFC_RESTART_CBACK)();
-
 /* the events reported on tNFC_DISCOVER_CBACK */
 enum {
   NFC_START_DEVT = NFC_FIRST_DEVT, /* Status of NFC_DiscoveryStart     */
@@ -586,10 +551,9 @@ enum {
   NFC_RESULT_DEVT,                 /* The responses from remote device */
   NFC_SELECT_DEVT,                 /* Status of NFC_DiscoverySelect    */
   NFC_ACTIVATE_DEVT,               /* RF interface is activated        */
-  NFC_DEACTIVATE_DEVT              /* Status of RF deactivation        */
-  ,
-  NFC_INTF_ACTIVATED_DEVT /* send the raw data of RF_INTF_ACTIVATED_NTF to
-                             wallet */
+  NFC_DEACTIVATE_DEVT,             /* Status of RF deactivation        */
+  NFC_WPT_START_DEVT,              /* Status of NFC_StartPowerTransfert*/
+  NFC_WPT_RESULT_DEVT,             /* Wireless Power Transfert ended   */
 };
 typedef uint16_t tNFC_DISCOVER_EVT;
 
@@ -604,6 +568,7 @@ typedef struct {
                             13) Available after Technology Detection */
   uint8_t sensb_res[NFC_MAX_SENSB_RES_LEN]; /* SENSB_RES Response (ATQ) */
   uint8_t nfcid0[NFC_NFCID0_MAX_LEN];
+  uint8_t fwi;
 } tNFC_RF_PB_PARAMS;
 
 #define NFC_MAX_SENSF_RES_LEN NCI_MAX_SENSF_RES_LEN
@@ -678,7 +643,6 @@ typedef struct {
   uint8_t ats_res[NFC_MAX_ATS_LEN]; /* ATS RES                          */
   bool nad_used;                    /* NAD is used or not               */
   uint8_t fwi;                      /* Frame Waiting time Integer       */
-  uint8_t li_a_rats_tb1;            /* RATS response interface TB1      */
   uint8_t sfgi;                     /* Start-up Frame Guard time Integer*/
   uint8_t his_byte_len;             /* len of historical bytes          */
   uint8_t his_byte[NFC_MAX_HIS_BYTES_LEN]; /* historical bytes             */
@@ -771,11 +735,6 @@ typedef struct {
   tNFC_DEACT_REASON reason; /* De-activate reason    */
 } tNFC_DEACTIVATE_DEVT;
 
-typedef struct {
-  uint8_t len;
-  uint8_t* pdata;
-} tNFC_INTF_ACTIVATED_DEVT;
-
 typedef union {
   tNFC_STATUS status; /* The event status.        */
   tNFC_START_DEVT start;
@@ -784,8 +743,7 @@ typedef union {
   tNFC_STOP_DEVT stop;
   tNFC_ACTIVATE_DEVT activate;
   tNFC_DEACTIVATE_DEVT deactivate;
-  tNFC_INTF_ACTIVATED_DEVT
-      intf_activated; /* send the raw data of RF_INTF_ACTIVATED_NTF to wallet */
+  uint8_t wpt_result;
 } tNFC_DISCOVER;
 
 typedef struct {
@@ -875,9 +833,6 @@ typedef void(tNFC_CONN_CBACK)(uint8_t conn_id, tNFC_CONN_EVT event,
 **                  When the NFC startup procedure is completed, an
 **                  NFC_ENABLE_REVT is returned to the application using the
 **                  tNFC_RESPONSE_CBACK.
-**
-** Parameters       p_cback - callback for NFC layer response
-**                  dta_on_off - library mode (normal or DTA)
 **
 ** Returns          tNFC_STATUS
 **
@@ -1037,7 +992,7 @@ extern tNFC_STATUS NFC_DiscoveryStart(uint8_t num_params,
 **                  reported by tNFC_DISCOVER_CBACK as NFC_SELECT_DEVT.
 **
 ** Parameters       rf_disc_id - The ID identifies the remote device.
-**                  protocol - the logical endpoint on the remote devide
+**                  protocol - the logical endpoint on the remote device
 **                  rf_interface - the RF interface to communicate with NFCC
 **
 ** Returns          tNFC_STATUS
@@ -1045,6 +1000,24 @@ extern tNFC_STATUS NFC_DiscoveryStart(uint8_t num_params,
 *******************************************************************************/
 extern tNFC_STATUS NFC_DiscoverySelect(uint8_t rf_disc_id, uint8_t protocol,
                                        uint8_t rf_interface);
+
+/*******************************************************************************
+**
+** Function         NFC_StartPowerTransfert
+**
+** Description      If tNFC_DISCOVER_CBACK reports status=NFC_MULTIPLE_PROT,
+**                  the application needs to use this function to select the
+**                  the logical endpoint to continue. The response from NFCC is
+**                  reported by tNFC_DISCOVER_CBACK as NFC_SELECT_DEVT.
+**
+** Parameters       rf_disc_id - The ID identifies the remote device.
+**                  protocol - the logical endpoint on the remote device
+**                  rf_interface - the RF interface to communicate with NFCC
+**
+** Returns          tNFC_STATUS
+**
+*******************************************************************************/
+extern tNFC_STATUS NFC_StartPowerTransfert(uint8_t* p_param, uint8_t param_len);
 
 /*******************************************************************************
 **
@@ -1249,20 +1222,6 @@ extern tNFC_STATUS NFC_GetRouting(void);
 
 /*******************************************************************************
 **
-** Function         NFC_SetForcedNfceeRouting
-**
-** Description      This function is called to retrieve the CE routing table
-**                  from NFCC. The response from NFCC is reported by
-**                  tNFC_RESPONSE_CBACK as NFC_GET_ROUTING_REVT.
-**
-** Returns          tNFC_STATUS
-**
-*******************************************************************************/
-extern tNFC_STATUS NFC_SetForcedNfceeRouting(bool enable, uint8_t nfcee_id,
-                                             uint8_t config);
-
-/*******************************************************************************
-**
 ** Function         NFC_RegVSCback
 **
 ** Description      This function is called to register or de-register a
@@ -1276,29 +1235,6 @@ extern tNFC_STATUS NFC_SetForcedNfceeRouting(bool enable, uint8_t nfcee_id,
 *******************************************************************************/
 extern tNFC_STATUS NFC_RegVSCback(bool is_register, tNFC_VS_CBACK* p_cback);
 
-/*******************************************************************************
-**
-** Function         NFC_RegRestartCback
-**
-** Description      This function is called to register or de-register a
-**                  callback function to receive restart requests
-**
-** Returns          tNFC_STATUS
-**
-*******************************************************************************/
-extern void NFC_RegRestartCback(void* p_cback);
-
-/*******************************************************************************
-**
-** Function         NFC_RestartOrAbort
-**
-** Description      This function calls the above callback if exists, otherwise
-**                  aborts()
-**
-** Returns          tNFC_STATUS
-**
-*******************************************************************************/
-extern void NFC_RestartOrAbort();
 /*******************************************************************************
 **
 ** Function         NFC_SendVsCommand

@@ -23,8 +23,8 @@
  *  (callback). On the transmit side, it manages the command transmission.
  *
  ******************************************************************************/
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
 #include <log/log.h>
 #include <string.h>
 
@@ -37,8 +37,6 @@
 #include "rw_int.h"
 
 using android::base::StringPrintf;
-
-extern bool nfc_debug_enabled;
 
 tRW_CB rw_cb;
 
@@ -143,16 +141,15 @@ void rw_main_log_stats(void) {
   ticks = GKI_get_tick_count() - rw_cb.stats.start_tick;
   elapsed_ms = GKI_TICKS_TO_MS(ticks);
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+  LOG(DEBUG) << StringPrintf(
       "NFC tx stats: cmds:%i, retries:%i, aborted: %i, tx_errs: %i, bytes "
       "sent:%i",
       rw_cb.stats.num_ops, rw_cb.stats.num_retries, rw_cb.stats.num_fail,
       rw_cb.stats.num_trans_err, rw_cb.stats.bytes_sent);
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("    rx stats: rx-crc errors %i, bytes received: %i",
-                      rw_cb.stats.num_crc, rw_cb.stats.bytes_received);
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("    time activated %i ms", elapsed_ms);
+  LOG(DEBUG) << StringPrintf(
+      "    rx stats: rx-crc errors %i, bytes received: %i", rw_cb.stats.num_crc,
+      rw_cb.stats.bytes_received);
+  LOG(DEBUG) << StringPrintf("    time activated %i ms", elapsed_ms);
 }
 #endif /* RW_STATS_INCLUDED */
 
@@ -184,8 +181,7 @@ tNFC_STATUS RW_SendRawFrame(uint8_t* p_raw_data, uint16_t data_len) {
       memcpy(p, p_raw_data, data_len);
       p_data->len = data_len;
 
-      DLOG_IF(INFO, nfc_debug_enabled)
-          << StringPrintf("%s; RW SENT raw frame (0x%x)", __func__, data_len);
+      LOG(DEBUG) << StringPrintf("RW SENT raw frame (0x%x)", data_len);
       status = NFC_SendData(NFC_RF_CONN_ID, p_data);
     }
   }
@@ -206,13 +202,14 @@ tNFC_STATUS RW_SetActivatedTagType(tNFC_ACTIVATE_DEVT* p_activate_params,
   tNFC_STATUS status = NFC_STATUS_FAILED;
 
   /* check for null cback here / remove checks from rw_t?t */
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; protocol:%d, technology:%d, SAK:%d", __func__,
+  LOG(DEBUG) << StringPrintf(
+      "RW_SetActivatedTagType protocol:%d, technology:%d, SAK:%d",
       p_activate_params->protocol, p_activate_params->rf_tech_param.mode,
       p_activate_params->rf_tech_param.param.pa.sel_rsp);
 
   if (p_cback == nullptr) {
-    LOG(ERROR) << StringPrintf("%s; called with NULL callback", __func__);
+    LOG(ERROR) << StringPrintf(
+        "RW_SetActivatedTagType called with NULL callback");
     return (NFC_STATUS_FAILED);
   }
 
@@ -246,35 +243,6 @@ tNFC_STATUS RW_SetActivatedTagType(tNFC_ACTIVATE_DEVT* p_activate_params,
     case RW_CB_TYPE_UNKNOWN: {
       break;
     }
-  }
-
-  // free buffer used for retransmission
-  if (rw_cb.tcb.t1t.p_cur_cmd_buf != nullptr) {
-    GKI_freebuf(rw_cb.tcb.t1t.p_cur_cmd_buf);
-  }
-  if (rw_cb.tcb.t2t.p_cur_cmd_buf != nullptr) {
-    GKI_freebuf(rw_cb.tcb.t2t.p_cur_cmd_buf);
-  }
-  if (rw_cb.tcb.t2t.p_sec_cmd_buf != nullptr) {
-    GKI_freebuf(rw_cb.tcb.t2t.p_sec_cmd_buf);
-  }
-  if (rw_cb.tcb.t3t.p_cur_cmd_buf != nullptr) {
-    GKI_freebuf(rw_cb.tcb.t3t.p_cur_cmd_buf);
-  }
-  if (rw_cb.tcb.t4t.p_data_to_free != nullptr) {
-    GKI_freebuf(rw_cb.tcb.t4t.p_data_to_free);
-  }
-  if (rw_cb.tcb.t4t.p_retry_cmd != nullptr) {
-    GKI_freebuf(rw_cb.tcb.t4t.p_retry_cmd);
-  }
-  if (rw_cb.tcb.i93.p_retry_cmd != nullptr) {
-    GKI_freebuf(rw_cb.tcb.i93.p_retry_cmd);
-  }
-  if (rw_cb.tcb.mfc.p_cur_cmd_buf != nullptr) {
-    GKI_freebuf(rw_cb.tcb.mfc.p_cur_cmd_buf);
-  }
-  if (rw_cb.tcb.mfc.p_data_to_free != nullptr) {
-    GKI_freebuf(rw_cb.tcb.mfc.p_data_to_free);
   }
 
   /* Reset tag-specific area of control block */
@@ -335,13 +303,9 @@ tNFC_STATUS RW_SetActivatedTagType(tNFC_ACTIVATE_DEVT* p_activate_params,
     }
   }
   /* TODO set up callback for proprietary protocol */
-  else if ((NFC_PROTOCOL_UNKNOWN == p_activate_params->protocol) &&
-           (p_activate_params->rf_tech_param.mode ==
-            NFC_DISCOVERY_TYPE_POLL_B)) {
-    status = rw_ci_select();
-  } else {
+  else {
     rw_cb.tcb_type = RW_CB_TYPE_UNKNOWN;
-    LOG(ERROR) << StringPrintf("%s; Invalid protocol", __func__);
+    LOG(ERROR) << StringPrintf("RW_SetActivatedTagType Invalid protocol");
   }
 
   if (status != NFC_STATUS_OK) rw_cb.p_cback = nullptr;

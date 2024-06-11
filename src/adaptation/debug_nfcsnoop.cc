@@ -33,7 +33,6 @@
 
 #include "bt_types.h"
 #include "nfc_int.h"
-#include "nfc_config.h"
 
 #define USEC_PER_SEC 1000000ULL
 
@@ -57,12 +56,15 @@ static const size_t BLOCK_SIZE = 16384;
 // Maximum line length in bugreport (should be multiple of 4 for base64 output)
 static const uint8_t MAX_LINE_LENGTH = 128;
 
-static const size_t BUFFER_SIZE = 1;
+static const size_t BUFFER_SIZE = 2;
 static const size_t SYSTEM_BUFFER_INDEX = 0;
-static const char* BUFFER_NAMES[BUFFER_SIZE] = {"LOG_SUMMARY"};
+static const size_t VENDOR_BUFFER_INDEX = 1;
+static const char* BUFFER_NAMES[BUFFER_SIZE] = {"LOG_SUMMARY",
+                                                "VS_LOG_SUMMARY"};
+
 static std::mutex buffer_mutex;
-static ringbuffer_t* buffers[BUFFER_SIZE] = {nullptr};
-static uint64_t last_timestamp_ms[BUFFER_SIZE] = {0};
+static ringbuffer_t* buffers[BUFFER_SIZE] = {nullptr, nullptr};
+static uint64_t last_timestamp_ms[BUFFER_SIZE] = {0, 0};
 static bool isDebuggable = false;
 static bool isFullNfcSnoop = false;
 
@@ -149,9 +151,27 @@ void nfcsnoop_capture(const NFC_HDR* packet, bool is_received) {
                        static_cast<uint64_t>(tv.tv_usec);
   uint8_t* p = (uint8_t*)(packet + 1) + packet->offset;
   uint8_t mt = (*(p)&NCI_MT_MASK) >> NCI_MT_SHIFT;
-  if (mt == NCI_MT_DATA) {
-    nfcsnoop_cb(p, NCI_DATA_HDR_SIZE, is_received, timestamp,
-                SYSTEM_BUFFER_INDEX);
+  uint8_t gid = *(p)&NCI_GID_MASK;
+  if (isDebuggable && buffers_under_threshold()) {
+    if (storeNfcSnoopLogs(DEFAULT_NFCSNOOP_PATH, DEFAULT_NFCSNOOP_FILE_SIZE)) {
+      std::lock_guard<std::mutex> lock(buffer_mutex);
+      // Free the buffer after the content is stored in log file
+      ringbuffer_free(buffers[SYSTEM_BUFFER_INDEX]);
+      buffers[SYSTEM_BUFFER_INDEX] = nullptr;
+      ringbuffer_free(buffers[VENDOR_BUFFER_INDEX]);
+      buffers[VENDOR_BUFFER_INDEX] = nullptr;
+      // Allocate new buffer to store new NCI logs
+      debug_nfcsnoop_init();
+    }
+  }
+
+  if (mt == NCI_MT_NTF && gid == NCI_GID_PROP) {
+    nfcsnoop_cb(p, p[2] + NCI_MSG_HDR_SIZE, is_received, timestamp,
+                VENDOR_BUFFER_INDEX);
+  } else if (mt == NCI_MT_DATA) {
+    nfcsnoop_cb(p,
+                isFullNfcSnoop ? p[2] + NCI_DATA_HDR_SIZE : NCI_DATA_HDR_SIZE,
+                is_received, timestamp, SYSTEM_BUFFER_INDEX);
   } else if (packet->len > 2) {
     nfcsnoop_cb(p, p[2] + NCI_MSG_HDR_SIZE, is_received, timestamp,
                 SYSTEM_BUFFER_INDEX);
@@ -159,18 +179,11 @@ void nfcsnoop_capture(const NFC_HDR* packet, bool is_received) {
 }
 
 void debug_nfcsnoop_init(void) {
-  size_t bufferSize = NFCSNOOP_MEM_BUFFER_SIZE;
-  if (NfcConfig::hasKey(NAME_NFC_SNOOP_BUFFER_SIZE)) {
-    unsigned size = NfcConfig::getUnsigned(NAME_NFC_SNOOP_BUFFER_SIZE);
-    bufferSize = size * 1024;
-  }
-
   for (size_t buffer_index = 0; buffer_index < BUFFER_SIZE; ++buffer_index) {
     if (buffers[buffer_index] == nullptr) {
-      buffers[buffer_index] = ringbuffer_init(bufferSize);
+      buffers[buffer_index] = ringbuffer_init(NFCSNOOP_MEM_BUFFER_SIZE);
     }
   }
-
   isDebuggable = property_get_int32("ro.debuggable", 0);
   isFullNfcSnoop = android::base::GetProperty(NFCSNOOP_LOG_MODE_PROPERTY, "")
                            .compare(NFCSNOOP_MODE_FULL)
@@ -186,15 +199,9 @@ void debug_nfcsnoop_dump(int fd) {
       return;
     }
   }
-  size_t bufferSize = NFCSNOOP_MEM_BUFFER_SIZE;
-  if (NfcConfig::hasKey(NAME_NFC_SNOOP_BUFFER_SIZE)) {
-    unsigned size = NfcConfig::getUnsigned(NAME_NFC_SNOOP_BUFFER_SIZE);
-    bufferSize = size * 1024;
-  }
-
   ringbuffer_t* ringbuffers[BUFFER_SIZE];
   for (size_t buffer_index = 0; buffer_index < BUFFER_SIZE; ++buffer_index) {
-    ringbuffers[buffer_index] = ringbuffer_init(bufferSize);
+    ringbuffers[buffer_index] = ringbuffer_init(NFCSNOOP_MEM_BUFFER_SIZE);
     if (ringbuffers[buffer_index] == nullptr) {
       dprintf(fd, "%s Unable to allocate memory for compression (%s)", __func__,
               BUFFER_NAMES[buffer_index]);
@@ -289,8 +296,15 @@ bool storeNfcSnoopLogs(std::string filepath, off_t maxFileSize) {
     close(fileStream);
     return true;
   } else {
-    LOG(ERROR) << StringPrintf("%s; fail to create, error = %d", __func__,
+    LOG(ERROR) << StringPrintf("%s: fail to create, error = %d", __func__,
                                errno);
     return false;
   }
+}
+
+bool buffers_under_threshold() {
+  return (ringbuffer_available(buffers[SYSTEM_BUFFER_INDEX]) <
+              NFCSNOOP_MEM_BUFFER_THRESHOLD ||
+          ringbuffer_available(buffers[VENDOR_BUFFER_INDEX]) <
+              NFCSNOOP_MEM_BUFFER_THRESHOLD);
 }

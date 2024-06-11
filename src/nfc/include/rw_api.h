@@ -37,7 +37,6 @@
 #define RW_T4T_FIRST_EVT 0x80
 #define RW_I93_FIRST_EVT 0xA0
 #define RW_MFC_FIRST_EVT 0xC0
-#define RW_CI_FIRST_EVT 0xD0
 
 enum {
   /* Note: the order of these events can not be changed */
@@ -140,13 +139,7 @@ enum {
 
   RW_MFC_RAW_FRAME_EVT,  /* Response of raw frame sent               */
   RW_MFC_INTF_ERROR_EVT, /* RF Interface error event                 */
-  RW_MFC_PRES_CHECK_EVT, /* Response for MIFARE pres check alternative */
-  RW_MFC_MAX_EVT,
-  RW_CI_PRESENCE_CHECK_EVT = RW_CI_FIRST_EVT,
-  RW_CI_INTF_ERROR_EVT,
-  RW_CI_RAW_FRAME_EVT,
-  RW_CI_CPLT_EVT,
-  RW_CI_MAX_EVT
+  RW_MFC_MAX_EVT
 };
 
 #define RW_RAW_FRAME_EVT 0xFF
@@ -264,11 +257,6 @@ typedef struct {
   NFC_HDR* p_data;
 } tRW_RAW_FRAME;
 
-typedef struct {
-  uint8_t mbi;
-  uint8_t uid[8];
-} t_RW_CI_INFO;
-
 typedef union {
   tNFC_STATUS status;
   tRW_T3T_POLL t3t_poll;           /* Response to t3t poll command          */
@@ -282,7 +270,6 @@ typedef union {
   tRW_I93_DATA i93_data;           /* ISO 15693 Data response           */
   tRW_I93_SYS_INFO i93_sys_info;   /* ISO 15693 System Information      */
   tRW_I93_CMD_CMPL i93_cmd_cmpl;   /* ISO 15693 Command complete        */
-  t_RW_CI_INFO ci_info;
 } tRW_DATA;
 
 typedef void(tRW_CBACK)(tRW_EVENT event, tRW_DATA* p_data);
@@ -1291,7 +1278,7 @@ extern tNFC_STATUS RW_I93ReadNDef(void);
 **                  NFC_STATUS_FAILED if I93 is busy or other error
 **
 *******************************************************************************/
-extern tNFC_STATUS RW_I93UpdateNDef(uint16_t length, uint8_t* p_data);
+extern tNFC_STATUS RW_I93UpdateNDef(uint32_t length, uint8_t* p_data);
 
 /*******************************************************************************
 **
@@ -1340,6 +1327,20 @@ extern tNFC_STATUS RW_I93SetTagReadOnly(void);
 **
 *****************************************************************************/
 extern tNFC_STATUS RW_I93PresenceCheck(void);
+
+/*****************************************************************************
+**
+** Function         RW_I93CheckLegacyProduct
+**
+** Description      Returns if the product is part of the legacy product list,
+**                  requiring (Extended)GetSystemInfo ISO commands to provide
+**                  memory information (number and size of blocks).
+**
+** Returns          true, if product is a legacy one
+**                  false, if full NFC forum T5T compliant
+**
+*****************************************************************************/
+extern bool RW_I93CheckLegacyProduct(uint8_t ic_manuf, uint8_t pdt_code);
 
 /*****************************************************************************
 **
@@ -1409,63 +1410,6 @@ extern tNFC_STATUS RW_MfcDetectNDef(void);
 *******************************************************************************/
 extern tNFC_STATUS RW_MfcReadNDef(uint8_t* p_buffer, uint16_t buf_len);
 
-/*******************************************************************************
-**
-** Function         rw_ci_select
-**
-** Description      This function send Select command for Chinese Id card.
-**
-** Returns          NFC_STATUS_OK if success
-**
-*******************************************************************************/
-extern tNFC_STATUS rw_ci_select(void);
-/*****************************************************************************
-**
-** Function         RW_CiPresenceCheck
-**
-** Description
-**      Check if the tag is still in the field.
-**
-**      The RW_CI_PRESENCE_CHECK_EVT w/ status is used to indicate presence
-**      or non-presence.
-**
-** Returns
-**      NFC_STATUS_OK, if raw data frame sent
-**      NFC_STATUS_NO_BUFFERS: unable to allocate a buffer for this operation
-**      NFC_STATUS_FAILED: other error
-**
-*****************************************************************************/
-extern tNFC_STATUS RW_CiPresenceCheck(void);
-
-/*****************************************************************************
-**
-** Function         RW_CiSendAttrib
-**
-** Description
-**      Send the Attrib to the Endpoint.
-**
-** Returns
-**      NFC_STATUS_OK, if raw data frame sent
-**      NFC_STATUS_NO_BUFFERS: unable to allocate a buffer for this operation
-**      NFC_STATUS_FAILED: other error
-**
-*****************************************************************************/
-extern tNFC_STATUS RW_CiSendAttrib(uint8_t* nfcid0);
-
-/*****************************************************************************
-**
-** Function         RW_MfcPresenceCheck
-**
-** Description
-**      Performs alternative MIFARE presence check
-**
-** Returns
-**      NFC_STATUS_OK, if raw data frame sent
-**      NFC_STATUS_NO_BUFFERS: unable to allocate a buffer for this operation
-**      NFC_STATUS_FAILED: other error
-**
-*****************************************************************************/
-extern tNFC_STATUS RW_MfcPresenceCheck(uint8_t* p_auth_cmd);
 /*****************************************************************************
 **
 ** Function         RW_MfcFormatNDef

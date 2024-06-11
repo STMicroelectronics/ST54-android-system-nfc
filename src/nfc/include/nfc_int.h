@@ -47,24 +47,14 @@
 #define NFC_TTYPE_WAIT_2_DEACTIVATE 1
 #define NFC_WAIT_RSP_RAW_VS 0x02
 #define NFC_TTYPE_WAIT_MODE_SET_NTF 2
-#define NFC_TTYPE_DATA_WAIT_CREDIT 3
 
-#define NFC_TTYPE_LLCP_LINK_MANAGER 100
-#define NFC_TTYPE_LLCP_LINK_INACT 101
-#define NFC_TTYPE_LLCP_DATA_LINK 102
-#define NFC_TTYPE_LLCP_DELAY_FIRST_PDU 103
 #define NFC_TTYPE_RW_T1T_RESPONSE 104
 #define NFC_TTYPE_RW_T2T_RESPONSE 105
 #define NFC_TTYPE_RW_T3T_RESPONSE 106
 #define NFC_TTYPE_RW_T4T_RESPONSE 107
 #define NFC_TTYPE_RW_I93_RESPONSE 108
 #define NFC_TTYPE_CE_T4T_UPDATE 109
-/* added for p2p prio logic timer */
-#define NFC_TTYPE_P2P_PRIO_RESPONSE 110
-/* added for p2p prio logic clenaup */
-#define NFC_TTYPE_P2P_PRIO_LOGIC_CLEANUP 111
 #define NFC_TTYPE_RW_MFC_RESPONSE 112
-#define NFC_TTYPE_RW_CI_RESPONSE 113
 /* time out for mode set notification */
 #define NFC_MODE_SET_NTF_TIMEOUT 2
 /* NFC Task event messages */
@@ -81,12 +71,6 @@ enum {
   NFC_STATE_NFCC_POWER_OFF_SLEEP /* NFCC is power-off sleep mode             */
 };
 typedef uint8_t tNFC_STATE;
-
-/* DM P2P Priority event type */
-enum {
-  NFA_DM_P2P_PRIO_RSP = 0x01, /* P2P priority event from RSP   */
-  NFA_DM_P2P_PRIO_NTF         /* P2P priority event from NTF   */
-};
 
 /* NFC control block flags */
 /* NFC_Deactivate () is called and the NCI cmd is not sent   */
@@ -201,14 +185,6 @@ typedef struct {
   bool reassembly;                      /* Reassemble fragmented data pkt */
   uint8_t last_hdr[NFC_SAVED_HDR_SIZE]; /* part of last NCI command header */
   uint8_t last_cmd[NFC_SAVED_CMD_SIZE]; /* part of last NCI command payload */
-  NFC_HDR*
-      p_msg_saved; /* holding last NCI command until receiving the response */
-
-  NFC_HDR* p_hci_data_saved; /* holding last RF data until receiving a
-                                CORE_CONN_CREDIT_NTF */
-  TIMER_LIST_ENT
-  hci_data_wait_credit_timer; /* Timer for waiting for HIC data credits */
-  void* p_restart_cback;      /* the callback function to request NFC restart */
   uint8_t
       last_nfcee_cmd[NFC_SAVED_CMD_SIZE]; /* part of last NCI command payload */
   void* p_vsc_cback;       /* the callback function for last VSC command */
@@ -239,9 +215,6 @@ typedef struct {
   uint8_t deact_reason;
 
   TIMER_LIST_ENT nci_mode_set_ntf_timer; /*Mode set notification timer*/
-  uint8_t manu_specific_info[40];
-  uint8_t flag_vs_pipe_info;
-  bool fw_log_overflow;
 
 } tNFC_CB;
 
@@ -271,7 +244,6 @@ extern void nfc_data_event(tNFC_CONN_CB* p_cb);
 
 extern uint8_t nfc_ncif_send_data(tNFC_CONN_CB* p_cb, NFC_HDR* p_data);
 extern void nfc_ncif_cmd_timeout(void);
-extern void nfc_ncif_data_credit_timeout(void);
 extern void nfc_wait_2_deactivate_timeout(void);
 extern void nfc_mode_set_ntf_timeout(void);
 
@@ -302,12 +274,11 @@ extern void nfc_ncif_proc_reset_rsp(uint8_t* p, bool is_ntf);
 extern void nfc_ncif_proc_init_rsp(NFC_HDR* p_msg);
 extern void nfc_ncif_proc_get_config_rsp(NFC_HDR* p_msg);
 extern void nfc_ncif_proc_data(NFC_HDR* p_msg);
-extern bool nfa_dm_p2p_prio_logic(uint8_t event, uint8_t* p, uint8_t ntf_rsp);
-extern void nfa_dm_p2p_timer_event();
 extern bool nfc_ncif_proc_proprietary_rsp(uint8_t mt, uint8_t gid, uint8_t oid);
-extern void nfa_dm_p2p_prio_logic_cleanup();
 extern void nfc_ncif_proc_isodep_nak_presence_check_status(uint8_t status,
                                                            bool is_ntf);
+extern void nfc_ncif_proc_charging_status(uint8_t* p, uint8_t len);
+
 extern void nfc_ncif_update_window(void);
 #if (NFC_RW_ONLY == FALSE)
 extern void nfc_ncif_proc_rf_field_ntf(uint8_t rf_status);

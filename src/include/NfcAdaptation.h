@@ -62,7 +62,6 @@ class ThreadCondVar : public ThreadMutex {
   virtual ~ThreadCondVar();
   void signal();
   void wait();
-  bool wait(long millisec);
   explicit operator pthread_cond_t*() { return &mCondVar; }
   // NOLINTNEXTLINE(google-explicit-constructor)
   operator pthread_mutex_t*() {
@@ -111,10 +110,10 @@ class NfcAdaptation {
   static android::sp<android::hardware::nfc::V1_2::INfc> mHal_1_2;
   static android::hardware::nfc::V1_1::INfcClientCallback* mCallback;
   sp<NfcHalDeathRecipient> mNfcHalDeathRecipient;
-
   static tHAL_NFC_CBACK* mHalCallback;
   static tHAL_NFC_DATA_CBACK* mHalDataCallback;
   static ThreadCondVar mHalOpenCompletedEvent;
+  static ThreadCondVar mHalCloseCompletedEvent;
 
   static uint32_t NFCA_TASK(uint32_t arg);
   static uint32_t Thread(uint32_t arg);

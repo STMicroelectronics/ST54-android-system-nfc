@@ -38,7 +38,7 @@ const uint8_t nfa_dm_ce_cfg[] = {
     0xFF,
     NFC_PMID_FWI, /* FWI for ISO-DEP */
     1,
-    CE_T4T_LI_A_RATS};
+    CE_T4T_ISO_DEP_FWI};
 
 uint8_t* p_nfa_dm_ce_cfg = (uint8_t*)nfa_dm_ce_cfg;
 
@@ -100,8 +100,8 @@ tNFA_PROPRIETARY_CFG nfa_proprietary_cfg = {
     0x81, /* NCI_PROTOCOL_B_PRIME */
     0x82, /* NCI_PROTOCOL_DUAL */
     0x83, /* NCI_PROTOCOL_15693 */
-    0x77, /* NCI_PROTOCOL_KOVIO */
-    0x90, /* NCI_PROTOCOL_MIFARE */
+    0x8A, /* NCI_PROTOCOL_KOVIO */
+    0xFF, /* NCI_PROTOCOL_MIFARE */
     0x77, /* NCI_DISCOVERY_TYPE_POLL_KOVIO */
     0x74, /* NCI_DISCOVERY_TYPE_POLL_B_PRIME */
     0xF4, /* NCI_DISCOVERY_TYPE_LISTEN_B_PRIME */

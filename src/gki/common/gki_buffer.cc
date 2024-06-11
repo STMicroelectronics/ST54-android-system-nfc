@@ -15,9 +15,10 @@
  *  limitations under the License.
  *
  ******************************************************************************/
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
 #include <log/log.h>
+
 #include "gki_int.h"
 
 #if (GKI_NUM_TOTAL_BUF_POOLS > 16)
@@ -28,8 +29,6 @@
 static void gki_add_to_pool_list(uint8_t pool_id);
 static void gki_remove_from_pool_list(uint8_t pool_id);
 #endif /*  BTU_STACK_LITE_ENABLED == FALSE */
-
-extern bool nfc_debug_enabled;
 
 using android::base::StringPrintf;
 
@@ -121,10 +120,7 @@ static bool gki_alloc_free_queue(uint8_t id) {
 **
 *******************************************************************************/
 void gki_buffer_init(void) {
-#if (GKI_NUM_FIXED_BUF_POOLS > 0)
-  uint8_t i;
-#endif
-  uint8_t tt, mb;
+  uint8_t i, tt, mb;
   tGKI_COM_CB* p_cb = &gki_cb.com;
 
   /* Initialize mailboxes */
@@ -215,12 +211,10 @@ void gki_buffer_init(void) {
   gki_init_free_queue(15, GKI_BUF15_SIZE, GKI_BUF15_MAX, p_cb->bufpool15);
 #endif
 
-/* add pools to the pool_list which is arranged in the order of size */
-#if (GKI_NUM_FIXED_BUF_POOLS > 0)
+  /* add pools to the pool_list which is arranged in the order of size */
   for (i = 0; i < GKI_NUM_FIXED_BUF_POOLS; i++) {
     p_cb->pool_list[i] = i;
   }
-#endif
 
   p_cb->curr_total_no_of_pools = GKI_NUM_FIXED_BUF_POOLS;
 
@@ -284,11 +278,8 @@ void* GKI_getbuf(uint16_t size) {
   p_hdr = (BUFFER_HDR_T*)GKI_os_malloc(total_sz);
   if (!p_hdr) {
     LOG(ERROR) << StringPrintf("unable to allocate buffer!!!!!");
-#ifndef DYN_ALLOC
+    LOG(ERROR) << StringPrintf("total_sz:%zu size:%d", total_sz, size);
     abort();
-#else
-    return (nullptr);
-#endif
   }
 
   memset(p_hdr, 0, total_sz);
@@ -308,12 +299,10 @@ void* GKI_getbuf(uint16_t size) {
   Q = &gki_cb.com.freeq[p_hdr->q_id];
   if (++Q->cur_cnt > Q->max_cnt) Q->max_cnt = Q->cur_cnt;
   GKI_enable();
-  // AOSP deviation: always logged in AOSP logcats
-#ifdef GKI_LEAKAGE_DEBUG
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s %p %d:%d", __func__, ((uint8_t*)p_hdr + BUFFER_HDR_SIZE), Q->cur_cnt,
-      Q->max_cnt);
-#endif
+
+  LOG(DEBUG) << StringPrintf("%s %p %d:%d", __func__,
+                             ((uint8_t*)p_hdr + BUFFER_HDR_SIZE), Q->cur_cnt,
+                             Q->max_cnt);
   UNUSED(gki_alloc_free_queue);
   return (void*)((uint8_t*)p_hdr + BUFFER_HDR_SIZE);
 #else
@@ -347,14 +336,14 @@ void* GKI_getbuf(uint16_t size) {
     Q = &p_cb->freeq[p_cb->pool_list[i]];
     if (Q->cur_cnt < Q->total) {
       if (Q->p_first == nullptr && gki_alloc_free_queue(i) != true) {
-        LOG(ERROR) << StringPrintf("%s; out of buffer", __func__);
+        LOG(ERROR) << StringPrintf("out of buffer");
         GKI_enable();
         return nullptr;
       }
 
       if (Q->p_first == nullptr) {
         /* gki_alloc_free_queue() failed to alloc memory */
-        LOG(ERROR) << StringPrintf("%s; fail alloc free queue", __func__);
+        LOG(ERROR) << StringPrintf("fail alloc free queue");
         GKI_enable();
         return nullptr;
       }
@@ -377,7 +366,7 @@ void* GKI_getbuf(uint16_t size) {
     }
   }
 
-  LOG(ERROR) << StringPrintf("%s; unable to allocate buffer!!!!!", __func__);
+  LOG(ERROR) << StringPrintf("unable to allocate buffer!!!!!");
 
   GKI_enable();
 
@@ -416,11 +405,6 @@ void* GKI_getpoolbuf(uint8_t pool_id) {
       size = GKI_BUF3_SIZE;
       break;
 
-    // Fragmented data
-    case GKI_POOL_ID_4:
-      size = GKI_BUF4_SIZE;
-      break;
-
     default:
       LOG(ERROR) << StringPrintf("Unknown pool ID: %d", pool_id);
 #ifndef DYN_ALLOC
@@ -449,7 +433,7 @@ void* GKI_getpoolbuf(uint8_t pool_id) {
 
     if (Q->p_first == nullptr) {
       /* gki_alloc_free_queue() failed to alloc memory */
-      LOG(ERROR) << StringPrintf("%s; fail alloc free queue", __func__);
+      LOG(ERROR) << StringPrintf("fail alloc free queue");
       return nullptr;
     }
 
@@ -519,11 +503,6 @@ void GKI_freebuf(void* p_buf) {
   Q = &gki_cb.com.freeq[p_hdr->q_id];
   if (Q->cur_cnt > 0) Q->cur_cnt--;
   GKI_enable();
-#ifdef GKI_LEAKAGE_DEBUG
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s %p %d:%d", __func__, ((uint8_t*)p_hdr + BUFFER_HDR_SIZE), Q->cur_cnt,
-      Q->max_cnt);
-#endif
 
   GKI_os_free(p_hdr);
 #else
@@ -596,7 +575,7 @@ bool gki_chk_buf_damage(void* p_buf) {
 
   if (*magic == MAGIC_NO) return false;
 
-  LOG(ERROR) << StringPrintf("%s; 0x%x %p", __func__, *magic, p_buf);
+  LOG(ERROR) << StringPrintf("%s 0x%x %p", __func__, *magic, p_buf);
   return true;
 
 #else
@@ -820,8 +799,7 @@ void* GKI_dequeue(BUFFER_Q* p_q) {
 
   p_hdr = (BUFFER_HDR_T*)((uint8_t*)p_q->p_first - BUFFER_HDR_SIZE);
 
-  /* Keep buffers such that GKI header is invisible
-   */
+  /* Keep buffers such that GKI header is invisible */
   if (p_hdr->p_next)
     p_q->p_first = ((uint8_t*)p_hdr->p_next + BUFFER_HDR_SIZE);
   else {
@@ -1372,8 +1350,11 @@ uint16_t GKI_get_pool_bufsize(uint8_t pool_id) {
 uint16_t GKI_poolutilization(uint8_t pool_id) {
   FREE_QUEUE_T* Q;
 
-  UNUSED(pool_id);
-  Q = &gki_cb.com.freeq[0];
-  return (Q->cur_cnt * 100) / (GKI_BUF0_MAX + GKI_BUF1_MAX + GKI_BUF2_MAX +
-                               GKI_BUF3_MAX + GKI_BUF4_MAX);
+  if (pool_id >= GKI_NUM_TOTAL_BUF_POOLS) return (100);
+
+  Q = &gki_cb.com.freeq[pool_id];
+
+  if (Q->total == 0) return (100);
+
+  return ((Q->cur_cnt * 100) / Q->total);
 }

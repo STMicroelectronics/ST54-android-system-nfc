@@ -21,17 +21,15 @@
  *  This file contains functions that interface with the NFCEEs.
  *
  ******************************************************************************/
-#include <string.h>
-
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
-
-#include "nfc_target.h"
+#include <string.h>
 
 #include "gki.h"
 #include "nci_hmsgs.h"
 #include "nfc_api.h"
 #include "nfc_int.h"
+#include "nfc_target.h"
 
 using android::base::StringPrintf;
 
@@ -74,10 +72,10 @@ tNFC_STATUS NFC_NfceeDiscover(bool discover) {
 tNFC_STATUS NFC_NfceeModeSet(uint8_t nfcee_id, tNFC_NFCEE_MODE mode) {
   tNFC_STATUS status = NCI_STATUS_OK;
   if (mode >= NCI_NUM_NFCEE_MODE || nfcee_id == NCI_DH_ID) {
-    LOG(ERROR) << StringPrintf("%s; invalid parameter:%d", __func__, mode);
+    LOG(ERROR) << StringPrintf("%s invalid parameter:%d", __func__, mode);
     return NFC_STATUS_FAILED;
   }
-  if (nfc_cb.nci_version != NCI_VERSION_2_0)
+  if (nfc_cb.nci_version < NCI_VERSION_2_0)
     status = nci_snd_nfcee_mode_set(nfcee_id, mode);
   else {
     if (nfc_cb.flags & NFC_FL_WAIT_MODE_SET_NTF)
@@ -153,21 +151,4 @@ tNFC_STATUS NFC_GetRouting(void) { return nci_snd_get_routing_cmd(); }
 tNFC_STATUS NFC_NfceePLConfig(uint8_t nfcee_id,
                               tNCI_NFCEE_PL_CONFIG pl_config) {
   return nci_snd_nfcee_power_link_control(nfcee_id, pl_config);
-}
-
-/*******************************************************************************
-**
-** Function         NFC_SetForcedNfceeRouting
-**
-** Description      This function is called to force the CE routing table from
-**                  NFCC. The response from NFCC is reported by
-*tNFC_RESPONSE_CBACK
-**                  as NFC_NFCEE_FORCE_ROUTING_REVT.
-**
-** Returns          tNFC_STATUS
-**
-*******************************************************************************/
-tNFC_STATUS NFC_SetForcedNfceeRouting(bool enable, uint8_t nfcee_id,
-                                      uint8_t config) {
-  return nci_snd_set_forced_nfcee_routing_cmd(enable, nfcee_id, config);
 }

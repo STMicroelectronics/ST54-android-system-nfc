@@ -21,8 +21,8 @@
  *  NFA interface for tag Reader/Writer
  *
  ******************************************************************************/
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
 #include <log/log.h>
 #include <string.h>
 
@@ -30,8 +30,6 @@
 #include "nfa_rw_int.h"
 
 using android::base::StringPrintf;
-
-extern bool nfc_debug_enabled;
 
 /*****************************************************************************
 **  Constants
@@ -67,7 +65,7 @@ extern bool nfc_debug_enabled;
 tNFA_STATUS NFA_RwDetectNDef(void) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   p_msg = (tNFA_RW_OPERATION*)GKI_getbuf((uint16_t)(sizeof(tNFA_RW_OPERATION)));
   if (p_msg != nullptr) {
@@ -112,7 +110,7 @@ tNFA_STATUS NFA_RwDetectNDef(void) {
 tNFA_STATUS NFA_RwReadNDef(void) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   p_msg = (tNFA_RW_OPERATION*)GKI_getbuf((uint16_t)(sizeof(tNFA_RW_OPERATION)));
   if (p_msg != nullptr) {
@@ -151,8 +149,7 @@ tNFA_STATUS NFA_RwReadNDef(void) {
 tNFA_STATUS NFA_RwWriteNDef(uint8_t* p_data, uint32_t len) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; ndef len: %i", __func__, len);
+  LOG(DEBUG) << StringPrintf("ndef len: %i", len);
 
   /* Validate parameters */
   if (p_data == nullptr) return (NFA_STATUS_INVALID_PARAM);
@@ -190,7 +187,7 @@ tNFA_STATUS NFA_RwWriteNDef(uint8_t* p_data, uint32_t len) {
 tNFA_STATUS NFA_RwPresenceCheck(tNFA_RW_PRES_CHK_OPTION option) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   p_msg = (tNFA_RW_OPERATION*)GKI_getbuf((uint16_t)(sizeof(tNFA_RW_OPERATION)));
   if (p_msg != nullptr) {
@@ -223,7 +220,7 @@ tNFA_STATUS NFA_RwPresenceCheck(tNFA_RW_PRES_CHK_OPTION option) {
 tNFA_STATUS NFA_RwFormatTag(void) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   p_msg = (tNFA_RW_OPERATION*)GKI_getbuf((uint16_t)(sizeof(tNFA_RW_OPERATION)));
   if (p_msg != nullptr) {
@@ -262,23 +259,22 @@ tNFA_STATUS NFA_RwSetTagReadOnly(bool b_hard_lock) {
   if ((protocol != NFC_PROTOCOL_T1T) && (protocol != NFC_PROTOCOL_T2T) &&
       (protocol != NFC_PROTOCOL_T5T) && (protocol != NFC_PROTOCOL_ISO_DEP) &&
       (protocol != NFC_PROTOCOL_T3T)) {
-    DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-        "%s; Cannot Configure as read only for Protocol: "
+    LOG(DEBUG) << StringPrintf(
+        "Cannot Configure as read only for Protocol: "
         "%d",
-        __func__, protocol);
+        protocol);
     return (NFA_STATUS_REJECTED);
   }
 
   if ((!b_hard_lock && (protocol == NFC_PROTOCOL_T5T)) ||
       (b_hard_lock && (protocol == NFC_PROTOCOL_ISO_DEP))) {
-    DLOG_IF(INFO, nfc_debug_enabled)
-        << StringPrintf("%s; Cannot %s for Protocol: %d", __func__,
-                        b_hard_lock ? "Hard lock" : "Soft lock", protocol);
+    LOG(DEBUG) << StringPrintf("Cannot %s for Protocol: %d",
+                               b_hard_lock ? "Hard lock" : "Soft lock",
+                               protocol);
     return (NFA_STATUS_REJECTED);
   }
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; %s", __func__, b_hard_lock ? "Hard lock" : "Soft lock");
+  LOG(DEBUG) << StringPrintf("%s", b_hard_lock ? "Hard lock" : "Soft lock");
 
   p_msg = (tNFA_RW_OPERATION*)GKI_getbuf((uint16_t)(sizeof(tNFA_RW_OPERATION)));
   if (p_msg != nullptr) {
@@ -336,7 +332,7 @@ tNFA_STATUS NFA_RwSetTagReadOnly(bool b_hard_lock) {
 tNFA_STATUS NFA_RwLocateTlv(uint8_t tlv_type) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   p_msg = (tNFA_RW_OPERATION*)GKI_getbuf((uint16_t)(sizeof(tNFA_RW_OPERATION)));
   if (p_msg != nullptr) {
@@ -348,10 +344,8 @@ tNFA_STATUS NFA_RwLocateTlv(uint8_t tlv_type) {
       p_msg->op = NFA_RW_OP_DETECT_MEM_TLV;
     } else if (tlv_type == TAG_NDEF_TLV) {
       p_msg->op = NFA_RW_OP_DETECT_NDEF;
-    } else {
-      GKI_freebuf(p_msg);
+    } else
       return (NFA_STATUS_FAILED);
-    }
 
     nfa_sys_sendmsg(p_msg);
 
@@ -611,8 +605,7 @@ tNFA_STATUS NFA_RwT1tWrite8(uint8_t block_number, uint8_t* p_data,
 tNFA_STATUS NFA_RwT2tRead(uint8_t block_number) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; Block to read: %d", __func__, block_number);
+  LOG(DEBUG) << StringPrintf("Block to read: %d", block_number);
 
   p_msg = (tNFA_RW_OPERATION*)GKI_getbuf((uint16_t)(sizeof(tNFA_RW_OPERATION)));
   if (p_msg != nullptr) {
@@ -645,8 +638,7 @@ tNFA_STATUS NFA_RwT2tRead(uint8_t block_number) {
 tNFA_STATUS NFA_RwT2tWrite(uint8_t block_number, uint8_t* p_data) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; Block to write: %d", __func__, block_number);
+  LOG(DEBUG) << StringPrintf("Block to write: %d", block_number);
 
   p_msg = (tNFA_RW_OPERATION*)GKI_getbuf((uint16_t)(sizeof(tNFA_RW_OPERATION)));
   if (p_msg != nullptr) {
@@ -682,8 +674,7 @@ tNFA_STATUS NFA_RwT2tWrite(uint8_t block_number, uint8_t* p_data) {
 tNFA_STATUS NFA_RwT2tSectorSelect(uint8_t sector_number) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; sector to select: %d", __func__, sector_number);
+  LOG(DEBUG) << StringPrintf("sector to select: %d", sector_number);
 
   p_msg = (tNFA_RW_OPERATION*)GKI_getbuf((uint16_t)(sizeof(tNFA_RW_OPERATION)));
   if (p_msg != nullptr) {
@@ -724,8 +715,8 @@ tNFA_STATUS NFA_RwT2tSectorSelect(uint8_t sector_number) {
 tNFA_STATUS NFA_RwT2tReadDynLockBytes(bool read_dyn_locks) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; read DynLock_Area bytes: %d", __func__, read_dyn_locks);
+  LOG(DEBUG) << StringPrintf("%s - read DynLock_Area bytes: %d", __func__,
+                             read_dyn_locks);
 
   p_msg = (tNFA_RW_OPERATION*)GKI_getbuf((uint16_t)(sizeof(tNFA_RW_OPERATION)));
   if (p_msg != nullptr) {
@@ -761,8 +752,7 @@ tNFA_STATUS NFA_RwT3tRead(uint8_t num_blocks, tNFA_T3T_BLOCK_DESC* t3t_blocks) {
   tNFA_RW_OPERATION* p_msg;
   uint8_t* p_block_desc;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; num_blocks to read: %i", __func__, num_blocks);
+  LOG(DEBUG) << StringPrintf("num_blocks to read: %i", num_blocks);
 
   /* Validate parameters */
   if ((num_blocks == 0) || (t3t_blocks == nullptr))
@@ -813,8 +803,7 @@ tNFA_STATUS NFA_RwT3tWrite(uint8_t num_blocks, tNFA_T3T_BLOCK_DESC* t3t_blocks,
   tNFA_RW_OPERATION* p_msg;
   uint8_t *p_block_desc, *p_data_area;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; num_blocks to write: %i", __func__, num_blocks);
+  LOG(DEBUG) << StringPrintf("num_blocks to write: %i", num_blocks);
 
   /* Validate parameters */
   if ((num_blocks == 0) || (t3t_blocks == nullptr) | (p_data == nullptr))
@@ -853,60 +842,6 @@ tNFA_STATUS NFA_RwT3tWrite(uint8_t num_blocks, tNFA_T3T_BLOCK_DESC* t3t_blocks,
 
 /*******************************************************************************
 **
-** Function         NFA_RawT3tPolling
-**
-** Description:
-**      Send a POLLING command to the activated Type 3 tag or to the tag to
-*activate.
-**
-**      No data is returned to the application but NTF should be received from
-*NFCC
-**      when it receives a SENSF_RES. When the polling operation is considered
-*completed,
-**      or if an error occurs, the app will be notified with
-*NFA_T3T_POLL_CMD_CPLT_EVT.
-**
-** Returns:
-**      NFA_STATUS_OK if successfully initiated
-**      NFA_STATUS_FAILED otherwise
-**
-*******************************************************************************/
-tNFA_STATUS NFA_RawT3tPolling(uint8_t* sensf_req_params) {
-  tNFA_RW_OPERATION* p_msg;
-  uint8_t* p_data;
-
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "NFA_RawT3tPolling (): sensf_req_params to send: 0x%X 0x%X 0x%X 0x%X",
-      sensf_req_params[0], sensf_req_params[1], sensf_req_params[2],
-      sensf_req_params[3]);
-
-  /* Validate parameters */
-  if (sensf_req_params == nullptr) return (NFA_STATUS_INVALID_PARAM);
-
-  if ((p_msg = (tNFA_RW_OPERATION*)GKI_getbuf((uint16_t)(
-           sizeof(tNFA_RW_OPERATION) + (4 * sizeof(uint8_t))))) != nullptr) {
-    /* Fill in tNFA_RW_OPERATION struct */
-    p_msg->hdr.event = NFA_RW_OP_REQUEST_EVT;
-    p_msg->op = NFA_RW_OP_T3T_POLLING;
-
-    p_data = (uint8_t*)(p_msg + 1);
-    p_msg->params.t3t_polling.sensf_req_params = (uint8_t*)p_data;
-
-    *p_data++ = sensf_req_params[0];
-    *p_data++ = sensf_req_params[1];
-    *p_data++ = sensf_req_params[2];
-    *p_data = sensf_req_params[3];
-
-    nfa_sys_sendmsg(p_msg);
-
-    return (NFA_STATUS_OK);
-  }
-
-  return (NFA_STATUS_FAILED);
-}
-
-/*******************************************************************************
-**
 ** Function         NFA_RwI93Inventory
 **
 ** Description:
@@ -925,8 +860,7 @@ tNFA_STATUS NFA_RawT3tPolling(uint8_t* sensf_req_params) {
 tNFA_STATUS NFA_RwI93Inventory(bool afi_present, uint8_t afi, uint8_t* p_uid) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; afi_present:%d, AFI: 0x%02X", __func__, afi_present, afi);
+  LOG(DEBUG) << StringPrintf("afi_present:%d, AFI: 0x%02X", afi_present, afi);
 
   if (nfa_rw_cb.protocol != NFC_PROTOCOL_T5T) {
     return (NFA_STATUS_WRONG_PROTOCOL);
@@ -975,13 +909,13 @@ tNFA_STATUS NFA_RwI93Inventory(bool afi_present, uint8_t afi, uint8_t* p_uid) {
 tNFA_STATUS NFA_RwI93StayQuiet(uint8_t* p_uid) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   if (nfa_rw_cb.protocol != NFC_PROTOCOL_T5T) {
     return (NFA_STATUS_WRONG_PROTOCOL);
   }
-  p_msg = (tNFA_RW_OPERATION*)GKI_getbuf(
-      (uint16_t)(sizeof(tNFA_RW_OPERATION) + I93_UID_BYTE_LEN));
+
+  p_msg = (tNFA_RW_OPERATION*)GKI_getbuf((uint16_t)(sizeof(tNFA_RW_OPERATION)));
   if (p_msg != nullptr) {
     /* Fill in tNFA_RW_OPERATION struct */
     p_msg->hdr.event = NFA_RW_OP_REQUEST_EVT;
@@ -1017,8 +951,7 @@ tNFA_STATUS NFA_RwI93StayQuiet(uint8_t* p_uid) {
 tNFA_STATUS NFA_RwI93ReadSingleBlock(uint8_t block_number) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; block_number: 0x%02X", __func__, block_number);
+  LOG(DEBUG) << StringPrintf("block_number: 0x%02X", block_number);
 
   if (nfa_rw_cb.protocol != NFC_PROTOCOL_T5T) {
     return (NFA_STATUS_WRONG_PROTOCOL);
@@ -1059,8 +992,7 @@ tNFA_STATUS NFA_RwI93ReadSingleBlock(uint8_t block_number) {
 tNFA_STATUS NFA_RwI93WriteSingleBlock(uint8_t block_number, uint8_t* p_data) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; block_number: 0x%02X", __func__, block_number);
+  LOG(DEBUG) << StringPrintf("block_number: 0x%02X", block_number);
 
   if (nfa_rw_cb.protocol != NFC_PROTOCOL_T5T) {
     return (NFA_STATUS_WRONG_PROTOCOL);
@@ -1110,8 +1042,7 @@ tNFA_STATUS NFA_RwI93WriteSingleBlock(uint8_t block_number, uint8_t* p_data) {
 tNFA_STATUS NFA_RwI93LockBlock(uint8_t block_number) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; block_number: 0x%02X", __func__, block_number);
+  LOG(DEBUG) << StringPrintf("block_number: 0x%02X", block_number);
 
   if (nfa_rw_cb.protocol != NFC_PROTOCOL_T5T) {
     return (NFA_STATUS_WRONG_PROTOCOL);
@@ -1154,9 +1085,7 @@ tNFA_STATUS NFA_RwI93ReadMultipleBlocks(uint8_t first_block_number,
                                         uint16_t number_blocks) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; first_block_number: %d, number_blocks: %d", __func__,
-                      first_block_number, number_blocks);
+  LOG(DEBUG) << StringPrintf("%d, %d", first_block_number, number_blocks);
 
   if (nfa_rw_cb.protocol != NFC_PROTOCOL_T5T) {
     return (NFA_STATUS_WRONG_PROTOCOL);
@@ -1201,9 +1130,7 @@ tNFA_STATUS NFA_RwI93WriteMultipleBlocks(uint8_t first_block_number,
   tNFA_RW_OPERATION* p_msg;
   uint32_t data_length;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; first_block_number: %d, number_blocks: %d", __func__,
-                      first_block_number, number_blocks);
+  LOG(DEBUG) << StringPrintf("%d, %d", first_block_number, number_blocks);
 
   if (nfa_rw_cb.protocol != NFC_PROTOCOL_T5T) {
     return (NFA_STATUS_WRONG_PROTOCOL);
@@ -1266,9 +1193,8 @@ tNFA_STATUS NFA_RwI93WriteMultipleBlocks(uint8_t first_block_number,
 tNFA_STATUS NFA_RwI93Select(uint8_t* p_uid) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; UID: [%02X%02X%02X...]", __func__, *(p_uid),
-                      *(p_uid + 1), *(p_uid + 2));
+  LOG(DEBUG) << StringPrintf("UID: [%02X%02X%02X...]", *(p_uid), *(p_uid + 1),
+                             *(p_uid + 2));
 
   if (nfa_rw_cb.protocol != NFC_PROTOCOL_T5T) {
     return (NFA_STATUS_WRONG_PROTOCOL);
@@ -1311,7 +1237,7 @@ tNFA_STATUS NFA_RwI93Select(uint8_t* p_uid) {
 tNFA_STATUS NFA_RwI93ResetToReady(void) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   if (nfa_rw_cb.protocol != NFC_PROTOCOL_T5T) {
     return (NFA_STATUS_WRONG_PROTOCOL);
@@ -1350,8 +1276,7 @@ tNFA_STATUS NFA_RwI93ResetToReady(void) {
 tNFA_STATUS NFA_RwI93WriteAFI(uint8_t afi) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; AFI: 0x%02X", __func__, afi);
+  LOG(DEBUG) << StringPrintf("AFI: 0x%02X", afi);
 
   if (nfa_rw_cb.protocol != NFC_PROTOCOL_T5T) {
     return (NFA_STATUS_WRONG_PROTOCOL);
@@ -1392,7 +1317,7 @@ tNFA_STATUS NFA_RwI93WriteAFI(uint8_t afi) {
 tNFA_STATUS NFA_RwI93LockAFI(void) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   if (nfa_rw_cb.protocol != NFC_PROTOCOL_T5T) {
     return (NFA_STATUS_WRONG_PROTOCOL);
@@ -1431,8 +1356,7 @@ tNFA_STATUS NFA_RwI93LockAFI(void) {
 tNFA_STATUS NFA_RwI93WriteDSFID(uint8_t dsfid) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; DSFID: 0x%02X", __func__, dsfid);
+  LOG(DEBUG) << StringPrintf("DSFID: 0x%02X", dsfid);
 
   if (nfa_rw_cb.protocol != NFC_PROTOCOL_T5T) {
     return (NFA_STATUS_WRONG_PROTOCOL);
@@ -1473,7 +1397,7 @@ tNFA_STATUS NFA_RwI93WriteDSFID(uint8_t dsfid) {
 tNFA_STATUS NFA_RwI93LockDSFID(void) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   if (nfa_rw_cb.protocol != NFC_PROTOCOL_T5T) {
     return (NFA_STATUS_WRONG_PROTOCOL);
@@ -1513,7 +1437,7 @@ tNFA_STATUS NFA_RwI93LockDSFID(void) {
 tNFA_STATUS NFA_RwI93GetSysInfo(uint8_t* p_uid) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   if (nfa_rw_cb.protocol != NFC_PROTOCOL_T5T) {
     return (NFA_STATUS_WRONG_PROTOCOL);
@@ -1562,9 +1486,7 @@ tNFA_STATUS NFA_RwI93GetMultiBlockSecurityStatus(uint8_t first_block_number,
                                                  uint16_t number_blocks) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; first_block_number: %d, number_blocks: %d", __func__,
-                      first_block_number, number_blocks);
+  LOG(DEBUG) << StringPrintf("%d, %d", first_block_number, number_blocks);
 
   if (nfa_rw_cb.protocol != NFC_PROTOCOL_T5T) {
     return (NFA_STATUS_WRONG_PROTOCOL);
@@ -1605,7 +1527,7 @@ tNFA_STATUS NFA_RwI93GetMultiBlockSecurityStatus(uint8_t first_block_number,
 tNFA_STATUS NFA_RwI93SetAddressingMode(bool mode) {
   tNFA_RW_OPERATION* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s; %d", __func__, mode);
+  LOG(DEBUG) << StringPrintf("%s - %d", __func__, mode);
 
   if (nfa_rw_cb.protocol != NFC_PROTOCOL_T5T) {
     return (NFA_STATUS_WRONG_PROTOCOL);

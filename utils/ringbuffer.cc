@@ -37,10 +37,6 @@ ringbuffer_t* ringbuffer_init(const size_t size) {
   if (p == nullptr) return nullptr;
 
   p->base = static_cast<uint8_t*>(calloc(size, sizeof(uint8_t)));
-  if (p->base == NULL) {
-    free(p);
-    return NULL;
-  }
   p->head = p->tail = p->base;
   p->total = p->available = size;
 

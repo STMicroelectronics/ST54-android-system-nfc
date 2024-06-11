@@ -22,8 +22,8 @@
  *  mode.
  *
  ******************************************************************************/
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
 
 #include <string>
 
@@ -37,7 +37,6 @@
 
 using android::base::StringPrintf;
 
-extern bool nfc_debug_enabled;
 extern unsigned char appl_dta_mode_flag;
 
 /* Local Functions */
@@ -76,9 +75,9 @@ static void rw_t1t_data_cback(__attribute__((unused)) uint8_t conn_id,
   /* Assume the data is just the response byte sequence */
   p = (uint8_t*)(p_pkt + 1) + p_pkt->offset;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; state:%s (%d)", __func__,
-      rw_t1t_get_state_name(p_t1t->state).c_str(), p_t1t->state);
+  LOG(DEBUG) << StringPrintf("state:%s (%d)",
+                             rw_t1t_get_state_name(p_t1t->state).c_str(),
+                             p_t1t->state);
 
   evt_data.status = NFC_STATUS_OK;
 
@@ -97,10 +96,9 @@ static void rw_t1t_data_cback(__attribute__((unused)) uint8_t conn_id,
          (p_t1t->prev_cmd_rsp_info.addr == *p))) {
       /* Response to previous command retransmission */
       LOG(ERROR) << StringPrintf(
-          "%s; T1T Response to previous command in Idle state. "
-          "command=0x%02x, "
+          "T1T Response to previous command in Idle state. command=0x%02x, "
           "Remaining max retx rsp:0x%02x ",
-          __func__, p_t1t->prev_cmd_rsp_info.op_code,
+          p_t1t->prev_cmd_rsp_info.op_code,
           p_t1t->prev_cmd_rsp_info.pend_retx_rsp - 1);
       p_t1t->prev_cmd_rsp_info.pend_retx_rsp--;
       GKI_freebuf(p_pkt);
@@ -135,10 +133,9 @@ static void rw_t1t_data_cback(__attribute__((unused)) uint8_t conn_id,
          (p_t1t->prev_cmd_rsp_info.op_code == T1T_CMD_RALL) ||
          (p_t1t->prev_cmd_rsp_info.addr == *p))) {
       LOG(ERROR) << StringPrintf(
-          "%s; T1T Response to previous command. command=0x%02x, Remaining "
-          "max "
+          "T1T Response to previous command. command=0x%02x, Remaining max "
           "retx rsp:0x%02x",
-          __func__, p_t1t->prev_cmd_rsp_info.op_code,
+          p_t1t->prev_cmd_rsp_info.op_code,
           p_t1t->prev_cmd_rsp_info.pend_retx_rsp - 1);
       p_t1t->prev_cmd_rsp_info.pend_retx_rsp--;
     } else {
@@ -146,7 +143,7 @@ static void rw_t1t_data_cback(__attribute__((unused)) uint8_t conn_id,
       nfc_stop_quick_timer(&p_t1t->timer);
       /* Retrasmit the last sent command if retry-count < max retry */
       LOG(ERROR) << StringPrintf(
-          "%s; T1T Frame error. state=%s command (opcode) = 0x%02x", __func__,
+          "T1T Frame error. state=%s command (opcode) = 0x%02x",
           rw_t1t_get_state_name(p_t1t->state).c_str(), p_cmd_rsp_info->opcode);
       rw_t1t_process_frame_error();
     }
@@ -157,9 +154,9 @@ static void rw_t1t_data_cback(__attribute__((unused)) uint8_t conn_id,
   /* Stop timer as response to current command is received */
   nfc_stop_quick_timer(&p_t1t->timer);
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; RW RECV [%s]:0x%x RSP", __func__,
-                      t1t_info_to_str(p_cmd_rsp_info), p_cmd_rsp_info->opcode);
+  LOG(DEBUG) << StringPrintf("RW RECV [%s]:0x%x RSP",
+                             t1t_info_to_str(p_cmd_rsp_info),
+                             p_cmd_rsp_info->opcode);
 
   /* If we did not receive response to all retransmitted previous command,
    * dont expect that as response have come for the current command itself.
@@ -205,10 +202,9 @@ static void rw_t1t_data_cback(__attribute__((unused)) uint8_t conn_id,
     GKI_freebuf(p_pkt);
 
   if (begin_state != p_t1t->state) {
-    DLOG_IF(INFO, nfc_debug_enabled)
-        << StringPrintf("%s; RW T1T state changed:<%s> -> <%s>", __func__,
-                        rw_t1t_get_state_name(begin_state).c_str(),
-                        rw_t1t_get_state_name(p_t1t->state).c_str());
+    LOG(DEBUG) << StringPrintf("RW T1T state changed:<%s> -> <%s>",
+                               rw_t1t_get_state_name(begin_state).c_str(),
+                               rw_t1t_get_state_name(p_t1t->state).c_str());
   }
 }
 
@@ -225,12 +221,12 @@ void rw_t1t_conn_cback(uint8_t conn_id, tNFC_CONN_EVT event,
                        tNFC_CONN* p_data) {
   tRW_T1T_CB* p_t1t = &rw_cb.tcb.t1t;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; conn_id=%i, evt=0x%x", __func__, conn_id, event);
+  LOG(DEBUG) << StringPrintf("rw_t1t_conn_cback: conn_id=%i, evt=0x%x", conn_id,
+                             event);
   /* Only handle static conn_id */
   if (conn_id != NFC_RF_CONN_ID) {
-    LOG(WARNING) << StringPrintf("%s; Not static connection id: =%i", __func__,
-                                 conn_id);
+    LOG(WARNING) << StringPrintf(
+        "rw_t1t_conn_cback - Not static connection id: =%i", conn_id);
     return;
   }
 
@@ -355,9 +351,9 @@ tNFC_STATUS rw_t1t_send_static_cmd(uint8_t opcode, uint8_t add, uint8_t dat) {
       rw_main_update_tx_stats(p_data->len, false);
 #endif /* RW_STATS_INCLUDED */
 
-      DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-          "%s; RW SENT [%s]:0x%x CMD", __func__,
-          t1t_info_to_str(p_cmd_rsp_info), p_cmd_rsp_info->opcode);
+      LOG(DEBUG) << StringPrintf("RW SENT [%s]:0x%x CMD",
+                                 t1t_info_to_str(p_cmd_rsp_info),
+                                 p_cmd_rsp_info->opcode);
       status = NFC_SendData(NFC_RF_CONN_ID, p_data);
       if (status == NFC_STATUS_OK) {
         nfc_start_quick_timer(
@@ -420,9 +416,9 @@ tNFC_STATUS rw_t1t_send_dyn_cmd(uint8_t opcode, uint8_t add, uint8_t* p_dat) {
       rw_main_update_tx_stats(p_data->len, false);
 #endif /* RW_STATS_INCLUDED */
 
-      DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-          "%s; RW SENT [%s]:0x%x CMD", __func__,
-          t1t_info_to_str(p_cmd_rsp_info), p_cmd_rsp_info->opcode);
+      LOG(DEBUG) << StringPrintf("RW SENT [%s]:0x%x CMD",
+                                 t1t_info_to_str(p_cmd_rsp_info),
+                                 p_cmd_rsp_info->opcode);
 
       status = NFC_SendData(NFC_RF_CONN_ID, p_data);
       if (status == NFC_STATUS_OK) {
@@ -467,11 +463,9 @@ static tRW_EVENT rw_t1t_handle_rid_rsp(NFC_HDR* p_pkt) {
   /* Extract HR and UID from response */
   STREAM_TO_ARRAY(p_t1t->hr, p_rid_rsp, T1T_HR_LEN);
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; hr0:0x%x, hr1:0x%x", __func__, p_t1t->hr[0], p_t1t->hr[1]);
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; UID0-3=%02x%02x%02x%02x", __func__, p_rid_rsp[0],
-                      p_rid_rsp[1], p_rid_rsp[2], p_rid_rsp[3]);
+  LOG(DEBUG) << StringPrintf("hr0:0x%x, hr1:0x%x", p_t1t->hr[0], p_t1t->hr[1]);
+  LOG(DEBUG) << StringPrintf("UID0-3=%02x%02x%02x%02x", p_rid_rsp[0],
+                             p_rid_rsp[1], p_rid_rsp[2], p_rid_rsp[3]);
 
   /* Fetch UID0-3 from RID response message */
   STREAM_TO_ARRAY(p_t1t->mem, p_rid_rsp, T1T_CMD_UID_LEN);
@@ -502,7 +496,7 @@ tNFC_STATUS rw_t1t_select(uint8_t hr[T1T_HR_LEN],
     p_t1t->p_cur_cmd_buf = (NFC_HDR*)GKI_getpoolbuf(NFC_RW_POOL_ID);
     if (p_t1t->p_cur_cmd_buf == nullptr) {
       LOG(ERROR) << StringPrintf(
-          "%s; unable to allocate buffer for retransmission", __func__);
+          "rw_t1t_select: unable to allocate buffer for retransmission");
       return status;
     }
   }
@@ -529,10 +523,9 @@ tNFC_STATUS rw_t1t_select(uint8_t hr[T1T_HR_LEN],
 void rw_t1t_process_timeout(__attribute__((unused)) TIMER_LIST_ENT* p_tle) {
   tRW_T1T_CB* p_t1t = &rw_cb.tcb.t1t;
 
-  LOG(ERROR) << StringPrintf(
-      "%s; T1T timeout. state=%s command (opcode)=0x%02x ", __func__,
-      rw_t1t_get_state_name(p_t1t->state).c_str(),
-      (rw_cb.tcb.t1t.p_cmd_rsp_info)->opcode);
+  LOG(ERROR) << StringPrintf("T1T timeout. state=%s command (opcode)=0x%02x ",
+                             rw_t1t_get_state_name(p_t1t->state).c_str(),
+                             (rw_cb.tcb.t1t.p_cmd_rsp_info)->opcode);
 
   if (p_t1t->state == RW_T1T_STATE_CHECK_PRESENCE) {
     /* Tag has moved from range */
@@ -577,17 +570,15 @@ static void rw_t1t_process_error(void) {
   tT1T_CMD_RSP_INFO* p_cmd_rsp_info =
       (tT1T_CMD_RSP_INFO*)rw_cb.tcb.t1t.p_cmd_rsp_info;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; State: %u", __func__, p_t1t->state);
+  LOG(DEBUG) << StringPrintf("State: %u", p_t1t->state);
 
   /* Retry sending command if retry-count < max */
   if (rw_cb.cur_retry < RW_MAX_RETRIES) {
     /* retry sending the command */
     rw_cb.cur_retry++;
 
-    DLOG_IF(INFO, nfc_debug_enabled)
-        << StringPrintf("%s; T1T retransmission attempt %i of %i", __func__,
-                        rw_cb.cur_retry, RW_MAX_RETRIES);
+    LOG(DEBUG) << StringPrintf("T1T retransmission attempt %i of %i",
+                               rw_cb.cur_retry, RW_MAX_RETRIES);
 
     /* allocate a new buffer for message */
     p_cmd_buf = (NFC_HDR*)GKI_getpoolbuf(NFC_RW_POOL_ID);
@@ -613,9 +604,8 @@ static void rw_t1t_process_error(void) {
   } else {
     /* we might get response later to all or some of the retrasnmission
      * of the current command, update previous command response information */
-    DLOG_IF(INFO, nfc_debug_enabled)
-        << StringPrintf("%s; T1T maximum retransmission attempts reached (%i)",
-                        __func__, RW_MAX_RETRIES);
+    LOG(DEBUG) << StringPrintf(
+        "T1T maximum retransmission attempts reached (%i)", RW_MAX_RETRIES);
     p_t1t->prev_cmd_rsp_info.addr = ((p_cmd_rsp_info->opcode != T1T_CMD_RALL) &&
                                      (p_cmd_rsp_info->opcode != T1T_CMD_RID))
                                         ? p_t1t->addr
@@ -667,8 +657,7 @@ void rw_t1t_handle_presence_check_rsp(tNFC_STATUS status) {
 
   /* Notify, Tag is present or not */
   rw_data.data.status = status;
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; T1T rsp status = %d ", __func__, status);
+  LOG(DEBUG) << StringPrintf("%s - T1T rsp status = %d ", __func__, status);
   rw_t1t_handle_op_complete();
 
   (*(rw_cb.p_cback))(RW_T1T_PRESENCE_CHECK_EVT, &rw_data);
@@ -718,7 +707,7 @@ tNFC_STATUS RW_T1tPresenceCheck(void) {
   tRW_DATA evt_data;
   tRW_CB* p_rw_cb = &rw_cb;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   /* If RW_SelectTagType was not called (no conn_callback) return failure */
   if (!p_rw_cb->p_cback) {
@@ -761,11 +750,10 @@ tNFC_STATUS RW_T1tRid(void) {
   tRW_T1T_CB* p_t1t = &rw_cb.tcb.t1t;
   tNFC_STATUS status = NFC_STATUS_FAILED;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   if (p_t1t->state != RW_T1T_STATE_IDLE) {
-    LOG(WARNING) << StringPrintf("%s; Busy - State: %u", __func__,
-                                 p_t1t->state);
+    LOG(WARNING) << StringPrintf("RW_T1tRid - Busy - State: %u", p_t1t->state);
     return (NFC_STATUS_BUSY);
   }
 
@@ -791,10 +779,10 @@ tNFC_STATUS RW_T1tReadAll(void) {
   tRW_T1T_CB* p_t1t = &rw_cb.tcb.t1t;
   tNFC_STATUS status = NFC_STATUS_FAILED;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   if (p_t1t->state != RW_T1T_STATE_IDLE) {
-    LOG(WARNING) << StringPrintf("%s; Busy - State: %u", __func__,
+    LOG(WARNING) << StringPrintf("RW_T1tReadAll - Busy - State: %u",
                                  p_t1t->state);
     return (NFC_STATUS_BUSY);
   }
@@ -823,8 +811,7 @@ tNFC_STATUS RW_T1tRead(uint8_t block, uint8_t byte) {
   uint8_t addr;
 
   if (p_t1t->state != RW_T1T_STATE_IDLE) {
-    LOG(WARNING) << StringPrintf("%s; Busy - State: %u", __func__,
-                                 p_t1t->state);
+    LOG(WARNING) << StringPrintf("RW_T1tRead - Busy - State: %u", p_t1t->state);
     return (NFC_STATUS_BUSY);
   }
 
@@ -853,23 +840,23 @@ tNFC_STATUS RW_T1tWriteErase(uint8_t block, uint8_t byte, uint8_t new_byte) {
   uint8_t addr;
 
   if (p_t1t->state != RW_T1T_STATE_IDLE) {
-    LOG(WARNING) << StringPrintf("%s; Busy - State: %u", __func__,
+    LOG(WARNING) << StringPrintf("RW_T1tWriteErase - Busy - State: %u",
                                  p_t1t->state);
     return (NFC_STATUS_BUSY);
   }
   if ((p_t1t->tag_attribute == RW_T1_TAG_ATTRB_READ_ONLY) &&
       (block != T1T_CC_BLOCK) && (byte != T1T_CC_RWA_OFFSET)) {
-    LOG(ERROR) << StringPrintf("%s; Tag is in Read only state", __func__);
+    LOG(ERROR) << StringPrintf("RW_T1tWriteErase - Tag is in Read only state");
     return (NFC_STATUS_REFUSED);
   }
   if ((block >= T1T_STATIC_BLOCKS) || (byte >= T1T_BLOCK_SIZE)) {
-    LOG(ERROR) << StringPrintf("%s; Invalid Block/byte: %u / %u", __func__,
+    LOG(ERROR) << StringPrintf("RW_T1tWriteErase - Invalid Block/byte: %u / %u",
                                block, byte);
     return (NFC_STATUS_REFUSED);
   }
   if ((block == T1T_UID_BLOCK) || (block == T1T_RES_BLOCK)) {
-    LOG(WARNING) << StringPrintf("%s; Cannot write to Locked block: %u",
-                                 __func__, block);
+    LOG(WARNING) << StringPrintf(
+        "RW_T1tWriteErase - Cannot write to Locked block: %u", block);
     return (NFC_STATUS_REFUSED);
   }
   /* send WRITE-E command */
@@ -901,23 +888,23 @@ tNFC_STATUS RW_T1tWriteNoErase(uint8_t block, uint8_t byte, uint8_t new_byte) {
   uint8_t addr;
 
   if (p_t1t->state != RW_T1T_STATE_IDLE) {
-    LOG(WARNING) << StringPrintf("%s; Busy - State: %u", __func__,
+    LOG(WARNING) << StringPrintf("RW_T1tWriteNoErase - Busy - State: %u",
                                  p_t1t->state);
     return (NFC_STATUS_BUSY);
   }
   if ((p_t1t->tag_attribute == RW_T1_TAG_ATTRB_READ_ONLY) &&
       (block != T1T_CC_BLOCK) && (byte != T1T_CC_RWA_OFFSET)) {
-    LOG(ERROR) << StringPrintf("%s; Tag is in Read only state", __func__);
+    LOG(ERROR) << StringPrintf("RW_T1tWriteErase - Tag is in Read only state");
     return (NFC_STATUS_REFUSED);
   }
   if ((block >= T1T_STATIC_BLOCKS) || (byte >= T1T_BLOCK_SIZE)) {
-    LOG(ERROR) << StringPrintf("%s; Invalid Block/byte: %u / %u", __func__,
+    LOG(ERROR) << StringPrintf("RW_T1tWriteErase - Invalid Block/byte: %u / %u",
                                block, byte);
     return (NFC_STATUS_REFUSED);
   }
   if ((block == T1T_UID_BLOCK) || (block == T1T_RES_BLOCK)) {
-    LOG(WARNING) << StringPrintf("%s; Cannot write to Locked block: %u",
-                                 __func__, block);
+    LOG(WARNING) << StringPrintf(
+        "RW_T1tWriteNoErase - Cannot write to Locked block: %u", block);
     return (NFC_STATUS_REFUSED);
   }
   /* send WRITE-NE command */
@@ -948,12 +935,12 @@ tNFC_STATUS RW_T1tReadSeg(uint8_t segment) {
   uint8_t adds;
 
   if (p_t1t->state != RW_T1T_STATE_IDLE) {
-    LOG(WARNING) << StringPrintf("%s; Busy - State: %u", __func__,
+    LOG(WARNING) << StringPrintf("RW_T1tReadSeg - Busy - State: %u",
                                  p_t1t->state);
     return (NFC_STATUS_BUSY);
   }
   if (segment >= T1T_MAX_SEGMENTS) {
-    LOG(ERROR) << StringPrintf("%s; Invalid Segment: %u", __func__, segment);
+    LOG(ERROR) << StringPrintf("RW_T1tReadSeg - Invalid Segment: %u", segment);
     return (NFC_STATUS_REFUSED);
   }
   if (rw_cb.tcb.t1t.hr[0] != T1T_STATIC_HR0) {
@@ -981,7 +968,7 @@ tNFC_STATUS RW_T1tRead8(uint8_t block) {
   tRW_T1T_CB* p_t1t = &rw_cb.tcb.t1t;
 
   if (p_t1t->state != RW_T1T_STATE_IDLE) {
-    LOG(WARNING) << StringPrintf("%s; Busy - State: %u", __func__,
+    LOG(WARNING) << StringPrintf("RW_T1tRead8 - Busy - State: %u",
                                  p_t1t->state);
     return (NFC_STATUS_BUSY);
   }
@@ -1012,20 +999,20 @@ tNFC_STATUS RW_T1tWriteErase8(uint8_t block, uint8_t* p_new_dat) {
   tNFC_STATUS status = NFC_STATUS_FAILED;
 
   if (p_t1t->state != RW_T1T_STATE_IDLE) {
-    LOG(WARNING) << StringPrintf("%s; Busy - State: %u", __func__,
+    LOG(WARNING) << StringPrintf("RW_T1tWriteErase8 - Busy - State: %u",
                                  p_t1t->state);
     return (NFC_STATUS_BUSY);
   }
 
   if ((p_t1t->tag_attribute == RW_T1_TAG_ATTRB_READ_ONLY) &&
       (block != T1T_CC_BLOCK)) {
-    LOG(ERROR) << StringPrintf("%s; Tag is in Read only state", __func__);
+    LOG(ERROR) << StringPrintf("RW_T1tWriteErase8 - Tag is in Read only state");
     return (NFC_STATUS_REFUSED);
   }
 
   if ((block == T1T_UID_BLOCK) || (block == T1T_RES_BLOCK)) {
-    LOG(WARNING) << StringPrintf("%s; Cannot write to Locked block: %u",
-                                 __func__, block);
+    LOG(WARNING) << StringPrintf(
+        "RW_T1tWriteErase8 - Cannot write to Locked block: %u", block);
     return (NFC_STATUS_REFUSED);
   }
 
@@ -1059,20 +1046,21 @@ tNFC_STATUS RW_T1tWriteNoErase8(uint8_t block, uint8_t* p_new_dat) {
   tRW_T1T_CB* p_t1t = &rw_cb.tcb.t1t;
 
   if (p_t1t->state != RW_T1T_STATE_IDLE) {
-    LOG(WARNING) << StringPrintf("%s; Busy - State: %u", __func__,
+    LOG(WARNING) << StringPrintf("RW_T1tWriteNoErase8 - Busy - State: %u",
                                  p_t1t->state);
     return (NFC_STATUS_BUSY);
   }
 
   if ((p_t1t->tag_attribute == RW_T1_TAG_ATTRB_READ_ONLY) &&
       (block != T1T_CC_BLOCK)) {
-    LOG(ERROR) << StringPrintf("%s; Tag is in Read only state", __func__);
+    LOG(ERROR) << StringPrintf(
+        "RW_T1tWriteNoErase8 - Tag is in Read only state");
     return (NFC_STATUS_REFUSED);
   }
 
   if ((block == T1T_UID_BLOCK) || (block == T1T_RES_BLOCK)) {
-    LOG(WARNING) << StringPrintf("%s; Cannot write to Locked block: %u",
-                                 __func__, block);
+    LOG(WARNING) << StringPrintf(
+        "RW_T1tWriteNoErase8 - Cannot write to Locked block: %u", block);
     return (NFC_STATUS_REFUSED);
   }
 

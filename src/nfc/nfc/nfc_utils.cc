@@ -23,16 +23,14 @@
  *  (callback). On the transmit side, it manages the command transmission.
  *
  ******************************************************************************/
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
 
 #include "bt_types.h"
 #include "nfc_api.h"
 #include "nfc_int.h"
 
 using android::base::StringPrintf;
-
-extern bool nfc_debug_enabled;
 
 /*******************************************************************************
 **
@@ -79,8 +77,8 @@ void nfc_set_conn_id(tNFC_CONN_CB* p_cb, uint8_t conn_id) {
   p_cb->conn_id = conn_id;
   handle = (uint8_t)(p_cb - nfc_cb.conn_cb + 1);
   nfc_cb.conn_id[conn_id] = handle;
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; conn_id:%d, handle:%d", __func__, conn_id, handle);
+  LOG(DEBUG) << StringPrintf("nfc_set_conn_id conn_id:%d, handle:%d", conn_id,
+                             handle);
 }
 
 /*******************************************************************************
@@ -162,7 +160,7 @@ void nfc_free_conn_cb(tNFC_CONN_CB* p_cb) {
   if (p_cb->conn_id <= NFC_MAX_CONN_ID) {
     nfc_cb.conn_id[p_cb->conn_id] = 0;
   } else {
-    LOG(ERROR) << StringPrintf("%s; invalid conn_id", __func__);
+    LOG(ERROR) << StringPrintf("invalid conn_id.");
   }
   p_cb->p_cback = nullptr;
   p_cb->conn_id = NFC_ILLEGAL_CONN_ID;

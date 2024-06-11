@@ -62,15 +62,11 @@ enum {
   NFA_EE_API_CONNECT_EVT,
   NFA_EE_API_SEND_DATA_EVT,
   NFA_EE_API_DISCONNECT_EVT,
-  NFA_EE_API_FORCE_ROUTING_EVT,
-  NFA_EE_API_STOP_FORCE_ROUTING_EVT,
-  NFA_EE_API_CLEAR_ROUTING_TABLE_EVT,
   NFA_EE_API_PWR_AND_LINK_CTRL_EVT,
 
   NFA_EE_NCI_DISC_RSP_EVT,
   NFA_EE_NCI_DISC_NTF_EVT,
   NFA_EE_NCI_MODE_SET_RSP_EVT,
-  NFA_EE_NCI_FORCE_ROUTING_EVT,
   NFA_EE_NCI_CONN_EVT,
   NFA_EE_NCI_DATA_EVT,
   NFA_EE_NCI_ACTION_NTF_EVT,
@@ -112,18 +108,14 @@ enum {
 typedef uint8_t tNFA_EE_CONN_ST;
 
 #define NFA_EE_MAX_AID_CFG_LEN (510)
-
-// Max in ST solution:
 // Technology A/B/F reserved: 5*3 = 15
-// Protocol ISODEP/ISO-DEP blocked/NFCDEP reserved: 5*3 = 15, T3T not inserted
-// as SC inserted
-#define NFA_EE_MAX_PROTO_TECH_EXT_ROUTE_LEN 30
+// Protocol ISODEP/NFCDEP/T3T reserved: 5*3 = 15
+// Extends (APDU pattern/SC)reserved: 30
+#define NFA_EE_MAX_PROTO_TECH_EXT_ROUTE_LEN 60
 
 #define NFA_EE_SYSTEM_CODE_LEN 02
 #define NFA_EE_SYSTEM_CODE_TLV_SIZE 06
-
-// Default syscode + HCE-F syscode: 6 * 2 = 12.
-#define NFA_EE_MAX_SYSTEM_CODE_ENTRIES 2
+#define NFA_EE_MAX_SYSTEM_CODE_ENTRIES 10
 #define NFA_EE_MAX_SYSTEM_CODE_CFG_LEN \
   (NFA_EE_MAX_SYSTEM_CODE_ENTRIES * NFA_EE_SYSTEM_CODE_TLV_SIZE)
 
@@ -223,7 +215,6 @@ typedef struct {
   uint8_t size_mask_proto;         /* the size for protocol routing */
   uint8_t size_mask_tech;          /* the size for technology routing */
   uint16_t size_aid;               /* the size for aid routing */
-  uint8_t size_dh_added_mask_proto; /* the size for protocol routing */
   /*System Code Based Routing Variables*/
   uint8_t sys_code_cfg[NFA_EE_MAX_SYSTEM_CODE_ENTRIES * NFA_EE_SYSTEM_CODE_LEN];
   uint8_t sys_code_pwr_cfg[NFA_EE_MAX_SYSTEM_CODE_ENTRIES];
@@ -363,20 +354,6 @@ typedef struct {
   uint8_t config;
 } tNFA_EE_API_PWR_AND_LINK_CTRL;
 
-/* data type for NFA_EE_API_FORCE_ROUTING_EVT */
-typedef struct {
-  NFC_HDR hdr;
-  tNFA_EE_ECB* p_cb;
-  uint8_t nfcee_id;
-  uint8_t config;
-} tNFA_EE_API_FORCE_ROUTING;
-
-typedef struct {
-  NFC_HDR hdr;
-  tNFA_EE_ECB* p_cb;
-  bool clear_sc;
-} tNFA_EE_API_CLEAR_ROUTING_TABLE;
-
 /* common data type for internal events with nfa_ee_use_cfg_cb[] as TRUE */
 typedef struct {
   NFC_HDR hdr;
@@ -408,11 +385,6 @@ typedef struct {
   void* p_data;
   uint8_t opcode;
 } tNFA_EE_NCI_WAIT_RSP;
-
-typedef struct {
-  NFC_HDR hdr;
-  tNFC_NFCEE_FORCE_ROUTING_REVT* p_data;
-} tNFA_EE_NCI_FORCE_ROUTING_RSP;
 
 /* data type for NFA_EE_NCI_CONN_EVT and NFA_EE_NCI_DATA_EVT */
 typedef struct {
@@ -466,13 +438,10 @@ typedef union {
   tNFA_EE_API_CONNECT connect;
   tNFA_EE_API_SEND_DATA send_data;
   tNFA_EE_API_DISCONNECT disconnect;
-  tNFA_EE_API_FORCE_ROUTING force_routing;
-  tNFA_EE_API_CLEAR_ROUTING_TABLE clear_routing_table;
   tNFA_EE_API_PWR_AND_LINK_CTRL pwr_and_link_ctrl;
   tNFA_EE_NCI_DISC_RSP disc_rsp;
   tNFA_EE_NCI_DISC_NTF disc_ntf;
   tNFA_EE_NCI_MODE_SET mode_set_rsp;
-  tNFA_EE_NCI_FORCE_ROUTING_RSP force_routing_rsp;
   tNFA_EE_NCI_WAIT_RSP wait_rsp;
   tNFA_EE_NCI_CONN conn;
   tNFA_EE_NCI_ACTION act;
@@ -550,7 +519,6 @@ typedef struct {
   tNFA_EE_FLAGS ee_flags;      /* flags                            */
   uint8_t route_block_control; /* controls route block feature   */
   bool isDiscoveryStopped;     /* discovery status                  */
-  bool forced_routing_on_dh;
 } tNFA_EE_CB;
 
 /* Order of Routing entries in Routing Table */
@@ -586,9 +554,6 @@ uint8_t nfa_ee_ecb_to_mask(tNFA_EE_ECB* p_cb);
 void nfa_ee_restore_one_ecb(tNFA_EE_ECB* p_cb);
 bool nfa_ee_is_active(tNFA_HANDLE nfcee_id);
 
-bool nfa_ee_get_forced_routing_status();
-
-void nfa_ee_clear_proto_info(uint8_t hci_id);
 /* Action function prototypes - nfa_ee_act.c */
 void nfa_ee_api_discover(tNFA_EE_MSG* p_data);
 void nfa_ee_api_register(tNFA_EE_MSG* p_data);
@@ -607,17 +572,12 @@ void nfa_ee_api_update_now(tNFA_EE_MSG* p_data);
 void nfa_ee_api_connect(tNFA_EE_MSG* p_data);
 void nfa_ee_api_send_data(tNFA_EE_MSG* p_data);
 void nfa_ee_api_disconnect(tNFA_EE_MSG* p_data);
-void nfa_ee_api_force_routing(tNFA_EE_MSG* p_data);
-void nfa_ee_api_stop_force_routing(tNFA_EE_MSG* p_data);
-void nfa_ee_api_clear_routing_table(tNFA_EE_MSG* p_data);
 void nfa_ee_api_pwr_and_link_ctrl(tNFA_EE_MSG* p_data);
 void nfa_ee_report_disc_done(bool notify_sys);
 void nfa_ee_nci_disc_rsp(tNFA_EE_MSG* p_data);
 void nfa_ee_nci_disc_ntf(tNFA_EE_MSG* p_data);
 void nfa_ee_nci_mode_set_rsp(tNFA_EE_MSG* p_data);
 void nfa_ee_nci_nfcee_status_ntf(tNFA_EE_MSG* p_data);
-void nfa_ee_nci_status_ntf(tNFA_EE_MSG* p_data);
-void nfa_ee_nci_force_routing_rsp(tNFA_EE_MSG* p_data);
 void nfa_ee_pwr_and_link_ctrl_rsp(tNFA_EE_MSG* p_data);
 void nfa_ee_nci_wait_rsp(tNFA_EE_MSG* p_data);
 void nfa_ee_nci_conn(tNFA_EE_MSG* p_data);
@@ -643,7 +603,4 @@ void nfa_ee_check_disable(void);
 bool nfa_ee_restore_ntf_done(void);
 void nfa_ee_check_restore_complete(void);
 int nfa_ee_find_max_aid_cfg_len(void);
-
-extern void nfa_ee_report_discover_req_evt(void);
-
 #endif /* NFA_P2P_INT_H */

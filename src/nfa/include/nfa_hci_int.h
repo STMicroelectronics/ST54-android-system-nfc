@@ -26,7 +26,6 @@
 
 #include <cstdint>
 #include <string>
-#include <pthread.h>
 
 #include "nfa_ee_api.h"
 #include "nfa_hci_api.h"
@@ -360,22 +359,6 @@ typedef struct {
   uint8_t hci_version;     /* HCI Version */
 } tNFA_ID_MGMT_GATE_INFO;
 
-#ifndef NFA_HCI_MAX_FRAG_INFO
-#define NFA_HCI_MAX_FRAG_INFO 5
-#endif
-
-typedef struct {
-  uint8_t pipe;
-  uint16_t msg_len;     /* For segmentation - length of the combined message */
-  uint16_t max_msg_len; /* Maximum reassembled message size */
-  uint8_t msg_data[NFA_MAX_HCI_EVENT_LEN]; /* For segmentation - the combined
-   message data */
-  uint8_t* p_msg_data;  /* For segmentation - reassembled message */
-  uint8_t type;         /* Instruction type of incoming message */
-  uint8_t inst;         /* Instruction of incoming message */
-  bool assembly_failed; /* Set true if Insufficient buffer to Reassemble */
-} tNFA_HCI_FRAG_INFO;
-
 /* NFA HCI control block */
 typedef struct {
   tNFA_HCI_STATE hci_state; /* state of the HCI */
@@ -439,10 +422,8 @@ typedef struct {
     tNFA_ADMIN_GATE_INFO admin_gate;
     tNFA_LINK_MGMT_GATE_INFO link_mgmt_gate;
     tNFA_ID_MGMT_GATE_INFO id_mgmt_gate;
-    uint8_t active_uicc_id;
   } cfg;
-  int frag_cnt;
-  tNFA_HCI_FRAG_INFO frag_info[NFA_HCI_MAX_FRAG_INFO];
+
 } tNFA_HCI_CB;
 
 /*****************************************************************************
@@ -451,8 +432,6 @@ typedef struct {
 
 /* NFA HCI control block */
 extern tNFA_HCI_CB nfa_hci_cb;
-/* Mutex to protect nfa_hci_cb.hci_state change */
-extern pthread_mutex_t nfa_hci_mutex;
 
 /*****************************************************************************
 **  External functions
@@ -474,7 +453,7 @@ extern void nfa_hci_check_pending_api_requests(void);
 extern void nfa_hci_check_api_requests(void);
 extern void nfa_hci_handle_admin_gate_cmd(uint8_t* p_data, uint16_t data_len);
 extern void nfa_hci_handle_admin_gate_rsp(uint8_t* p_data, uint8_t data_len);
-extern void nfa_hci_handle_admin_gate_evt(uint8_t* p_data, uint8_t length);
+extern void nfa_hci_handle_admin_gate_evt();
 extern void nfa_hci_handle_link_mgm_gate_cmd(uint8_t* p_data,
                                              uint16_t data_len);
 extern void nfa_hci_handle_dyn_pipe_pkt(uint8_t pipe, uint8_t* p_data,

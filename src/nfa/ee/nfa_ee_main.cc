@@ -21,8 +21,8 @@
  *  This is the main implementation file for the NFA EE.
  *
  ******************************************************************************/
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
 
 #include <string>
 
@@ -31,8 +31,6 @@
 #include "nfc_config.h"
 
 using android::base::StringPrintf;
-
-extern bool nfc_debug_enabled;
 
 /*****************************************************************************
 **  Global Variables
@@ -52,41 +50,37 @@ static const tNFA_SYS_REG nfa_ee_sys_reg = {nfa_ee_sys_enable, nfa_ee_evt_hdlr,
 
 const tNFA_EE_SM_ACT nfa_ee_actions[] = {
     /* NFA-EE action function/ internal events */
-    nfa_ee_api_discover,            /* NFA_EE_API_DISCOVER_EVT      */
-    nfa_ee_api_register,            /* NFA_EE_API_REGISTER_EVT      */
-    nfa_ee_api_deregister,          /* NFA_EE_API_DEREGISTER_EVT    */
-    nfa_ee_api_mode_set,            /* NFA_EE_API_MODE_SET_EVT      */
-    nfa_ee_api_set_tech_cfg,        /* NFA_EE_API_SET_TECH_CFG_EVT  */
-    nfa_ee_api_clear_tech_cfg,      /*NFA_EE_API_CLEAR_TECH_CFG_EVT */
-    nfa_ee_api_set_proto_cfg,       /* NFA_EE_API_SET_PROTO_CFG_EVT */
-    nfa_ee_api_clear_proto_cfg,     /*NFA_EE_API_CLEAR_PROTO_CFG_EVT*/
-    nfa_ee_api_add_aid,             /* NFA_EE_API_ADD_AID_EVT       */
-    nfa_ee_api_remove_aid,          /* NFA_EE_API_REMOVE_AID_EVT    */
-    nfa_ee_api_add_sys_code,        /* NFA_EE_API_ADD_SYSCODE_EVT   */
-    nfa_ee_api_remove_sys_code,     /* NFA_EE_API_REMOVE_SYSCODE_EVT*/
-    nfa_ee_api_lmrt_size,           /* NFA_EE_API_LMRT_SIZE_EVT     */
-    nfa_ee_api_update_now,          /* NFA_EE_API_UPDATE_NOW_EVT    */
-    nfa_ee_api_connect,             /* NFA_EE_API_CONNECT_EVT       */
-    nfa_ee_api_send_data,           /* NFA_EE_API_SEND_DATA_EVT     */
-    nfa_ee_api_disconnect,          /* NFA_EE_API_DISCONNECT_EVT    */
-    nfa_ee_api_force_routing,       /* NFA_EE_API_FORCE_ROUTING_EVT    */
-    nfa_ee_api_stop_force_routing,  /* NFA_EE_API_STOP_FORCE_ROUTING_EVT    */
-    nfa_ee_api_clear_routing_table, /* NFA_EE_API_CLEAR_ROUTING_TABLE_EVT */
-    nfa_ee_api_pwr_and_link_ctrl,   /* NFA_EE_API_PWR_AND_LINK_CTRL_EVT */
-    nfa_ee_nci_disc_rsp,            /* NFA_EE_NCI_DISC_RSP_EVT      */
-    nfa_ee_nci_disc_ntf,            /* NFA_EE_NCI_DISC_NTF_EVT      */
-    nfa_ee_nci_mode_set_rsp,        /* NFA_EE_NCI_MODE_SET_RSP_EVT  */
-    nfa_ee_nci_force_routing_rsp,   /* NFA_EE_NCI_FORCE_ROUTING_EVT    */
-    nfa_ee_nci_conn,                /* NFA_EE_NCI_CONN_EVT          */
-    nfa_ee_nci_conn,                /* NFA_EE_NCI_DATA_EVT          */
-    nfa_ee_nci_action_ntf,          /* NFA_EE_NCI_ACTION_NTF_EVT    */
-    nfa_ee_nci_disc_req_ntf,        /* NFA_EE_NCI_DISC_REQ_NTF_EVT  */
-    nfa_ee_nci_wait_rsp,            /* NFA_EE_NCI_WAIT_RSP_EVT      */
-    nfa_ee_rout_timeout,            /* NFA_EE_ROUT_TIMEOUT_EVT      */
-    nfa_ee_discv_timeout,           /* NFA_EE_DISCV_TIMEOUT_EVT     */
-    nfa_ee_lmrt_to_nfcc,            /* NFA_EE_CFG_TO_NFCC_EVT       */
-    nfa_ee_nci_nfcee_status_ntf,    /*NFA_EE_NCI_NFCEE_STATUS_NTF_EVT*/
-    nfa_ee_pwr_and_link_ctrl_rsp    /* NFA_EE_PWR_CONTROL_EVT */
+    nfa_ee_api_discover,          /* NFA_EE_API_DISCOVER_EVT      */
+    nfa_ee_api_register,          /* NFA_EE_API_REGISTER_EVT      */
+    nfa_ee_api_deregister,        /* NFA_EE_API_DEREGISTER_EVT    */
+    nfa_ee_api_mode_set,          /* NFA_EE_API_MODE_SET_EVT      */
+    nfa_ee_api_set_tech_cfg,      /* NFA_EE_API_SET_TECH_CFG_EVT  */
+    nfa_ee_api_clear_tech_cfg,    /*NFA_EE_API_CLEAR_TECH_CFG_EVT */
+    nfa_ee_api_set_proto_cfg,     /* NFA_EE_API_SET_PROTO_CFG_EVT */
+    nfa_ee_api_clear_proto_cfg,   /*NFA_EE_API_CLEAR_PROTO_CFG_EVT*/
+    nfa_ee_api_add_aid,           /* NFA_EE_API_ADD_AID_EVT       */
+    nfa_ee_api_remove_aid,        /* NFA_EE_API_REMOVE_AID_EVT    */
+    nfa_ee_api_add_sys_code,      /* NFA_EE_API_ADD_SYSCODE_EVT   */
+    nfa_ee_api_remove_sys_code,   /* NFA_EE_API_REMOVE_SYSCODE_EVT*/
+    nfa_ee_api_lmrt_size,         /* NFA_EE_API_LMRT_SIZE_EVT     */
+    nfa_ee_api_update_now,        /* NFA_EE_API_UPDATE_NOW_EVT    */
+    nfa_ee_api_connect,           /* NFA_EE_API_CONNECT_EVT       */
+    nfa_ee_api_send_data,         /* NFA_EE_API_SEND_DATA_EVT     */
+    nfa_ee_api_disconnect,        /* NFA_EE_API_DISCONNECT_EVT    */
+    nfa_ee_api_pwr_and_link_ctrl, /* NFA_EE_API_PWR_AND_LINK_CTRL_EVT */
+    nfa_ee_nci_disc_rsp,          /* NFA_EE_NCI_DISC_RSP_EVT      */
+    nfa_ee_nci_disc_ntf,          /* NFA_EE_NCI_DISC_NTF_EVT      */
+    nfa_ee_nci_mode_set_rsp,      /* NFA_EE_NCI_MODE_SET_RSP_EVT  */
+    nfa_ee_nci_conn,              /* NFA_EE_NCI_CONN_EVT          */
+    nfa_ee_nci_conn,              /* NFA_EE_NCI_DATA_EVT          */
+    nfa_ee_nci_action_ntf,        /* NFA_EE_NCI_ACTION_NTF_EVT    */
+    nfa_ee_nci_disc_req_ntf,      /* NFA_EE_NCI_DISC_REQ_NTF_EVT  */
+    nfa_ee_nci_wait_rsp,          /* NFA_EE_NCI_WAIT_RSP_EVT      */
+    nfa_ee_rout_timeout,          /* NFA_EE_ROUT_TIMEOUT_EVT      */
+    nfa_ee_discv_timeout,         /* NFA_EE_DISCV_TIMEOUT_EVT     */
+    nfa_ee_lmrt_to_nfcc,          /* NFA_EE_CFG_TO_NFCC_EVT       */
+    nfa_ee_nci_nfcee_status_ntf,  /*NFA_EE_NCI_NFCEE_STATUS_NTF_EVT*/
+    nfa_ee_pwr_and_link_ctrl_rsp  /* NFA_EE_PWR_CONTROL_EVT */
 };
 
 /*******************************************************************************
@@ -102,7 +96,7 @@ const tNFA_EE_SM_ACT nfa_ee_actions[] = {
 void nfa_ee_init(void) {
   int xx;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   /* initialize control block */
   memset(&nfa_ee_cb, 0, sizeof(tNFA_EE_CB));
@@ -128,44 +122,16 @@ void nfa_ee_init(void) {
 **
 *******************************************************************************/
 void nfa_ee_sys_enable(void) {
+  LOG(DEBUG) << StringPrintf("%s", __func__);
+
   nfa_ee_cb.route_block_control = 0x00;
 
   if (NfcConfig::hasKey(NAME_NFA_AID_BLOCK_ROUTE)) {
     unsigned retlen = NfcConfig::getUnsigned(NAME_NFA_AID_BLOCK_ROUTE);
-    if ((retlen == 0x01) && (NFC_GetNCIVersion() == NCI_VERSION_2_0)) {
+    if ((retlen == 0x01) && (NFC_GetNCIVersion() >= NCI_VERSION_2_0)) {
       nfa_ee_cb.route_block_control = NCI_ROUTE_QUAL_BLOCK_ROUTE;
-      DLOG_IF(INFO, nfc_debug_enabled)
-          << StringPrintf("%s; nfa_ee_cb.route_block_control=0x%x", __func__,
-                          nfa_ee_cb.route_block_control);
-    }
-  }
-
-  int xx;
-  int max_aid_cfg_length = nfa_ee_find_max_aid_cfg_len();
-  int max_aid_entries = max_aid_cfg_length / NFA_MIN_AID_LEN + 1;
-
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; max_aid_cfg_length: %d and max_aid_entries: %d",
-                      __func__, max_aid_cfg_length, max_aid_entries);
-
-  for (xx = 0; xx < NFA_EE_NUM_ECBS; xx++) {
-    nfa_ee_cb.ecb[xx].aid_len = (uint8_t*)GKI_getbuf(max_aid_entries);
-    nfa_ee_cb.ecb[xx].aid_pwr_cfg = (uint8_t*)GKI_getbuf(max_aid_entries);
-    nfa_ee_cb.ecb[xx].aid_rt_info = (uint8_t*)GKI_getbuf(max_aid_entries);
-    nfa_ee_cb.ecb[xx].aid_info = (uint8_t*)GKI_getbuf(max_aid_entries);
-    nfa_ee_cb.ecb[xx].aid_cfg = (uint8_t*)GKI_getbuf(max_aid_cfg_length);
-    if ((NULL != nfa_ee_cb.ecb[xx].aid_len) &&
-        (NULL != nfa_ee_cb.ecb[xx].aid_pwr_cfg) &&
-        (NULL != nfa_ee_cb.ecb[xx].aid_info) &&
-        (NULL != nfa_ee_cb.ecb[xx].aid_cfg)) {
-      memset(nfa_ee_cb.ecb[xx].aid_len, 0, max_aid_entries);
-      memset(nfa_ee_cb.ecb[xx].aid_pwr_cfg, 0, max_aid_entries);
-      memset(nfa_ee_cb.ecb[xx].aid_rt_info, 0, max_aid_entries);
-      memset(nfa_ee_cb.ecb[xx].aid_info, 0, max_aid_entries);
-      memset(nfa_ee_cb.ecb[xx].aid_cfg, 0, max_aid_cfg_length);
-    } else {
-      LOG(ERROR) << StringPrintf("%s; GKI_getbuf allocation for ECB failed !",
-                                 __func__);
+      LOG(DEBUG) << StringPrintf("nfa_ee_cb.route_block_control=0x%x",
+                                 nfa_ee_cb.route_block_control);
     }
   }
 
@@ -195,11 +161,10 @@ void nfa_ee_restore_one_ecb(tNFA_EE_ECB* p_cb) {
   tNFC_NFCEE_MODE_SET_REVT rsp;
   tNFA_EE_NCI_MODE_SET ee_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; nfcee_id:0x%x, ecb_flags:0x%x ee_status:0x%x "
+  LOG(DEBUG) << StringPrintf(
+      "nfcee_id:0x%x, ecb_flags:0x%x ee_status:0x%x "
       "ee_old_status: 0x%x",
-      __func__, p_cb->nfcee_id, p_cb->ecb_flags, p_cb->ee_status,
-      p_cb->ee_old_status);
+      p_cb->nfcee_id, p_cb->ecb_flags, p_cb->ee_status, p_cb->ee_old_status);
   if ((p_cb->nfcee_id != NFA_EE_INVALID) &&
       (p_cb->ee_status & NFA_EE_STATUS_RESTORING) == 0 &&
       (p_cb->ee_old_status & NFA_EE_STATUS_RESTORING) != 0) {
@@ -257,8 +222,7 @@ void nfa_ee_proc_nfcc_power_mode(uint8_t nfcc_power_mode) {
   tNFA_EE_ECB* p_cb;
   bool proc_complete = true;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; nfcc_power_mode=%d", __func__, nfcc_power_mode);
+  LOG(DEBUG) << StringPrintf("nfcc_power_mode=%d", nfcc_power_mode);
   /* if NFCC power state is change to full power */
   if (nfcc_power_mode == NFA_DM_PWR_MODE_FULL) {
     if (nfa_ee_max_ee_cfg) {
@@ -318,7 +282,7 @@ void nfa_ee_proc_hci_info_cback(void) {
   tNFA_EE_ECB* p_cb;
   tNFA_EE_MSG data;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
   /* if NFCC power state is change to full power */
   nfa_ee_cb.ee_flags &= ~NFA_EE_FLAG_WAIT_HCI;
 
@@ -390,17 +354,13 @@ void nfa_ee_proc_evt(tNFC_RESPONSE_EVT event, void* p_data) {
       int_event = NFA_EE_NCI_NFCEE_STATUS_NTF_EVT;
       break;
 
-    case NFC_NFCEE_FORCE_ROUTING_REVT:
-      int_event = NFA_EE_NCI_FORCE_ROUTING_EVT;
-      break;
-
     case NFC_NFCEE_PL_CONTROL_REVT:
       int_event = NFA_EE_PWR_CONTROL_EVT;
       break;
   }
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; event=0x%02x int_event:0x%x", __func__, event, int_event);
+  LOG(DEBUG) << StringPrintf("nfa_ee_proc_evt: event=0x%02x int_event:0x%x",
+                             event, int_event);
   if (int_event) {
     cbk.hdr.event = int_event;
     cbk.p_data = p_data;
@@ -443,8 +403,7 @@ uint8_t nfa_ee_ecb_to_mask(tNFA_EE_ECB* p_cb) {
 tNFA_EE_ECB* nfa_ee_find_ecb(uint8_t nfcee_id) {
   uint32_t xx;
   tNFA_EE_ECB *p_ret = nullptr, *p_cb;
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; nfcee_id=0x%02x", __func__, nfcee_id);
+  LOG(DEBUG) << __func__;
 
   if (nfcee_id == NFC_DH_ID) {
     p_ret = &nfa_ee_cb.ecb[NFA_EE_CB_4_DH];
@@ -473,7 +432,7 @@ tNFA_EE_ECB* nfa_ee_find_ecb(uint8_t nfcee_id) {
 tNFA_EE_ECB* nfa_ee_find_ecb_by_conn_id(uint8_t conn_id) {
   uint32_t xx;
   tNFA_EE_ECB *p_ret = nullptr, *p_cb;
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   p_cb = nfa_ee_cb.ecb;
   for (xx = 0; xx < nfa_ee_cb.cur_ee; xx++, p_cb++) {
@@ -501,7 +460,7 @@ void nfa_ee_sys_disable(void) {
   tNFA_EE_ECB* p_cb;
   tNFA_EE_MSG msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   nfa_ee_cb.em_state = NFA_EE_EM_STATE_DISABLED;
   /* report NFA_EE_DEREGISTER_EVT to all registered to EE */
@@ -510,14 +469,6 @@ void nfa_ee_sys_disable(void) {
       msg.deregister.index = xx;
       nfa_ee_api_deregister(&msg);
     }
-  }
-
-  for (xx = 0; xx < NFA_EE_NUM_ECBS; xx++) {
-    GKI_freebuf(nfa_ee_cb.ecb[xx].aid_len);
-    GKI_freebuf(nfa_ee_cb.ecb[xx].aid_pwr_cfg);
-    GKI_freebuf(nfa_ee_cb.ecb[xx].aid_rt_info);
-    GKI_freebuf(nfa_ee_cb.ecb[xx].aid_info);
-    GKI_freebuf(nfa_ee_cb.ecb[xx].aid_cfg);
   }
 
   nfa_ee_cb.num_ee_expecting = 0;
@@ -658,12 +609,6 @@ static std::string nfa_ee_sm_evt_2_str(uint16_t event) {
       return "NCI_DISC_NTF";
     case NFA_EE_NCI_MODE_SET_RSP_EVT:
       return "NCI_MODE_SET";
-    case NFA_EE_API_FORCE_ROUTING_EVT:
-      return "NFA_EE_API_FORCE_ROUTING_EVT";
-    case NFA_EE_API_STOP_FORCE_ROUTING_EVT:
-      return "NFA_EE_API_STOP_FORCE_ROUTING_EVT";
-    case NFA_EE_NCI_FORCE_ROUTING_EVT:
-      return "NFA_EE_NCI_FORCE_ROUTING_EVT";
     case NFA_EE_NCI_CONN_EVT:
       return "NCI_CONN";
     case NFA_EE_NCI_DATA_EVT:
@@ -700,8 +645,8 @@ static std::string nfa_ee_sm_evt_2_str(uint16_t event) {
 bool nfa_ee_evt_hdlr(NFC_HDR* p_msg) {
   bool act = false;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; Event %s(0x%02x), State: %s(%d)", __func__,
+  LOG(DEBUG) << StringPrintf(
+      "Event %s(0x%02x), State: %s(%d)",
       nfa_ee_sm_evt_2_str(p_msg->event).c_str(), p_msg->event,
       nfa_ee_sm_st_2_str(nfa_ee_cb.em_state).c_str(), nfa_ee_cb.em_state);
 
@@ -734,63 +679,4 @@ bool nfa_ee_evt_hdlr(NFC_HDR* p_msg) {
   }
 
   return true;
-}
-
-/*******************************************************************************
-**
-** Function         nfa_ee_clear_proto_info
-**
-** Description      Processing event for NFA EE
-**
-**
-** Returns          TRUE if p_msg needs to be deallocated
-**
-*******************************************************************************/
-void nfa_ee_clear_proto_info(uint8_t hci_id) {
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; hci_id = 0x%02X", __func__, hci_id);
-  tNFA_EE_ECB* p_ret = nullptr;
-  int i, j;
-  uint8_t nfceeId = 0xff;
-
-  // Search for entry that matches the HCI Id
-  for (i = 0; (i < NFA_EE_NUM_ECBS) && (nfceeId == 0xff); i++) {
-    int nb_tlv = nfa_ee_cb.ecb[i].num_tlvs;
-
-    for (j = 0; (j < nb_tlv) && (nfceeId == 0xff); j++) {
-      if (nfa_ee_cb.ecb[i].ee_tlv[j].tag ==
-          0x03) {  // type is host Id in HCI network
-
-        if (nfa_ee_cb.ecb[i].ee_tlv[j].info[0] ==
-            hci_id) {  // If stored HCI Id matches
-          p_ret = &nfa_ee_cb.ecb[i];
-          if ((p_ret != nullptr) &&
-              ((p_ret->la_protocol != 0) || (p_ret->lb_protocol != 0) ||
-               (p_ret->lf_protocol != 0))) {
-            nfceeId = nfa_ee_cb.ecb[i].nfcee_id;
-            DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-                "%s; Found matching NFCEE ID 0x%02X "
-                "for hci_id "
-                "0x%02X",
-                __func__, nfceeId, hci_id);
-          }
-        }
-      }
-    }
-  }
-
-  if (p_ret != nullptr) {
-    p_ret->la_protocol = 0;
-    p_ret->lb_protocol = 0;
-    p_ret->lf_protocol = 0;
-  } else {
-    DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-        "%s; No matching entry found for hci_id "
-        "0x%02X!!!",
-        __func__, hci_id);
-  }
-
-  // If NFCEE was deactivated, report to service to update RT
-  /* Report NFA_EE_DISCOVER_REQ_EVT for all active NFCEE */
-  nfa_ee_report_discover_req_evt();
 }
