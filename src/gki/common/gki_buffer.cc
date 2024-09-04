@@ -820,8 +820,7 @@ void* GKI_dequeue(BUFFER_Q* p_q) {
 
   p_hdr = (BUFFER_HDR_T*)((uint8_t*)p_q->p_first - BUFFER_HDR_SIZE);
 
-  /* Keep buffers such that GKI header is invisible
-   */
+  /* Keep buffers such that GKI header is invisible */
   if (p_hdr->p_next)
     p_q->p_first = ((uint8_t*)p_hdr->p_next + BUFFER_HDR_SIZE);
   else {

@@ -68,8 +68,7 @@ typedef struct _free_queue {
   uint16_t max_cnt;      /* maximum number of buffers allocated at any time */
 } FREE_QUEUE_T;
 
-/* Buffer related defines
- */
+/* Buffer related defines */
 #define ALIGN_POOL(pl_size) \
   ((((pl_size) + 3) / sizeof(uint32_t)) * sizeof(uint32_t))
 /* Offset past header */
@@ -84,13 +83,10 @@ typedef struct _free_queue {
 #define BUF_STATUS_UNLINKED 1
 #define BUF_STATUS_QUEUED 2
 
-/* Put all GKI variables into one control block
- */
+/* Put all GKI variables into one control block */
 typedef struct {
-  /* Task management variables
-   */
-  /* The stack and stack size are not used on Windows
-   */
+  /* Task management variables */
+  /* The stack and stack size are not used on Windows */
 
 #if (GKI_NUM_FIXED_BUF_POOLS > 0)
   uint8_t bufpool0[(ALIGN_POOL(GKI_BUF0_SIZE) + BUFFER_PADDING_SIZE) *
@@ -189,8 +185,7 @@ typedef struct {
   int16_t OSLockNesting; /* counter to keep track of sched lock nesting */
   int16_t OSIntNesting;  /* counter to keep track of interrupt nesting */
 
-  /* Timer related variables
-   */
+  /* Timer related variables */
   int32_t OSTicksTilExp; /* Number of ticks till next timer expires */
 #if (GKI_DELAY_STOP_SYS_TICK > 0)
   uint32_t OSTicksTilStop; /* inactivity delay timer; OS Ticks till stopping
@@ -224,8 +219,7 @@ typedef struct {
   int32_t OSTaskTmr3R[GKI_MAX_TASKS];
 #endif
 
-  /* Buffer related variables
-   */
+  /* Buffer related variables */
   BUFFER_HDR_T* OSTaskQFirst[GKI_MAX_TASKS]
                             [NUM_TASK_MBOX]; /* array of pointers to the first
                                                 event in the task mailbox */
@@ -233,16 +227,14 @@ typedef struct {
                            [NUM_TASK_MBOX]; /* array of pointers to the last
                                                event in the task mailbox */
 
-  /* Define the buffer pool management variables
-   */
+  /* Define the buffer pool management variables */
   FREE_QUEUE_T freeq[GKI_NUM_TOTAL_BUF_POOLS];
 
   uint16_t pool_buf_size[GKI_NUM_TOTAL_BUF_POOLS];
   uint16_t pool_max_count[GKI_NUM_TOTAL_BUF_POOLS];
   uint16_t pool_additions[GKI_NUM_TOTAL_BUF_POOLS];
 
-  /* Define the buffer pool start addresses
-   */
+  /* Define the buffer pool start addresses */
   uint8_t* pool_start[GKI_NUM_TOTAL_BUF_POOLS]; /* array of pointers to the
                                                    start of each buffer pool */
   uint8_t* pool_end[GKI_NUM_TOTAL_BUF_POOLS]; /* array of pointers to the end of
@@ -270,8 +262,7 @@ typedef struct {
 
 } tGKI_COM_CB;
 
-/* Internal GKI function prototypes
- */
+/* Internal GKI function prototypes */
 extern bool gki_chk_buf_damage(void*);
 extern bool gki_chk_buf_owner(void*);
 extern void gki_buffer_init(void);
