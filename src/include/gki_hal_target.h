@@ -84,7 +84,7 @@
 #endif
 
 #ifndef GKI_TICKS_TO_MS
-#define GKI_TICKS_TO_MS(x) ((x)*1000 / TICKS_PER_SEC)
+#define GKI_TICKS_TO_MS(x) ((x) * 1000 / TICKS_PER_SEC)
 #endif
 
 #ifndef GKI_TICKS_TO_SECS
@@ -102,7 +102,7 @@
 **/
 
 #ifndef GKI_OS_TICKS_TO_MS
-#define GKI_OS_TICKS_TO_MS(x) ((x)*1000 / OS_TICKS_PER_SEC)
+#define GKI_OS_TICKS_TO_MS(x) ((x) * 1000 / OS_TICKS_PER_SEC)
 #endif
 
 #ifndef GKI_OS_TICKS_TO_SECS

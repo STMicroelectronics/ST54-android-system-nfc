@@ -273,6 +273,8 @@ extern tNFA_STATUS NFA_EeDiscover(tNFA_EE_CBACK* p_cback);
 *******************************************************************************/
 extern tNFA_STATUS NFA_EeGetInfo(uint8_t* p_num_nfcee, tNFA_EE_INFO* p_info);
 
+extern tNFA_STATUS NFA_EeGetMepInfo(uint8_t* p_num_nfcee, tNFA_EE_INFO* p_info);
+
 /*******************************************************************************
 **
 ** Function         NFA_EeRegister

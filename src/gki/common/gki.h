@@ -32,7 +32,7 @@
 
 #include <string>
 
-//#include "bt_types.h"
+// #include "bt_types.h"
 #include "gki_target.h"
 
 /* Error codes */

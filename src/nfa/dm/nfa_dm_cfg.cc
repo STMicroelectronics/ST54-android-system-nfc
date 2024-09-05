@@ -94,7 +94,6 @@ tNFA_HCI_CFG nfa_hci_cfg = {
 
 tNFA_HCI_CFG* p_nfa_hci_cfg = (tNFA_HCI_CFG*)&nfa_hci_cfg;
 
-bool nfa_poll_bail_out_mode = false;
 tNFA_PROPRIETARY_CFG nfa_proprietary_cfg = {
     0x80, /* NCI_PROTOCOL_18092_ACTIVE */
     0x81, /* NCI_PROTOCOL_B_PRIME */

@@ -21,8 +21,8 @@
  *  This is the main implementation file for the NFA EE.
  *
  ******************************************************************************/
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
 
 #include <string>
 
@@ -31,8 +31,6 @@
 #include "nfc_config.h"
 
 using android::base::StringPrintf;
-
-extern bool nfc_debug_enabled;
 
 /*****************************************************************************
 **  Global Variables
@@ -102,7 +100,7 @@ const tNFA_EE_SM_ACT nfa_ee_actions[] = {
 void nfa_ee_init(void) {
   int xx;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   /* initialize control block */
   memset(&nfa_ee_cb, 0, sizeof(tNFA_EE_CB));
@@ -132,11 +130,10 @@ void nfa_ee_sys_enable(void) {
 
   if (NfcConfig::hasKey(NAME_NFA_AID_BLOCK_ROUTE)) {
     unsigned retlen = NfcConfig::getUnsigned(NAME_NFA_AID_BLOCK_ROUTE);
-    if ((retlen == 0x01) && (NFC_GetNCIVersion() == NCI_VERSION_2_0)) {
+    if ((retlen == 0x01) && (NFC_GetNCIVersion() >= NCI_VERSION_2_0)) {
       nfa_ee_cb.route_block_control = NCI_ROUTE_QUAL_BLOCK_ROUTE;
-      DLOG_IF(INFO, nfc_debug_enabled)
-          << StringPrintf("%s; nfa_ee_cb.route_block_control=0x%x", __func__,
-                          nfa_ee_cb.route_block_control);
+      LOG(DEBUG) << StringPrintf("%s; nfa_ee_cb.route_block_control=0x%x",
+                                 __func__, nfa_ee_cb.route_block_control);
     }
   }
 
@@ -144,9 +141,9 @@ void nfa_ee_sys_enable(void) {
   int max_aid_cfg_length = nfa_ee_find_max_aid_cfg_len();
   int max_aid_entries = max_aid_cfg_length / NFA_MIN_AID_LEN + 1;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; max_aid_cfg_length: %d and max_aid_entries: %d",
-                      __func__, max_aid_cfg_length, max_aid_entries);
+  LOG(DEBUG) << StringPrintf(
+      "%s; max_aid_cfg_length: %d and max_aid_entries: %d", __func__,
+      max_aid_cfg_length, max_aid_entries);
 
   for (xx = 0; xx < NFA_EE_NUM_ECBS; xx++) {
     nfa_ee_cb.ecb[xx].aid_len = (uint8_t*)GKI_getbuf(max_aid_entries);
@@ -195,7 +192,7 @@ void nfa_ee_restore_one_ecb(tNFA_EE_ECB* p_cb) {
   tNFC_NFCEE_MODE_SET_REVT rsp;
   tNFA_EE_NCI_MODE_SET ee_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+  LOG(DEBUG) << StringPrintf(
       "%s; nfcee_id:0x%x, ecb_flags:0x%x ee_status:0x%x "
       "ee_old_status: 0x%x",
       __func__, p_cb->nfcee_id, p_cb->ecb_flags, p_cb->ee_status,
@@ -257,8 +254,8 @@ void nfa_ee_proc_nfcc_power_mode(uint8_t nfcc_power_mode) {
   tNFA_EE_ECB* p_cb;
   bool proc_complete = true;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; nfcc_power_mode=%d", __func__, nfcc_power_mode);
+  LOG(DEBUG) << StringPrintf("%s; nfcc_power_mode=%d", __func__,
+                             nfcc_power_mode);
   /* if NFCC power state is change to full power */
   if (nfcc_power_mode == NFA_DM_PWR_MODE_FULL) {
     if (nfa_ee_max_ee_cfg) {
@@ -318,7 +315,7 @@ void nfa_ee_proc_hci_info_cback(void) {
   tNFA_EE_ECB* p_cb;
   tNFA_EE_MSG data;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
   /* if NFCC power state is change to full power */
   nfa_ee_cb.ee_flags &= ~NFA_EE_FLAG_WAIT_HCI;
 
@@ -399,8 +396,8 @@ void nfa_ee_proc_evt(tNFC_RESPONSE_EVT event, void* p_data) {
       break;
   }
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; event=0x%02x int_event:0x%x", __func__, event, int_event);
+  LOG(DEBUG) << StringPrintf("%s; event=0x%02x int_event:0x%x", __func__, event,
+                             int_event);
   if (int_event) {
     cbk.hdr.event = int_event;
     cbk.p_data = p_data;
@@ -443,8 +440,7 @@ uint8_t nfa_ee_ecb_to_mask(tNFA_EE_ECB* p_cb) {
 tNFA_EE_ECB* nfa_ee_find_ecb(uint8_t nfcee_id) {
   uint32_t xx;
   tNFA_EE_ECB *p_ret = nullptr, *p_cb;
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; nfcee_id=0x%02x", __func__, nfcee_id);
+  LOG(DEBUG) << StringPrintf("%s; nfcee_id=0x%02x", __func__, nfcee_id);
 
   if (nfcee_id == NFC_DH_ID) {
     p_ret = &nfa_ee_cb.ecb[NFA_EE_CB_4_DH];
@@ -463,6 +459,31 @@ tNFA_EE_ECB* nfa_ee_find_ecb(uint8_t nfcee_id) {
 
 /*******************************************************************************
 **
+** Function         nfa_ee_add_mep_ecb
+**
+** Description      Return the ecb associated with the given nfcee_id
+**
+** Returns          tNFA_EE_ECB
+**
+*******************************************************************************/
+tNFA_EE_ECB* nfa_ee_add_mep_ecb(uint8_t nfcee_id) {
+  tNFA_EE_ECB* p_cb;
+  p_cb = nfa_ee_cb.ecb;
+  if (nfa_ee_cb.cur_ee < NFA_EE_MAX_EE_SUPPORTED) {
+    /* the cb can collect up to NFA_EE_MAX_EE_SUPPORTED ee_info */
+    p_cb = &nfa_ee_cb.ecb[nfa_ee_cb.cur_ee++];
+  } else {
+    LOG(ERROR) << StringPrintf("%s; Too many EE", __func__);
+  }
+  p_cb->nfcee_id = nfcee_id;
+  p_cb->num_interface = 0;
+  p_cb->num_tlvs = 0;
+
+  return p_cb;
+}
+
+/*******************************************************************************
+**
 ** Function         nfa_ee_find_ecb_by_conn_id
 **
 ** Description      Return the ecb associated with the given connection id
@@ -473,7 +494,7 @@ tNFA_EE_ECB* nfa_ee_find_ecb(uint8_t nfcee_id) {
 tNFA_EE_ECB* nfa_ee_find_ecb_by_conn_id(uint8_t conn_id) {
   uint32_t xx;
   tNFA_EE_ECB *p_ret = nullptr, *p_cb;
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   p_cb = nfa_ee_cb.ecb;
   for (xx = 0; xx < nfa_ee_cb.cur_ee; xx++, p_cb++) {
@@ -501,7 +522,7 @@ void nfa_ee_sys_disable(void) {
   tNFA_EE_ECB* p_cb;
   tNFA_EE_MSG msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   nfa_ee_cb.em_state = NFA_EE_EM_STATE_DISABLED;
   /* report NFA_EE_DEREGISTER_EVT to all registered to EE */
@@ -700,7 +721,7 @@ static std::string nfa_ee_sm_evt_2_str(uint16_t event) {
 bool nfa_ee_evt_hdlr(NFC_HDR* p_msg) {
   bool act = false;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+  LOG(DEBUG) << StringPrintf(
       "%s; Event %s(0x%02x), State: %s(%d)", __func__,
       nfa_ee_sm_evt_2_str(p_msg->event).c_str(), p_msg->event,
       nfa_ee_sm_st_2_str(nfa_ee_cb.em_state).c_str(), nfa_ee_cb.em_state);
@@ -747,8 +768,7 @@ bool nfa_ee_evt_hdlr(NFC_HDR* p_msg) {
 **
 *******************************************************************************/
 void nfa_ee_clear_proto_info(uint8_t hci_id) {
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; hci_id = 0x%02X", __func__, hci_id);
+  LOG(DEBUG) << StringPrintf("%s; hci_id = 0x%02X", __func__, hci_id);
   tNFA_EE_ECB* p_ret = nullptr;
   int i, j;
   uint8_t nfceeId = 0xff;
@@ -768,7 +788,7 @@ void nfa_ee_clear_proto_info(uint8_t hci_id) {
               ((p_ret->la_protocol != 0) || (p_ret->lb_protocol != 0) ||
                (p_ret->lf_protocol != 0))) {
             nfceeId = nfa_ee_cb.ecb[i].nfcee_id;
-            DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+            LOG(DEBUG) << StringPrintf(
                 "%s; Found matching NFCEE ID 0x%02X "
                 "for hci_id "
                 "0x%02X",
@@ -784,7 +804,7 @@ void nfa_ee_clear_proto_info(uint8_t hci_id) {
     p_ret->lb_protocol = 0;
     p_ret->lf_protocol = 0;
   } else {
-    DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+    LOG(DEBUG) << StringPrintf(
         "%s; No matching entry found for hci_id "
         "0x%02X!!!",
         __func__, hci_id);

@@ -1,4 +1,5 @@
 package {
+    default_team: "trendy_team_fwk_nfc",
     // See: http://go/android-license-faq
     // A large-scale-change added 'default_applicable_licenses' to import
     // all of the 'license_kinds' from "system_nfc_license"
@@ -21,21 +22,25 @@ cc_library {
         "liblog",
         "libdl",
         "libz",
-        "libchrome",
         "libbase",
-        "libstatslog_nfc_st",
-
         // Treble configuration
         "libhidlbase",
         "libutils",
+        "libbinder_ndk",
+        "libstatssocket",
+        "server_configurable_flags",
+    ],
+    static_libs: [
         "android.hardware.nfc@1.0",
         "android.hardware.nfc@1.1",
         "android.hardware.nfc@1.2",
         // Add for AIDL
         "android.hardware.nfc-V1-ndk",
-        "libbinder_ndk",
+        "libstnfcutils",
+        "libstatslog_nfc_st",
+        "libnfc-nci_flags_st",
     ],
-    static_libs: [
+    export_static_lib_headers: [
         "libstnfcutils",
     ],
     cflags: [
@@ -46,14 +51,8 @@ cc_library {
         "-Wall",
         "-Werror",
         "-Wimplicit-fallthrough",
-        "-DDCHECK_ALWAYS_ON"
+        "-DDCHECK_ALWAYS_ON",
     ],
-    header_libs : [
-        "libutils_headers",
-    ],
-    static: {
-        cflags: ["-fvisibility=hidden"],
-    },
     local_include_dirs: [
         "include",
         "gki/ulinux",
@@ -68,18 +67,14 @@ cc_library {
         "nfc/include",
         "nfa/include",
     ],
-    export_static_lib_headers: [
-        "libstnfcutils",
-    ],
     srcs: [
         "nfa/ce/*.cc",
         "nfa/dm/*.cc",
         "nfa/ee/*.cc",
         "nfa/hci/*.cc",
-        "nfa/p2p/*.cc",
         "nfa/rw/*.cc",
         "nfa/sys/*.cc",
-        "nfc/llcp/*.cc",
+        "nfa/wlc/*.cc",
         "nfc/nci/*.cc",
         "nfc/ndef/*.cc",
         "nfc/nfc/*.cc",
@@ -88,17 +83,16 @@ cc_library {
         "gki/common/*.cc",
         "gki/ulinux/*.cc",
     ],
-    required: [
-        // Provide a default libnfc-nci.conf in /system/etc for devices that
-        // does not ship one in /product
-        "libnfc-nci.conf-default",
-    ],
     sanitize: {
         misc_undefined: ["bounds"],
         integer_overflow: true,
         scs: true,
     },
-
+    stl: "libc++_static",
+    apex_available: [
+        "//apex_available:platform",
+        "com.android.nfcservices",
+    ],
 }
 
 cc_library {
@@ -107,25 +101,24 @@ cc_library {
     generated_sources: ["statslog_nfc_st.cpp"],
     generated_headers: ["statslog_nfc_st.h"],
     export_generated_headers: ["statslog_nfc_st.h"],
-    system_ext_specific: true,    
+    system_ext_specific: true,
     shared_libs: [
-        "libcutils",
+        "libstatssocket",
     ],
     target: {
-        android: {
-            shared_libs: [
-                "libstatssocket",
-            ],
-        },
         host: {
             static_libs: [
-                "libstatssocket",
+                "libbase",
             ],
         },
         darwin: {
             enabled: false,
         },
     },
+    apex_available: [
+        "//apex_available:platform",
+        "com.android.nfcservices",
+    ],
 }
 
 genrule {

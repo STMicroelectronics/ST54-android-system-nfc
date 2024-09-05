@@ -36,6 +36,8 @@
 
 /* Generic Gates */
 #define NFA_HCI_CONNECTIVITY_GATE 0x41
+#define NFA_HCI_MEP1_CONNECTIVITY_GATE 0xf6
+#define NFA_HCI_MEP2_CONNECTIVITY_GATE 0xf7
 
 /* Proprietary Gates */
 #define NFA_HCI_PROP_GATE_FIRST 0xF0

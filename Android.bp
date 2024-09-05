@@ -15,4 +15,7 @@ license {
     ],
 }
 
-subdirs = ["src", "utils"]
+subdirs = [
+    "src",
+    "utils",
+]

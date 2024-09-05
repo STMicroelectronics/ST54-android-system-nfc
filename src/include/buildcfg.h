@@ -21,6 +21,7 @@
 #include <memory.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "data_types.h"
 
 #ifndef NFC_CONTORLLER_ID
@@ -30,11 +31,8 @@
 #define GKI_BUF1_MAX 0
 // 2 is in use
 #define GKI_BUF3_MAX 30
-// We define POOL_ID_3 for LLCP and POOL_ID_4 with larger buffers for extended
-// APDU
-#define GKI_BUF3_SIZE (2500)
-#define GKI_BUF4_SIZE (0xFFB0)
-#define GKI_BUF4_MAX 2
+#define GKI_BUF4_SIZE 2400
+#define GKI_BUF4_MAX 30
 #define GKI_BUF5_MAX 0
 #define GKI_BUF6_MAX 0
 #define GKI_BUF7_MAX 0
@@ -49,10 +47,7 @@
 #ifdef DYN_ALLOC
 #define GKI_NUM_FIXED_BUF_POOLS 0
 #else
-#define GKI_NUM_FIXED_BUF_POOLS 5
+#define GKI_NUM_FIXED_BUF_POOLS 4
 #endif
-#define GKI_MAX_BUF_SIZE GKI_BUF4_SIZE
-#define GKI_MAX_BUF_SIZE_POOL_ID GKI_POOL_ID_4
-#define GKI_DEF_BUFPOOL_PERM_MASK 0xffe0
 
 #endif

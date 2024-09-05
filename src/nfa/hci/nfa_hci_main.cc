@@ -21,8 +21,8 @@
  *  This is the main implementation file for the NFA HCI.
  *
  ******************************************************************************/
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
 #include <string.h>
 
 #include "nfa_dm_int.h"
@@ -34,8 +34,6 @@
 #include "nfa_nv_co.h"
 
 using android::base::StringPrintf;
-
-extern bool nfc_debug_enabled;
 
 /*****************************************************************************
 **  Global Variables
@@ -85,8 +83,7 @@ static const tNFA_SYS_REG nfa_hci_sys_reg = {
 **
 *******************************************************************************/
 void nfa_hci_ee_info_cback(tNFA_EE_DISC_STS status) {
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; Status: %d", __func__, status);
+  LOG(DEBUG) << StringPrintf("%s; Status: %d", __func__, status);
 
   switch (status) {
     case NFA_EE_DISC_STS_ON:
@@ -143,7 +140,7 @@ void nfa_hci_ee_info_cback(tNFA_EE_DISC_STS status) {
           /* Received DISC REQ Ntf while waiting for other Host in the network
            * to bootup after DH host bootup is complete */
           if ((nfa_hci_cb.num_ee_dis_req_ntf == (nfa_hci_cb.num_nfcee - 1)) &&
-              NFC_GetNCIVersion() != NCI_VERSION_2_0) {
+              NFC_GetNCIVersion() < NCI_VERSION_2_0) {
             /* Received expected number of EE DISC REQ Ntf(s) */
             nfa_sys_stop_timer(&nfa_hci_cb.timer);
             nfa_hci_cb.w4_hci_netwk_init = false;
@@ -189,7 +186,7 @@ void nfa_hci_ee_info_cback(tNFA_EE_DISC_STS status) {
 **
 *******************************************************************************/
 void nfa_hci_init(void) {
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   /* initialize control block */
   memset(&nfa_hci_cb, 0, sizeof(tNFA_HCI_CB));
@@ -242,9 +239,8 @@ bool nfa_hci_is_valid_cfg(void) {
                       &nfa_hci_cb.cfg.reg_app_names[yy][0],
                       strlen(nfa_hci_cb.cfg.reg_app_names[xx])))) {
           /* Two app cannot have the same name , NVRAM is corrupted */
-          DLOG_IF(INFO, nfc_debug_enabled)
-              << StringPrintf("%s; (%s)  Reusing: %u", __func__,
-                              &nfa_hci_cb.cfg.reg_app_names[xx][0], xx);
+          LOG(DEBUG) << StringPrintf("%s; (%s)  Reusing: %u", __func__,
+                                     &nfa_hci_cb.cfg.reg_app_names[xx][0], xx);
           return false;
         }
       }
@@ -270,17 +266,15 @@ bool nfa_hci_is_valid_cfg(void) {
         if ((nfa_hci_cb.cfg.dyn_gates[yy].gate_id != 0) &&
             (nfa_hci_cb.cfg.dyn_gates[xx].gate_id ==
              nfa_hci_cb.cfg.dyn_gates[yy].gate_id)) {
-          DLOG_IF(INFO, nfc_debug_enabled)
-              << StringPrintf("%s;  Reusing: %u", __func__,
-                              nfa_hci_cb.cfg.dyn_gates[xx].gate_id);
+          LOG(DEBUG) << StringPrintf("%s;  Reusing: %u", __func__,
+                                     nfa_hci_cb.cfg.dyn_gates[xx].gate_id);
           return false;
         }
       }
       if ((nfa_hci_cb.cfg.dyn_gates[xx].gate_owner & (~NFA_HANDLE_GROUP_HCI)) >=
           NFA_HCI_MAX_APP_CB) {
-        DLOG_IF(INFO, nfc_debug_enabled)
-            << StringPrintf("%s;  Invalid Gate owner: %u", __func__,
-                            nfa_hci_cb.cfg.dyn_gates[xx].gate_owner);
+        LOG(DEBUG) << StringPrintf("%s;  Invalid Gate owner: %u", __func__,
+                                   nfa_hci_cb.cfg.dyn_gates[xx].gate_owner);
         return false;
       }
       if (!((nfa_hci_cb.cfg.dyn_gates[xx].gate_id ==
@@ -294,9 +288,8 @@ bool nfa_hci_is_valid_cfg(void) {
           if (nfa_hci_cb.cfg.dyn_gates[xx].gate_owner == reg_app[zz]) break;
         }
         if (zz == app_count) {
-          DLOG_IF(INFO, nfc_debug_enabled)
-              << StringPrintf("%s;  Invalid Gate owner: %u", __func__,
-                              nfa_hci_cb.cfg.dyn_gates[xx].gate_owner);
+          LOG(DEBUG) << StringPrintf("%s;  Invalid Gate owner: %u", __func__,
+                                     nfa_hci_cb.cfg.dyn_gates[xx].gate_owner);
           return false;
         }
       }
@@ -361,9 +354,8 @@ bool nfa_hci_is_valid_cfg(void) {
         if ((nfa_hci_cb.cfg.dyn_pipes[yy].pipe_id != 0) &&
             (nfa_hci_cb.cfg.dyn_pipes[xx].pipe_id ==
              nfa_hci_cb.cfg.dyn_pipes[yy].pipe_id)) {
-          DLOG_IF(INFO, nfc_debug_enabled)
-              << StringPrintf("%s;  Reusing: %u", __func__,
-                              nfa_hci_cb.cfg.dyn_pipes[xx].pipe_id);
+          LOG(DEBUG) << StringPrintf("%s;  Reusing: %u", __func__,
+                                     nfa_hci_cb.cfg.dyn_pipes[xx].pipe_id);
           return false;
         }
       }
@@ -372,9 +364,8 @@ bool nfa_hci_is_valid_cfg(void) {
         if (nfa_hci_cb.cfg.dyn_pipes[xx].local_gate == valid_gate[zz]) break;
       }
       if (zz == gate_count) {
-        DLOG_IF(INFO, nfc_debug_enabled)
-            << StringPrintf("%s; Invalid Gate: %u", __func__,
-                            nfa_hci_cb.cfg.dyn_pipes[xx].local_gate);
+        LOG(DEBUG) << StringPrintf("%s; Invalid Gate: %u", __func__,
+                                   nfa_hci_cb.cfg.dyn_pipes[xx].local_gate);
         return false;
       }
     }
@@ -435,8 +426,8 @@ void nfa_hci_restore_default_config(uint8_t* p_session_id) {
 **
 *******************************************************************************/
 void nfa_hci_proc_nfcc_power_mode(uint8_t nfcc_power_mode) {
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; nfcc_power_mode=%d", __func__, nfcc_power_mode);
+  LOG(DEBUG) << StringPrintf("%s; nfcc_power_mode=%d", __func__,
+                             nfcc_power_mode);
 
   /* if NFCC power mode is change to full power */
   if (nfcc_power_mode == NFA_DM_PWR_MODE_FULL) {
@@ -515,8 +506,7 @@ void nfa_hci_dh_startup_complete(void) {
 void nfa_hci_startup_complete(tNFA_STATUS status) {
   tNFA_HCI_EVT_DATA evt_data;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; Status: %u", __func__, status);
+  LOG(DEBUG) << StringPrintf("%s; Status: %u", __func__, status);
 
   nfa_sys_stop_timer(&nfa_hci_cb.timer);
 
@@ -555,8 +545,7 @@ void nfa_hci_enable_one_nfcee(void) {
   uint8_t xx;
   uint8_t nfceeid = 0;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; %d", __func__, nfa_hci_cb.num_nfcee);
+  LOG(DEBUG) << StringPrintf("%s; %d", __func__, nfa_hci_cb.num_nfcee);
 
   for (xx = 0; xx < nfa_hci_cb.num_nfcee; xx++) {
     nfceeid = nfa_hci_cb.ee_info[xx].ee_handle & ~NFA_HANDLE_GROUP_EE;
@@ -595,7 +584,7 @@ void nfa_hci_startup(void) {
   uint8_t count = 0;
   bool found = false;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s", __func__);
+  LOG(DEBUG) << StringPrintf("%s", __func__);
 
   if (HCI_LOOPBACK_DEBUG == NFA_HCI_DEBUG_ON) {
     /* First step in initialization is to open the admin pipe */
@@ -605,7 +594,7 @@ void nfa_hci_startup(void) {
 
   /* We can only start up if NV Ram is read and EE discovery is complete */
   if (nfa_hci_cb.ee_disc_cmplt && (nfa_hci_cb.conn_id == 0)) {
-    if (NFC_GetNCIVersion() == NCI_VERSION_2_0) {
+    if (NFC_GetNCIVersion() >= NCI_VERSION_2_0) {
       NFC_SetStaticHciCback(nfa_hci_conn_cback);
     } else {
       NFA_EeGetInfo(&nfa_hci_cb.num_nfcee, nfa_hci_cb.ee_info);
@@ -657,7 +646,7 @@ void nfa_hci_startup(void) {
 **
 *******************************************************************************/
 static void nfa_hci_sys_enable(void) {
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
   nfa_ee_reg_cback_enable_done(&nfa_hci_ee_info_cback);
 
   nfa_sys_start_timer(&nfa_hci_cb.timer, NFA_HCI_RSP_TIMEOUT_EVT,
@@ -715,8 +704,8 @@ static void nfa_hci_conn_cback(uint8_t conn_id, tNFC_CONN_EVT event,
   char buff[MAX_BUFF_SIZE];
   int frag_idx = -1;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; State: %u - Cmd: 0x%04X", __func__, nfa_hci_cb.hci_state, event);
+  LOG(DEBUG) << StringPrintf("%s; State: %u - Cmd: 0x%04X", __func__,
+                             nfa_hci_cb.hci_state, event);
 
   if (event == NFC_CONN_CREATE_CEVT) {
     nfa_hci_cb.conn_id = conn_id;
@@ -745,7 +734,7 @@ static void nfa_hci_conn_cback(uint8_t conn_id, tNFC_CONN_EVT event,
   if ((event != NFC_DATA_CEVT) || (p_pkt == nullptr)) return;
 
   if (p_pkt->len == 0) {
-    DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+    LOG(DEBUG) << StringPrintf(
         "%s; "
         "Received HCI data packet length 0, exit ",
         __func__);
@@ -783,14 +772,14 @@ static void nfa_hci_conn_cback(uint8_t conn_id, tNFC_CONN_EVT event,
 
   int i;
   if (chaining_bit == NFA_HCI_MESSAGE_FRAGMENTATION) {
-    DLOG_IF(INFO, nfc_debug_enabled)
-        << StringPrintf("%s; chaining bit set on pipe 0x%02X ", __func__, pipe);
+    LOG(DEBUG) << StringPrintf("%s; chaining bit set on pipe 0x%02X ", __func__,
+                               pipe);
 
     // Check if frag on this pipe yet
     for (i = 0; i < nfa_hci_cb.frag_cnt; i++) {
       if (nfa_hci_cb.frag_info[i].pipe == pipe) {
-        DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-            "%s; found data stored for pipe at idx %d ", __func__, i);
+        LOG(DEBUG) << StringPrintf("%s; found data stored for pipe at idx %d ",
+                                   __func__, i);
 
         // frag ongoing on this pipe
         // Restore data
@@ -814,9 +803,9 @@ static void nfa_hci_conn_cback(uint8_t conn_id, tNFC_CONN_EVT event,
       nfa_hci_cb.assembling = false;
       frag_idx = nfa_hci_cb.frag_cnt;
 
-      DLOG_IF(INFO, nfc_debug_enabled)
-          << StringPrintf("%s; New pipe for fragmentation, store at idx %d ",
-                          __func__, frag_idx);
+      LOG(DEBUG) << StringPrintf(
+          "%s; New pipe for fragmentation, store at idx %d ", __func__,
+          frag_idx);
 
       if (nfa_hci_cb.frag_cnt < NFA_HCI_MAX_FRAG_INFO) {
         nfa_hci_cb.frag_cnt++;
@@ -843,8 +832,8 @@ static void nfa_hci_conn_cback(uint8_t conn_id, tNFC_CONN_EVT event,
       if (nfa_hci_cb.frag_info[i].pipe == pipe) {
         // last frag on this pipe
 
-        DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-            "%s; Last fragment for pipe at idx %d", __func__, i);
+        LOG(DEBUG) << StringPrintf("%s; Last fragment for pipe at idx %d",
+                                   __func__, i);
 
         // Restore data
         nfa_hci_cb.assembling = true;
@@ -913,7 +902,7 @@ static void nfa_hci_conn_cback(uint8_t conn_id, tNFC_CONN_EVT event,
 
   // Store data for frag cases
   if ((nfa_hci_cb.frag_cnt) && (frag_idx != -1)) {
-    DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+    LOG(DEBUG) << StringPrintf(
         "%s; Fragmentation still ongoing, ended processing for pipe at idx %d",
         __func__, frag_idx);
 
@@ -921,7 +910,7 @@ static void nfa_hci_conn_cback(uint8_t conn_id, tNFC_CONN_EVT event,
     if (nfa_hci_cb.assembling == false) {
       nfa_hci_cb.frag_cnt--;
 
-      DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+      LOG(DEBUG) << StringPrintf(
           "%s; Last fragment for pipe 0x%02X, remaining pipes using "
           "fragmentation: %d",
           __func__, pipe, nfa_hci_cb.frag_cnt);
@@ -932,8 +921,8 @@ static void nfa_hci_conn_cback(uint8_t conn_id, tNFC_CONN_EVT event,
       }
     } else {  // Still assembling
 
-      DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-          "%s; Still assembling on pipe 0x%02X", __func__, pipe);
+      LOG(DEBUG) << StringPrintf("%s; Still assembling on pipe 0x%02X",
+                                 __func__, pipe);
 
       // Store data
       nfa_hci_cb.frag_info[frag_idx].assembly_failed =
@@ -948,7 +937,7 @@ static void nfa_hci_conn_cback(uint8_t conn_id, tNFC_CONN_EVT event,
     }
   }
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+  LOG(DEBUG) << StringPrintf(
       "%s; Recvd data pipe:0x%x  %s  chain:%d  assmbl:%d  len:%d", __func__,
       (uint8_t)pipe,
       nfa_hciu_get_type_inst_names(pipe, nfa_hci_cb.type, nfa_hci_cb.inst, buff,
@@ -1060,9 +1049,8 @@ void nfa_hci_rsp_timeout() {
   tNFA_HCI_EVT_DATA evt_data;
   uint8_t delete_pipe;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; State: %u  Cmd: %u", __func__, nfa_hci_cb.hci_state,
-                      nfa_hci_cb.cmd_sent);
+  LOG(DEBUG) << StringPrintf("%s; State: %u  Cmd: %u", __func__,
+                             nfa_hci_cb.hci_state, nfa_hci_cb.cmd_sent);
 
   evt_data.status = NFA_STATUS_FAILED;
 
@@ -1209,8 +1197,8 @@ void nfa_hci_rsp_timeout() {
       break;
     case NFA_HCI_STATE_DISABLED:
     default:
-      DLOG_IF(INFO, nfc_debug_enabled)
-          << StringPrintf("%s; Timeout in DISABLED/ Invalid state", __func__);
+      LOG(DEBUG) << StringPrintf("%s; Timeout in DISABLED/ Invalid state",
+                                 __func__);
       break;
   }
   if (evt != 0) nfa_hciu_send_to_app(evt, &evt_data, nfa_hci_cb.app_in_use);
@@ -1275,7 +1263,7 @@ static void nfa_hci_assemble_msg(uint8_t* p_data, uint16_t data_len) {
 **
 *******************************************************************************/
 static bool nfa_hci_evt_hdlr(NFC_HDR* p_msg) {
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+  LOG(DEBUG) << StringPrintf(
       "%s; state: %s (%d) event: %s (0x%04x)", __func__,
       nfa_hciu_get_state_name(nfa_hci_cb.hci_state).c_str(),
       nfa_hci_cb.hci_state, nfa_hciu_get_event_name(p_msg->event).c_str(),

@@ -33,8 +33,8 @@ extern uint32_t ntohl(uint32_t n);
 extern uint8_t* ntoh6(uint8_t* p);
 
 #define nettohs(n) ((uint16_t)((((n) << 8) & 0xff00) | (((n) >> 8) & 0x00ff)))
-#define nettohl(n)                                        \
-  ((((n)&0x000000ff) << 24) | (((n) << 8) & 0x00ff0000) | \
+#define nettohl(n)                                          \
+  ((((n) & 0x000000ff) << 24) | (((n) << 8) & 0x00ff0000) | \
    (((n) >> 8) & 0x0000ff00) | (((n) >> 24) & 0x000000ff))
 #endif
 

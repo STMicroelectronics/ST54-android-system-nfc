@@ -15,9 +15,10 @@
  *  limitations under the License.
  *
  ******************************************************************************/
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
 #include <log/log.h>
+
 #include "gki_int.h"
 
 #if (GKI_NUM_TOTAL_BUF_POOLS > 16)
@@ -28,8 +29,6 @@
 static void gki_add_to_pool_list(uint8_t pool_id);
 static void gki_remove_from_pool_list(uint8_t pool_id);
 #endif /*  BTU_STACK_LITE_ENABLED == FALSE */
-
-extern bool nfc_debug_enabled;
 
 using android::base::StringPrintf;
 
@@ -283,12 +282,10 @@ void* GKI_getbuf(uint16_t size) {
 #endif
   p_hdr = (BUFFER_HDR_T*)GKI_os_malloc(total_sz);
   if (!p_hdr) {
-    LOG(ERROR) << StringPrintf("unable to allocate buffer!!!!!");
-#ifndef DYN_ALLOC
+    LOG(ERROR) << StringPrintf("%s; unable to allocate buffer!!!!!", __func__);
+    LOG(ERROR) << StringPrintf("%s; total_sz:%zu size:%d", __func__, total_sz,
+                               size);
     abort();
-#else
-    return (nullptr);
-#endif
   }
 
   memset(p_hdr, 0, total_sz);
@@ -310,9 +307,9 @@ void* GKI_getbuf(uint16_t size) {
   GKI_enable();
   // AOSP deviation: always logged in AOSP logcats
 #ifdef GKI_LEAKAGE_DEBUG
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s %p %d:%d", __func__, ((uint8_t*)p_hdr + BUFFER_HDR_SIZE), Q->cur_cnt,
-      Q->max_cnt);
+  LOG(DEBUG) << StringPrintf("%s %p %d:%d", __func__,
+                             ((uint8_t*)p_hdr + BUFFER_HDR_SIZE), Q->cur_cnt,
+                             Q->max_cnt);
 #endif
   UNUSED(gki_alloc_free_queue);
   return (void*)((uint8_t*)p_hdr + BUFFER_HDR_SIZE);
@@ -416,11 +413,6 @@ void* GKI_getpoolbuf(uint8_t pool_id) {
       size = GKI_BUF3_SIZE;
       break;
 
-    // Fragmented data
-    case GKI_POOL_ID_4:
-      size = GKI_BUF4_SIZE;
-      break;
-
     default:
       LOG(ERROR) << StringPrintf("Unknown pool ID: %d", pool_id);
 #ifndef DYN_ALLOC
@@ -520,9 +512,9 @@ void GKI_freebuf(void* p_buf) {
   if (Q->cur_cnt > 0) Q->cur_cnt--;
   GKI_enable();
 #ifdef GKI_LEAKAGE_DEBUG
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s %p %d:%d", __func__, ((uint8_t*)p_hdr + BUFFER_HDR_SIZE), Q->cur_cnt,
-      Q->max_cnt);
+  LOG(DEBUG) << StringPrintf("%s %p %d:%d", __func__,
+                             ((uint8_t*)p_hdr + BUFFER_HDR_SIZE), Q->cur_cnt,
+                             Q->max_cnt);
 #endif
 
   GKI_os_free(p_hdr);

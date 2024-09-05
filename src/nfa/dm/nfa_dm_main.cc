@@ -21,18 +21,16 @@
  *  This is the main implementation file for the NFA device manager.
  *
  ******************************************************************************/
-#include <string>
-
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
 #include <log/log.h>
+
+#include <string>
 
 #include "nfa_api.h"
 #include "nfa_dm_int.h"
 
 using android::base::StringPrintf;
-
-extern bool nfc_debug_enabled;
 
 /*****************************************************************************
 ** Constants and types
@@ -61,10 +59,7 @@ const tNFA_DM_ACTION nfa_dm_action[] = {
     nfa_dm_act_disable_polling,      /* NFA_DM_API_DISABLE_POLLING_EVT       */
     nfa_dm_act_enable_listening,     /* NFA_DM_API_ENABLE_LISTENING_EVT      */
     nfa_dm_act_disable_listening,    /* NFA_DM_API_DISABLE_LISTENING_EVT     */
-    nfa_dm_act_pause_p2p,            /* NFA_DM_API_PAUSE_P2P_EVT             */
-    nfa_dm_act_resume_p2p,           /* NFA_DM_API_RESUME_P2P_EVT            */
     nfa_dm_act_send_raw_frame,       /* NFA_DM_API_RAW_FRAME_EVT             */
-    nfa_dm_set_p2p_listen_tech,      /* NFA_DM_API_SET_P2P_LISTEN_TECH_EVT   */
     nfa_dm_act_start_rf_discovery,   /* NFA_DM_API_START_RF_DISCOVERY_EVT    */
     nfa_dm_act_stop_rf_discovery,    /* NFA_DM_API_STOP_RF_DISCOVERY_EVT     */
     nfa_dm_act_set_rf_disc_duration, /* NFA_DM_API_SET_RF_DISC_DURATION_EVT  */
@@ -79,7 +74,7 @@ const tNFA_DM_ACTION nfa_dm_action[] = {
     nfa_dm_act_disable_timeout,      /* NFA_DM_TIMEOUT_DISABLE_EVT           */
     nfa_dm_set_power_sub_state,      /* NFA_DM_API_SET_POWER_SUB_STATE_EVT   */
     nfa_dm_act_send_raw_vs,          /* NFA_DM_API_SEND_RAW_VS_EVT           */
-    nfa_dm_act_reg_restart,          /* NFA_DM_API_REG_RESTART_EVT           */
+    nfa_dm_act_change_discovery_tech /* NFA_DM_API_CHANGE_DISCOVERY_TECH_EVT */
 };
 
 /*****************************************************************************
@@ -96,7 +91,7 @@ static std::string nfa_dm_evt_2_str(uint16_t event);
 **
 *******************************************************************************/
 void nfa_dm_init(void) {
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
   memset(&nfa_dm_cb, 0, sizeof(tNFA_DM_CB));
   nfa_dm_cb.poll_disc_handle = NFA_HANDLE_INVALID;
   nfa_dm_cb.disc_cb.disc_duration = NFA_DM_DISC_DURATION_POLL;
@@ -121,9 +116,8 @@ bool nfa_dm_evt_hdlr(NFC_HDR* p_msg) {
   bool freebuf = true;
   uint16_t event = p_msg->event & 0x00ff;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; event: %s (0x%02x)", __func__,
-                      nfa_dm_evt_2_str(event).c_str(), event);
+  LOG(DEBUG) << StringPrintf("%s; event: %s (0x%02x)", __func__,
+                             nfa_dm_evt_2_str(event).c_str(), event);
 
   /* execute action functions */
   if (event < NFA_DM_NUM_ACTIONS) {
@@ -194,8 +188,7 @@ bool nfa_dm_is_protocol_supported(tNFC_PROTOCOL protocol, uint8_t sel_res) {
 **
 *******************************************************************************/
 bool nfa_dm_is_active(void) {
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; flags:0x%x", __func__, nfa_dm_cb.flags);
+  LOG(DEBUG) << StringPrintf("%s; flags:0x%x", __func__, nfa_dm_cb.flags);
   if ((nfa_dm_cb.flags & NFA_DM_FLAGS_DM_IS_ACTIVE) &&
       ((nfa_dm_cb.flags &
         (NFA_DM_FLAGS_ENABLE_EVT_PEND | NFA_DM_FLAGS_NFCC_IS_RESTORING |
@@ -245,8 +238,7 @@ tNFA_STATUS nfa_dm_check_set_config(uint8_t tlv_list_len, uint8_t* p_tlv_list,
       return NFA_STATUS_FAILED;
     }
 
-    DLOG_IF(INFO, nfc_debug_enabled)
-        << StringPrintf("%s; type:0x%x", __func__, type);
+    LOG(DEBUG) << StringPrintf("%s; type:0x%x", __func__, type);
 
     switch (type) {
       /*
@@ -318,6 +310,12 @@ tNFA_STATUS nfa_dm_check_set_config(uint8_t tlv_list_len, uint8_t* p_tlv_list,
         max_len = NCI_PARAM_LEN_LB_BIT_RATE;
         p_cur_len = &nfa_dm_cb.params.lb_bit_rate_len;
         break;
+
+      case NFC_PMID_RF_FIELD_INFO:
+        p_stored = nfa_dm_cb.params.rf_field_info;
+        max_len = NCI_PARAM_LEN_RF_FIELD_INFO;
+        p_cur_len = &nfa_dm_cb.params.rf_field_info_len;
+        break;
       case NFC_PMID_LB_H_INFO:
         p_stored = nfa_dm_cb.params.lb_h_info;
         max_len = NCI_MAX_ATTRIB_LEN;
@@ -345,15 +343,11 @@ tNFA_STATUS nfa_dm_check_set_config(uint8_t tlv_list_len, uint8_t* p_tlv_list,
         /*
         **  ISO-DEP and NFC-DEP Configuration
         */
+      case NFC_PMID_FWI:
+        p_stored = nfa_dm_cb.params.fwi;
+        max_len = NCI_PARAM_LEN_FWI;
+        break;
 
-      case NFC_PMID_LI_A_RATS_TB1:
-        p_stored = &nfa_dm_cb.params.li_a_rats_tb1[0];
-        max_len = NCI_PARAM_LEN_LI_A_RATS_TB1;
-        break;
-      case NFC_PMID_LI_A_RATS_TC1:
-        p_stored = nfa_dm_cb.params.li_a_rats_tc1;
-        max_len = NCI_PARAM_LEN_LI_A_RATS_TC1;
-        break;
       case NFC_PMID_WT:
         p_stored = nfa_dm_cb.params.wt;
         max_len = NCI_PARAM_LEN_WT;
@@ -500,14 +494,8 @@ static std::string nfa_dm_evt_2_str(uint16_t event) {
       return "NFA_DM_API_ENABLE_LISTENING_EVT";
     case NFA_DM_API_DISABLE_LISTENING_EVT:
       return "NFA_DM_API_DISABLE_LISTENING_EVT";
-    case NFA_DM_API_PAUSE_P2P_EVT:
-      return "NFA_DM_API_PAUSE_P2P_EVT";
-    case NFA_DM_API_RESUME_P2P_EVT:
-      return "NFA_DM_API_RESUME_P2P_EVT";
     case NFA_DM_API_RAW_FRAME_EVT:
       return "NFA_DM_API_RAW_FRAME_EVT";
-    case NFA_DM_API_SET_P2P_LISTEN_TECH_EVT:
-      return "NFA_DM_API_SET_P2P_LISTEN_TECH_EVT";
     case NFA_DM_API_START_RF_DISCOVERY_EVT:
       return "NFA_DM_API_START_RF_DISCOVERY_EVT";
     case NFA_DM_API_STOP_RF_DISCOVERY_EVT:

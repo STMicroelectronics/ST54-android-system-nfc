@@ -100,7 +100,6 @@ enum {
   /* Exclusive Type-3 tag operations */
   NFA_RW_OP_T3T_READ,
   NFA_RW_OP_T3T_WRITE,
-  NFA_RW_OP_T3T_POLLING,
   NFA_RW_OP_T3T_GET_SYSTEM_CODES,
 
   /* Exclusive ISO 15693 tag operations */
@@ -195,12 +194,6 @@ typedef struct {
   uint8_t* p_block_data;
 } tNFA_RW_OP_PARAMS_T3T_WRITE;
 
-/* NFA_RW_OP_T3T_POLLING params */
-typedef struct {
-  /* B2-5 of SENSF_REQ */
-  uint8_t* sensf_req_params;
-} tNFA_RW_OP_PARAMS_T3T_POLLING;
-
 /* NFA_RW_OP_I93_XXX params */
 typedef struct {
   bool uid_present;
@@ -243,7 +236,6 @@ typedef union {
   /* params for NFA_RW_OP_T3T_READ and NFA_RW_OP_T3T_WRITE */
   tNFA_RW_OP_PARAMS_T3T_READ t3t_read;
   tNFA_RW_OP_PARAMS_T3T_WRITE t3t_write;
-  tNFA_RW_OP_PARAMS_T3T_POLLING t3t_polling;
 
   /* params for NFA_RW_OP_PRESENCE_CHECK */
   tNFA_RW_PRES_CHK_OPTION option;

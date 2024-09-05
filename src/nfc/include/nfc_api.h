@@ -403,7 +403,7 @@ extern uint8_t NFC_GetNCIVersion();
 /* Type5Tag    - NFC-V/ISO15693*/
 #define NFC_PROTOCOL_T5T NFC_PROTOCOL_T5T_(NFC_GetNCIVersion())
 #define NFC_PROTOCOL_T5T_(x) \
-  (((x) == NCI_VERSION_2_0) ? NCI_PROTOCOL_T5T : NCI_PROTOCOL_15693)
+  (((x) >= NCI_VERSION_2_0) ? NCI_PROTOCOL_T5T : NCI_PROTOCOL_15693)
 #define NFC_PROTOCOL_CI NCI_PROTOCOL_CI
 /* Type 4A,4B  - NFC-A or NFC-B   */
 #define NFC_PROTOCOL_ISO_DEP NCI_PROTOCOL_ISO_DEP
@@ -419,18 +419,12 @@ typedef uint8_t tNFC_PROTOCOL;
 #define NFC_DISCOVERY_TYPE_POLL_A NCI_DISCOVERY_TYPE_POLL_A
 #define NFC_DISCOVERY_TYPE_POLL_B NCI_DISCOVERY_TYPE_POLL_B
 #define NFC_DISCOVERY_TYPE_POLL_F NCI_DISCOVERY_TYPE_POLL_F
-#define NFC_DISCOVERY_TYPE_POLL_A_ACTIVE NCI_DISCOVERY_TYPE_POLL_A_ACTIVE
-#define NFC_DISCOVERY_TYPE_POLL_F_ACTIVE NCI_DISCOVERY_TYPE_POLL_F_ACTIVE
-#define NFC_DISCOVERY_TYPE_POLL_ACTIVE NCI_DISCOVERY_TYPE_POLL_ACTIVE
 #define NFC_DISCOVERY_TYPE_POLL_V NCI_DISCOVERY_TYPE_POLL_V
 #define NFC_DISCOVERY_TYPE_POLL_B_PRIME NCI_DISCOVERY_TYPE_POLL_B_PRIME
 #define NFC_DISCOVERY_TYPE_POLL_KOVIO NCI_DISCOVERY_TYPE_POLL_KOVIO
 #define NFC_DISCOVERY_TYPE_LISTEN_A NCI_DISCOVERY_TYPE_LISTEN_A
 #define NFC_DISCOVERY_TYPE_LISTEN_B NCI_DISCOVERY_TYPE_LISTEN_B
 #define NFC_DISCOVERY_TYPE_LISTEN_F NCI_DISCOVERY_TYPE_LISTEN_F
-#define NFC_DISCOVERY_TYPE_LISTEN_A_ACTIVE NCI_DISCOVERY_TYPE_LISTEN_A_ACTIVE
-#define NFC_DISCOVERY_TYPE_LISTEN_F_ACTIVE NCI_DISCOVERY_TYPE_LISTEN_F_ACTIVE
-#define NFC_DISCOVERY_TYPE_LISTEN_ACTIVE NCI_DISCOVERY_TYPE_LISTEN_ACTIVE
 #define NFC_DISCOVERY_TYPE_LISTEN_ISO15693 NCI_DISCOVERY_TYPE_LISTEN_ISO15693
 #define NFC_DISCOVERY_TYPE_LISTEN_B_PRIME NCI_DISCOVERY_TYPE_LISTEN_B_PRIME
 typedef uint8_t tNFC_DISCOVERY_TYPE;
@@ -577,8 +571,6 @@ typedef uint8_t tNFC_VS_EVT;
 typedef void(tNFC_VS_CBACK)(tNFC_VS_EVT event, uint16_t data_len,
                             uint8_t* p_data);
 
-typedef void(tNFC_RESTART_CBACK)();
-
 /* the events reported on tNFC_DISCOVER_CBACK */
 enum {
   NFC_START_DEVT = NFC_FIRST_DEVT, /* Status of NFC_DiscoveryStart     */
@@ -588,8 +580,10 @@ enum {
   NFC_ACTIVATE_DEVT,               /* RF interface is activated        */
   NFC_DEACTIVATE_DEVT              /* Status of RF deactivation        */
   ,
-  NFC_INTF_ACTIVATED_DEVT /* send the raw data of RF_INTF_ACTIVATED_NTF to
+  NFC_INTF_ACTIVATED_DEVT, /* send the raw data of RF_INTF_ACTIVATED_NTF to
                              wallet */
+  NFC_WPT_START_DEVT,      /* Status of NFC_StartPowerTransfert*/
+  NFC_WPT_RESULT_DEVT,     /* Wireless Power Transfert ended   */
 };
 typedef uint16_t tNFC_DISCOVER_EVT;
 
@@ -604,6 +598,7 @@ typedef struct {
                             13) Available after Technology Detection */
   uint8_t sensb_res[NFC_MAX_SENSB_RES_LEN]; /* SENSB_RES Response (ATQ) */
   uint8_t nfcid0[NFC_NFCID0_MAX_LEN];
+  uint8_t fwi;
 } tNFC_RF_PB_PARAMS;
 
 #define NFC_MAX_SENSF_RES_LEN NCI_MAX_SENSF_RES_LEN
@@ -678,7 +673,6 @@ typedef struct {
   uint8_t ats_res[NFC_MAX_ATS_LEN]; /* ATS RES                          */
   bool nad_used;                    /* NAD is used or not               */
   uint8_t fwi;                      /* Frame Waiting time Integer       */
-  uint8_t li_a_rats_tb1;            /* RATS response interface TB1      */
   uint8_t sfgi;                     /* Start-up Frame Guard time Integer*/
   uint8_t his_byte_len;             /* len of historical bytes          */
   uint8_t his_byte[NFC_MAX_HIS_BYTES_LEN]; /* historical bytes             */
@@ -786,6 +780,7 @@ typedef union {
   tNFC_DEACTIVATE_DEVT deactivate;
   tNFC_INTF_ACTIVATED_DEVT
       intf_activated; /* send the raw data of RF_INTF_ACTIVATED_NTF to wallet */
+  uint8_t wpt_result;
 } tNFC_DISCOVER;
 
 typedef struct {
@@ -1037,7 +1032,7 @@ extern tNFC_STATUS NFC_DiscoveryStart(uint8_t num_params,
 **                  reported by tNFC_DISCOVER_CBACK as NFC_SELECT_DEVT.
 **
 ** Parameters       rf_disc_id - The ID identifies the remote device.
-**                  protocol - the logical endpoint on the remote devide
+**                  protocol - the logical endpoint on the remote device
 **                  rf_interface - the RF interface to communicate with NFCC
 **
 ** Returns          tNFC_STATUS
@@ -1045,6 +1040,24 @@ extern tNFC_STATUS NFC_DiscoveryStart(uint8_t num_params,
 *******************************************************************************/
 extern tNFC_STATUS NFC_DiscoverySelect(uint8_t rf_disc_id, uint8_t protocol,
                                        uint8_t rf_interface);
+
+/*******************************************************************************
+**
+** Function         NFC_StartPowerTransfert
+**
+** Description      If tNFC_DISCOVER_CBACK reports status=NFC_MULTIPLE_PROT,
+**                  the application needs to use this function to select the
+**                  the logical endpoint to continue. The response from NFCC is
+**                  reported by tNFC_DISCOVER_CBACK as NFC_SELECT_DEVT.
+**
+** Parameters       rf_disc_id - The ID identifies the remote device.
+**                  protocol - the logical endpoint on the remote device
+**                  rf_interface - the RF interface to communicate with NFCC
+**
+** Returns          tNFC_STATUS
+**
+*******************************************************************************/
+extern tNFC_STATUS NFC_StartPowerTransfert(uint8_t* p_param, uint8_t param_len);
 
 /*******************************************************************************
 **
@@ -1276,29 +1289,6 @@ extern tNFC_STATUS NFC_SetForcedNfceeRouting(bool enable, uint8_t nfcee_id,
 *******************************************************************************/
 extern tNFC_STATUS NFC_RegVSCback(bool is_register, tNFC_VS_CBACK* p_cback);
 
-/*******************************************************************************
-**
-** Function         NFC_RegRestartCback
-**
-** Description      This function is called to register or de-register a
-**                  callback function to receive restart requests
-**
-** Returns          tNFC_STATUS
-**
-*******************************************************************************/
-extern void NFC_RegRestartCback(void* p_cback);
-
-/*******************************************************************************
-**
-** Function         NFC_RestartOrAbort
-**
-** Description      This function calls the above callback if exists, otherwise
-**                  aborts()
-**
-** Returns          tNFC_STATUS
-**
-*******************************************************************************/
-extern void NFC_RestartOrAbort();
 /*******************************************************************************
 **
 ** Function         NFC_SendVsCommand

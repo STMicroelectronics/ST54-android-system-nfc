@@ -21,30 +21,21 @@
  *  Entry point for NFC_TASK
  *
  ******************************************************************************/
-#include <string.h>
-
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
-
-#include "nfc_target.h"
+#include <string.h>
 
 #include "bt_types.h"
 #include "ce_int.h"
 #include "gki.h"
 #include "nci_hmsgs.h"
-#include "nfc_int.h"
-#include "rw_int.h"
-#if (NFC_RW_ONLY == FALSE)
-#include "llcp_int.h"
-#else
-#define llcp_cleanup()
-#endif
-
 #include "nfa_dm_int.h"
+#include "nfc_int.h"
+#include "nfc_target.h"
+#include "rw_int.h"
 
 using android::base::StringPrintf;
 
-extern bool nfc_debug_enabled;
 extern bool nfc_nci_reset_keep_cfg_enabled;
 extern uint8_t nfc_nci_reset_type;
 
@@ -135,10 +126,10 @@ void nfc_process_timer_evt(void) {
         break;
 
       default:
-        DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-            "%s; timer:0x%p event (0x%04x)", __func__, p_tle, p_tle->event);
-        DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-            "%s; unhandled timer event (0x%04x)", __func__, p_tle->event);
+        LOG(DEBUG) << StringPrintf("%s; timer:0x%p event (0x%04x)", __func__,
+                                   p_tle, p_tle->event);
+        LOG(DEBUG) << StringPrintf("%s; unhandled timer event (0x%04x)",
+                                   __func__, p_tle->event);
     }
   }
 
@@ -248,14 +239,6 @@ void nfc_process_quick_timer_evt(void) {
     GKI_remove_from_timer_list(&nfc_cb.quick_timer_queue, p_tle);
 
     switch (p_tle->event) {
-#if (NFC_RW_ONLY == FALSE)
-      case NFC_TTYPE_LLCP_LINK_MANAGER:
-      case NFC_TTYPE_LLCP_LINK_INACT:
-      case NFC_TTYPE_LLCP_DATA_LINK:
-      case NFC_TTYPE_LLCP_DELAY_FIRST_PDU:
-        llcp_process_timeout(p_tle);
-        break;
-#endif
       case NFC_TTYPE_RW_T1T_RESPONSE:
         rw_t1t_process_timeout(p_tle);
         break;
@@ -271,12 +254,6 @@ void nfc_process_quick_timer_evt(void) {
       case NFC_TTYPE_RW_I93_RESPONSE:
         rw_i93_process_timeout(p_tle);
         break;
-      case NFC_TTYPE_P2P_PRIO_RESPONSE:
-        nfa_dm_p2p_timer_event();
-        break;
-      case NFC_TTYPE_P2P_PRIO_LOGIC_CLEANUP:
-        nfa_dm_p2p_prio_logic_cleanup();
-        break;
       case NFC_TTYPE_RW_MFC_RESPONSE:
         rw_mfc_process_timeout(p_tle);
         break;
@@ -289,8 +266,8 @@ void nfc_process_quick_timer_evt(void) {
         break;
 #endif
       default:
-        DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-            "%s; unhandled timer event (0x%04x)", __func__, p_tle->event);
+        LOG(DEBUG) << StringPrintf("%s; unhandled timer event (0x%04x)",
+                                   __func__, p_tle->event);
         break;
     }
   }
@@ -335,9 +312,6 @@ void nfc_task_shutdown_nfcc(void) {
     nfc_set_state(NFC_STATE_W4_HAL_CLOSE);
     nfc_cb.p_hal->close();
 
-    /* Perform final clean up */
-    llcp_cleanup();
-
     /* Stop the timers */
     GKI_stop_timer(NFC_TIMER_ID);
     GKI_stop_timer(NFC_QUICK_TIMER_ID);
@@ -362,8 +336,7 @@ uint32_t nfc_task(__attribute__((unused)) uint32_t arg) {
   /* Initialize the nfc control block */
   memset(&nfc_cb, 0, sizeof(tNFC_CB));
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; NFC_TASK started", __func__);
+  LOG(DEBUG) << StringPrintf("%s; NFC_TASK started", __func__);
 
   /* main loop */
   while (true) {
@@ -373,8 +346,7 @@ uint32_t nfc_task(__attribute__((unused)) uint32_t arg) {
     }
     /* Handle NFC_TASK_EVT_TRANSPORT_READY from NFC HAL */
     if (event & NFC_TASK_EVT_TRANSPORT_READY) {
-      DLOG_IF(INFO, nfc_debug_enabled)
-          << StringPrintf("%s; NFC_TASK_EVT_TRANSPORT_READY", __func__);
+      LOG(DEBUG) << StringPrintf("%s; NFC_TASK_EVT_TRANSPORT_READY", __func__);
 
       /* Reset the NFC controller. */
       nfc_set_state(NFC_STATE_CORE_INIT);
@@ -429,9 +401,8 @@ uint32_t nfc_task(__attribute__((unused)) uint32_t arg) {
             break;
 
           default:
-            DLOG_IF(INFO, nfc_debug_enabled)
-                << StringPrintf("%s; unhandle mbox message, event=%04x",
-                                __func__, p_msg->event);
+            LOG(DEBUG) << StringPrintf("%s; unhandle mbox message, event=%04x",
+                                       __func__, p_msg->event);
             break;
         }
 
@@ -462,7 +433,7 @@ uint32_t nfc_task(__attribute__((unused)) uint32_t arg) {
     }
   }
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s; terminated", __func__);
+  LOG(DEBUG) << StringPrintf("%s; terminated", __func__);
 
   return 0;
 }

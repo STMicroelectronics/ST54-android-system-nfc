@@ -21,8 +21,8 @@
  *  This is the main implementation file for the NFA_CE
  *
  ******************************************************************************/
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
 
 #include <string>
 
@@ -30,8 +30,6 @@
 #include "nfa_ce_int.h"
 
 using android::base::StringPrintf;
-
-extern bool nfc_debug_enabled;
 
 /* NFA_CE control block */
 tNFA_CE_CB nfa_ce_cb;
@@ -73,7 +71,7 @@ static std::string nfa_ce_evt_2_str(uint16_t event);
 **
 *******************************************************************************/
 void nfa_ce_init(void) {
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   /* initialize control block */
   memset(&nfa_ce_cb, 0, sizeof(tNFA_CE_CB));
@@ -136,8 +134,8 @@ static void nfa_ce_proc_nfcc_power_mode(uint8_t nfcc_power_mode) {
   tNFA_CE_CB* p_cb = &nfa_ce_cb;
   uint8_t listen_info_idx;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; nfcc_power_mode=%d", __func__, nfcc_power_mode);
+  LOG(DEBUG) << StringPrintf("%s; nfcc_power_mode=%d", __func__,
+                             nfcc_power_mode);
 
   /* if NFCC power mode is change to full power */
   if (nfcc_power_mode == NFA_DM_PWR_MODE_FULL) {
@@ -173,9 +171,9 @@ bool nfa_ce_hdl_event(NFC_HDR* p_msg) {
   uint16_t act_idx;
   bool freebuf = true;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; event: %s (0x%02x), flags: %08x", __func__,
-      nfa_ce_evt_2_str(p_msg->event).c_str(), p_msg->event, nfa_ce_cb.flags);
+  LOG(DEBUG) << StringPrintf("%s; event: %s (0x%02x), flags: %08x", __func__,
+                             nfa_ce_evt_2_str(p_msg->event).c_str(),
+                             p_msg->event, nfa_ce_cb.flags);
 
   /* Get NFA_RW sub-event */
   act_idx = (p_msg->event & 0x00FF);

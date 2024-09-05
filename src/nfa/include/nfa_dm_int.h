@@ -46,10 +46,7 @@ enum {
   NFA_DM_API_DISABLE_POLLING_EVT,
   NFA_DM_API_ENABLE_LISTENING_EVT,
   NFA_DM_API_DISABLE_LISTENING_EVT,
-  NFA_DM_API_PAUSE_P2P_EVT,
-  NFA_DM_API_RESUME_P2P_EVT,
   NFA_DM_API_RAW_FRAME_EVT,
-  NFA_DM_API_SET_P2P_LISTEN_TECH_EVT,
   NFA_DM_API_START_RF_DISCOVERY_EVT,
   NFA_DM_API_STOP_RF_DISCOVERY_EVT,
   NFA_DM_API_SET_RF_DISC_DURATION_EVT,
@@ -64,7 +61,7 @@ enum {
   NFA_DM_TIMEOUT_DISABLE_EVT,
   NFA_DM_API_SET_POWER_SUB_STATE_EVT,
   NFA_DM_API_SEND_RAW_VS_EVT,
-  NFA_DM_API_REG_RESTART_EVT,
+  NFA_DM_API_CHANGE_DISCOVERY_TECH_EVT,
   NFA_DM_MAX_EVT
 };
 
@@ -111,11 +108,15 @@ typedef struct {
   tNFA_TECHNOLOGY_MASK poll_mask;
 } tNFA_DM_API_ENABLE_POLL;
 
-/* data type for NFA_DM_API_SET_P2P_LISTEN_TECH_EVT */
+/* data type for NFA_DM_API_CHANGE_DISCOVERY_TECH_EVT*/
 typedef struct {
   NFC_HDR hdr;
-  tNFA_TECHNOLOGY_MASK tech_mask;
-} tNFA_DM_API_SET_P2P_LISTEN_TECH;
+  bool is_revert_poll;
+  bool is_revert_listen;
+  bool change_default_tech;
+  tNFA_TECHNOLOGY_MASK change_listen_mask;
+  tNFA_TECHNOLOGY_MASK change_poll_mask;
+} tNFA_DM_API_CHANGE_DISCOVERY_TECH;
 
 /* data type for NFA_DM_API_SELECT_EVT */
 typedef struct {
@@ -175,11 +176,6 @@ typedef struct {
   bool is_register;
 } tNFA_DM_API_REG_VSC;
 
-typedef struct {
-  NFC_HDR hdr;
-  void* p_cback;
-} tNFA_DM_API_REG_RESTART;
-
 /* data type for NFA_DM_API_SEND_VSC_EVT */
 typedef struct {
   NFC_HDR hdr;
@@ -218,8 +214,6 @@ typedef union {
   tNFA_DM_API_REQ_EXCL_RF_CTRL
       req_excl_rf_ctrl; /* NFA_DM_API_REQUEST_EXCL_RF_CTRL      */
   tNFA_DM_API_ENABLE_POLL enable_poll; /* NFA_DM_API_ENABLE_POLLING_EVT */
-  tNFA_DM_API_SET_P2P_LISTEN_TECH
-      set_p2p_listen_tech;   /* NFA_DM_API_SET_P2P_LISTEN_TECH_EVT   */
   tNFA_DM_API_SELECT select; /* NFA_DM_API_SELECT_EVT                */
   tNFA_DM_API_UPDATE_RF_PARAMS
       update_rf_params;              /* NFA_DM_API_UPDATE_RF_PARAMS_EVT      */
@@ -228,7 +222,8 @@ typedef union {
   tNFA_DM_API_REG_VSC reg_vsc;       /* NFA_DM_API_REG_VSC_EVT               */
   /* NFA_DM_API_SET_POWER_SUB_STATE_EVT */
   tNFA_DM_API_SET_POWER_SUB_STATE set_power_state;
-  tNFA_DM_API_REG_RESTART reg_restart; /* NFA_DM_API_REG_RESTART_EVT */
+  /* NFA_DM_API_CHANGE_DISCOVERY_TECH_EVT */
+  tNFA_DM_API_CHANGE_DISCOVERY_TECH change_discovery_tech;
 } tNFA_DM_MSG;
 
 /* DM RF discovery state */
@@ -256,6 +251,8 @@ enum {
   NFA_DM_RF_DEACTIVATE_CMD,      /* deactivate RF interface               */
   NFA_DM_RF_DEACTIVATE_RSP,      /* deactivate response from NFCC         */
   NFA_DM_RF_DEACTIVATE_NTF,      /* deactivate RF interface NTF from NFCC */
+  NFA_DM_WPT_START_CMD,          /* start WPT phase                       */
+  NFA_DM_WPT_START_RSP,          /* start WPT response from NFCC          */
   NFA_DM_LP_LISTEN_CMD,          /* NFCC is listening in low power mode   */
   NFA_DM_CORE_INTF_ERROR_NTF,    /* RF interface error NTF from NFCC      */
   NFA_DM_DISC_SM_MAX_EVENT
@@ -269,10 +266,17 @@ typedef struct {
   tNFA_INTF_TYPE rf_interface;
 } tNFA_DM_DISC_SELECT_PARAMS;
 
+/* DM WPT data */
+typedef struct {
+  uint8_t power_adj_req;
+  uint8_t wpt_time_int;
+} tNFA_DM_DISC_WPT_START_PARAMS;
+
 typedef union {
-  tNFC_DISCOVER nfc_discover;        /* discovery data from NFCC    */
-  tNFC_DEACT_TYPE deactivate_type;   /* deactivation type           */
-  tNFA_DM_DISC_SELECT_PARAMS select; /* selected target information */
+  tNFC_DISCOVER nfc_discover;              /* discovery data from NFCC    */
+  tNFC_DEACT_TYPE deactivate_type;         /* deactivation type           */
+  tNFA_DM_DISC_SELECT_PARAMS select;       /* selected target information */
+  tNFA_DM_DISC_WPT_START_PARAMS start_wpt; /*  start power transfer */
 } tNFA_DM_RF_DISC_DATA;
 
 /* Callback event from NFA DM RF Discovery to other NFA sub-modules */
@@ -451,10 +455,20 @@ typedef struct {
 #define NFA_DM_FLAGS_RAW_FRAME 0x00000800
 /* NFA_DisableListening() is called and engaged                         */
 #define NFA_DM_FLAGS_LISTEN_DISABLED 0x00001000
-/* NFA_PauseP2p() is called and engaged                         */
-#define NFA_DM_FLAGS_P2P_PAUSED 0x00002000
 /* Power Off Sleep                                                      */
 #define NFA_DM_FLAGS_POWER_OFF_SLEEP 0x00008000
+
+/* Response to WLC RF Interface Extension start is not reported yet     */
+#define NFA_DM_FLAGS_ENABLE_WLCP_PEND 0x00010000
+/* WLCP RF Extension is started                                         */
+#define NFA_DM_FLAGS_RF_EXT_ACTIVE 0x00020000
+/* WLCP is ready to charge                                              */
+#define NFA_DM_FLAGS_WLCP_ENABLED 0x00040000
+
+/* NFA_ChangeDiscoveryTech() is called and engaged                      */
+#define NFA_DM_FLAGS_POLL_TECH_CHANGED 0x10000000
+#define NFA_DM_FLAGS_LISTEN_TECH_CHANGED 0x20000000
+#define NFA_DM_FLAGS_DEFAULT_TECH_CHANGED 0x40000000
 /* stored parameters */
 typedef struct {
   uint8_t total_duration[NCI_PARAM_LEN_TOTAL_DURATION];
@@ -492,8 +506,6 @@ typedef struct {
                    [NCI_PARAM_LEN_LF_T3T_ID(NCI_VERSION_2_0)];
 
   uint8_t fwi[NCI_PARAM_LEN_FWI];
-  uint8_t li_a_rats_tb1[NCI_PARAM_LEN_LI_A_RATS_TB1];
-  uint8_t li_a_rats_tc1[NCI_PARAM_LEN_LI_A_RATS_TC1];
   uint8_t wt[NCI_PARAM_LEN_WT];
   uint8_t atr_req_gen_bytes[NCI_MAX_GEN_BYTES_LEN];
   uint8_t atr_req_gen_bytes_len;
@@ -501,6 +513,8 @@ typedef struct {
   uint8_t atr_res_gen_bytes_len;
 
   uint8_t pf_rc[NCI_PARAM_LEN_PF_RC];
+  uint8_t rf_field_info[NCI_PARAM_LEN_RF_FIELD_INFO];
+  uint8_t rf_field_info_len;
 } tNFA_DM_PARAMS;
 
 /*
@@ -568,6 +582,9 @@ typedef struct {
   uint8_t pending_power_state; /* pending screen state change received in
                                   LISTEN_ACTIVE state which needs to be applied
                                   after current transaction is completed*/
+  /* ChangeDiscoveryTech management */
+  tNFA_TECHNOLOGY_MASK change_poll_mask;   /* changing poll tech mask */
+  tNFA_TECHNOLOGY_MASK change_listen_mask; /* changing listen tech mask */
 } tNFA_DM_CB;
 
 /* Internal function prototypes */
@@ -600,7 +617,6 @@ extern uint8_t* p_nfa_dm_gen_cfg;
 extern uint8_t nfa_ee_max_ee_cfg;
 extern tNCI_DISCOVER_MAPS* p_nfa_dm_interface_mapping;
 extern uint8_t nfa_dm_num_dm_interface_mapping;
-extern bool nfa_poll_bail_out_mode;
 
 void nfa_dm_poll_disc_cback_dta_wrapper(tNFA_DM_RF_DISC_EVT event,
                                         tNFC_DISCOVER* p_data);
@@ -610,12 +626,6 @@ extern unsigned char appl_dta_mode_flag;
 extern tNFA_DM_CB nfa_dm_cb;
 
 void nfa_dm_init(void);
-void nfa_p2p_init(void);
-#if (NFA_SNEP_INCLUDED == TRUE)
-void nfa_snep_init(bool is_dta_mode);
-#else
-#define nfa_snep_init(is_dta_mode)
-#endif
 
 #if (NFC_NFCEE_INCLUDED == TRUE)
 void nfa_ee_init(void);
@@ -636,10 +646,7 @@ bool nfa_dm_act_enable_polling(tNFA_DM_MSG* p_data);
 bool nfa_dm_act_disable_polling(tNFA_DM_MSG* p_data);
 bool nfa_dm_act_enable_listening(tNFA_DM_MSG* p_data);
 bool nfa_dm_act_disable_listening(tNFA_DM_MSG* p_data);
-bool nfa_dm_act_pause_p2p(tNFA_DM_MSG* p_data);
-bool nfa_dm_act_resume_p2p(tNFA_DM_MSG* p_data);
 bool nfa_dm_act_send_raw_frame(tNFA_DM_MSG* p_data);
-bool nfa_dm_set_p2p_listen_tech(tNFA_DM_MSG* p_data);
 bool nfa_dm_act_start_rf_discovery(tNFA_DM_MSG* p_data);
 bool nfa_dm_act_stop_rf_discovery(tNFA_DM_MSG* p_data);
 bool nfa_dm_act_set_rf_disc_duration(tNFA_DM_MSG* p_data);
@@ -651,7 +658,6 @@ bool nfa_dm_ndef_reg_hdlr(tNFA_DM_MSG* p_data);
 bool nfa_dm_ndef_dereg_hdlr(tNFA_DM_MSG* p_data);
 
 bool nfa_dm_act_reg_vsc(tNFA_DM_MSG* p_data);
-bool nfa_dm_act_reg_restart(tNFA_DM_MSG* p_data);
 bool nfa_dm_act_send_vsc(tNFA_DM_MSG* p_data);
 uint16_t nfa_dm_act_get_rf_disc_duration();
 bool nfa_dm_act_disable_timeout(tNFA_DM_MSG* p_data);
@@ -692,10 +698,12 @@ bool nfa_dm_is_active(void);
 tNFC_STATUS nfa_dm_disc_sleep_wakeup(void);
 tNFC_STATUS nfa_dm_disc_start_kovio_presence_check(void);
 bool nfa_dm_is_raw_frame_session(void);
-bool nfa_dm_is_p2p_paused(void);
 
-void nfa_dm_get_tech_route_block(uint8_t* listen_techmask, bool* enable);
 bool nfa_dm_get_nfc_secure();
+void nfa_dm_get_tech_route_block(uint8_t* listen_techmask, bool* enable);
+void nfa_dm_start_wireless_power_transfer(uint8_t power_adj_req,
+                                          uint8_t wpt_time_int);
+bool nfa_dm_act_change_discovery_tech(tNFA_DM_MSG* p_data);
 
 #if (NFC_NFCEE_INCLUDED == FALSE)
 #define nfa_ee_get_tech_route(ps, ha) \

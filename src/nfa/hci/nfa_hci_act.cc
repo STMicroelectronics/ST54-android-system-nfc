@@ -21,8 +21,8 @@
  *  This file contains the action functions for the NFA HCI.
  *
  ******************************************************************************/
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
 #include <log/log.h>
 #include <string.h>
 
@@ -33,8 +33,6 @@
 #include "nfa_hci_int.h"
 
 using android::base::StringPrintf;
-
-extern bool nfc_debug_enabled;
 
 /* Static local functions       */
 static void nfa_hci_api_register(tNFA_HCI_EVENT_DATA* p_evt_data);
@@ -240,8 +238,8 @@ static void nfa_hci_api_register(tNFA_HCI_EVENT_DATA* p_evt_data) {
     if ((nfa_hci_cb.cfg.reg_app_names[xx][0] != 0) &&
         !strncmp(p_app_name, &nfa_hci_cb.cfg.reg_app_names[xx][0],
                  strlen(p_app_name))) {
-      DLOG_IF(INFO, nfc_debug_enabled)
-          << StringPrintf("%s; (%s)  Reusing: %u", __func__, p_app_name, xx);
+      LOG(DEBUG) << StringPrintf("%s; (%s)  Reusing: %u", __func__, p_app_name,
+                                 xx);
       break;
     }
   }
@@ -266,8 +264,8 @@ static void nfa_hci_api_register(tNFA_HCI_EVENT_DATA* p_evt_data) {
         strlcpy(&nfa_hci_cb.cfg.reg_app_names[xx][0], p_app_name,
                 NFA_MAX_HCI_APP_NAME_LEN);
         nfa_hci_cb.nv_write_needed = true;
-        DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-            "%s; (%s)  Allocated: %u", __func__, p_app_name, xx);
+        LOG(DEBUG) << StringPrintf("%s; (%s)  Allocated: %u", __func__,
+                                   p_app_name, xx);
         break;
       }
     }
@@ -318,8 +316,8 @@ void nfa_hci_api_deregister(tNFA_HCI_EVENT_DATA* p_evt_data) {
           !strncmp(p_evt_data->app_info.app_name,
                    &nfa_hci_cb.cfg.reg_app_names[xx][0],
                    strlen(p_evt_data->app_info.app_name))) {
-        DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-            "%s; (%s) inx: %u", __func__, p_evt_data->app_info.app_name, xx);
+        LOG(DEBUG) << StringPrintf("%s; (%s) inx: %u", __func__,
+                                   p_evt_data->app_info.app_name, xx);
         break;
       }
     }
@@ -1353,7 +1351,7 @@ void nfa_hci_handle_admin_gate_rsp(uint8_t* p_data, uint8_t data_len) {
   uint8_t host_id = 0;
   uint32_t os_tick;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+  LOG(DEBUG) << StringPrintf(
       "%s; LastCmdSent: %s  App: 0x%04x  Gate: "
       "0x%02x  Pipe: 0x%02x",
       __func__, nfa_hciu_instr_2_str(nfa_hci_cb.cmd_sent).c_str(),
@@ -1387,7 +1385,7 @@ void nfa_hci_handle_admin_gate_rsp(uint8_t* p_data, uint8_t data_len) {
           if ((nfa_hci_cb.hci_state == NFA_HCI_STATE_STARTUP) ||
               (nfa_hci_cb.hci_state == NFA_HCI_STATE_RESTORE))
             nfa_hci_dh_startup_complete();
-          if (NFA_GetNCIVersion() == NCI_VERSION_2_0) {
+          if (NFA_GetNCIVersion() >= NCI_VERSION_2_0) {
             nfa_hci_cb.hci_state = NFA_HCI_STATE_WAIT_NETWK_ENABLE;
             nfa_hci_cb.w4_hci_netwk_init = false;
             nfa_hciu_send_get_param_cmd(NFA_HCI_ADMIN_PIPE,
@@ -1662,8 +1660,7 @@ void nfa_hci_handle_admin_gate_evt(uint8_t* p_data, uint8_t length) {
     return;
   }
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; HOT PLUG EVT event on ADMIN Pipe", __func__);
+  LOG(DEBUG) << StringPrintf("%s; HOT PLUG EVT event on ADMIN Pipe", __func__);
   nfa_hci_cb.num_hot_plug_evts++;
 
   if ((nfa_hci_cb.hci_state == NFA_HCI_STATE_WAIT_NETWK_ENABLE) ||
@@ -1740,6 +1737,9 @@ void nfa_hci_handle_dyn_pipe_pkt(uint8_t pipe_id, uint8_t* p_data,
     nfa_hci_handle_loopback_gate_pkt(p_data, data_len, p_pipe);
   } else if (p_pipe->local_gate == NFA_HCI_CONNECTIVITY_GATE) {
     nfa_hci_handle_connectivity_gate_pkt(p_data, data_len, p_pipe);
+  } else if ((p_pipe->local_gate == NFA_HCI_MEP1_CONNECTIVITY_GATE) ||
+             (p_pipe->local_gate == NFA_HCI_MEP2_CONNECTIVITY_GATE)) {
+    nfa_hci_handle_connectivity_gate_pkt(p_data, data_len, p_pipe);
   } else {
     p_gate = nfa_hciu_find_gate_by_gid(p_pipe->local_gate);
     if (p_gate == nullptr) {
@@ -1801,7 +1801,7 @@ static void nfa_hci_handle_identity_mgmt_gate_pkt(uint8_t* p_data,
           case NFA_HCI_VERSION_SW_INDEX:
             data[0] = (uint8_t)((NFA_HCI_VERSION_SW >> 16) & 0xFF);
             data[1] = (uint8_t)((NFA_HCI_VERSION_SW >> 8) & 0xFF);
-            data[2] = (uint8_t)((NFA_HCI_VERSION_SW)&0xFF);
+            data[2] = (uint8_t)((NFA_HCI_VERSION_SW) & 0xFF);
             rsp_len = 3;
             break;
 
@@ -1813,7 +1813,7 @@ static void nfa_hci_handle_identity_mgmt_gate_pkt(uint8_t* p_data,
           case NFA_HCI_VERSION_HW_INDEX:
             data[0] = (uint8_t)((NFA_HCI_VERSION_HW >> 16) & 0xFF);
             data[1] = (uint8_t)((NFA_HCI_VERSION_HW >> 8) & 0xFF);
-            data[2] = (uint8_t)((NFA_HCI_VERSION_HW)&0xFF);
+            data[2] = (uint8_t)((NFA_HCI_VERSION_HW) & 0xFF);
             rsp_len = 3;
             break;
 

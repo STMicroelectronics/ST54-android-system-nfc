@@ -27,6 +27,8 @@
 #include "nfa_api.h"
 #include "nfc_target.h"
 
+#define DEFAULT_PRESENCE_CHECK_RETRY_COUNT 3
+
 /*****************************************************************************
 **  Constants and data types
 *****************************************************************************/
@@ -475,25 +477,6 @@ extern tNFA_STATUS NFA_RwT3tWrite(uint8_t num_blocks,
 
 /*******************************************************************************
 **
-** Function         NFA_RawT3tPolling
-**
-** Description:
-**      Send a T3T_POLLING command to the activated Type 3 tag or to the tag to
-*activate.
-**
-**      When the poll operation has completed (or if an error occurs), the
-**      app will be notified with NFA_T3T_POLL_CMD_CPLT_EVT.
-**
-** Returns:
-**      NFA_STATUS_OK if successfully initiated
-**      NFA_STATUS_NOT_INITIALIZED: type 3 tag not activated
-**      NFA_STATUS_FAILED otherwise
-**
-*******************************************************************************/
-extern tNFA_STATUS NFA_RawT3tPolling(uint8_t* sensf_req_params);
-
-/*******************************************************************************
-**
 ** Function         NFA_RwI93Inventory
 **
 ** Description:
@@ -795,29 +778,5 @@ extern tNFA_STATUS NFA_RwI93GetMultiBlockSecurityStatus(
 **
 *******************************************************************************/
 extern tNFA_STATUS NFA_RwI93SetAddressingMode(bool mode);
-
-/*******************************************************************************
-**
-** Function         NFA_SetReconnectState
-**
-** Description:
-**      This function enable/disable p2p prio logic if re-connect is in progress
-**
-** Returns:
-**      void
-*******************************************************************************/
-extern void NFA_SetReconnectState(bool flag);
-
-/*******************************************************************************
-**
-** Function         NFA_SetMuteTech
-**
-** Description:
-**      Wallet control: mute specific tech on demand.
-**
-** Returns:
-**      void
-*******************************************************************************/
-extern void NFA_SetMuteTech(bool muteA, bool muteB, bool muteF);
 
 #endif /* NFA_RW_API_H */

@@ -22,6 +22,8 @@
  *  mode.
  *
  ******************************************************************************/
+#include <android-base/stringprintf.h>
+#include <android-base/logging.h>
 #include <string.h>
 #include "bt_types.h"
 #include "nfc_target.h"
@@ -32,8 +34,6 @@
 #include "rw_api.h"
 #include "rw_int.h"
 #include "tags_int.h"
-#include <android-base/stringprintf.h>
-#include <base/logging.h>
 
 /* main state */
 #define RW_CI_STATE_NOT_ACTIVATED \
@@ -56,7 +56,6 @@ static void rw_ci_data_cback(uint8_t conn_id, tNFC_CONN_EVT event,
 static void rw_ci_send_uid(void);
 
 using android::base::StringPrintf;
-extern bool nfc_debug_enabled;
 
 /*******************************************************************************
 **
@@ -68,9 +67,9 @@ extern bool nfc_debug_enabled;
 **
 *******************************************************************************/
 static bool rw_ci_send_to_lower(NFC_HDR* p_c_apdu) {
-  //#if (BT_TRACE_PROTOCOL == true)
-  //    DispRWT4Tags (p_c_apdu, false);
-  //#endif
+  // #if (BT_TRACE_PROTOCOL == true)
+  //     DispRWT4Tags (p_c_apdu, false);
+  // #endif
 
   if (NFC_SendData(NFC_RF_CONN_ID, p_c_apdu) != NFC_STATUS_OK) {
     LOG(ERROR) << StringPrintf("%s; NFC_SendData () failed", __func__);
@@ -97,7 +96,7 @@ static void rw_ci_handle_error(tNFC_STATUS status, uint8_t sw1, uint8_t sw2) {
   tRW_DATA rw_data;
   tRW_EVENT event = NFC_STATUS_OK;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+  LOG(DEBUG) << StringPrintf(
       "%s; status:0x%02X, sw1:0x%02X, sw2:0x%02X, "
       "state:0x%X",
       __func__, status, sw1, sw2, p_ci->state);
@@ -166,8 +165,7 @@ static void rw_ci_handle_error(tNFC_STATUS status, uint8_t sw1, uint8_t sw2) {
 **
 *******************************************************************************/
 void rw_ci_process_timeout(TIMER_LIST_ENT* p_tle) {
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; event=%d", __func__, p_tle->event);
+  LOG(DEBUG) << StringPrintf("%s; event=%d", __func__, p_tle->event);
 
   if (p_tle->event == NFC_TTYPE_RW_CI_RESPONSE) {
     rw_ci_handle_error(NFC_STATUS_TIMEOUT, 0, 0);
@@ -197,8 +195,7 @@ static void rw_ci_data_cback(__attribute__((unused)) uint8_t conn_id,
   uint8_t begin_state = p_ci->state;
 #endif
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; event = 0x%X", __func__, event);
+  LOG(DEBUG) << StringPrintf("%s; event = 0x%X", __func__, event);
 
   // Case data is fragmented, do not stop time until complete frame received
   if (event != NFC_DATA_START_CEVT) {
@@ -238,11 +235,10 @@ static void rw_ci_data_cback(__attribute__((unused)) uint8_t conn_id,
   }
 
 #if (BT_TRACE_VERBOSE == true)
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "RW CI state: <%s (%d)>", rw_ci_get_state_name(p_ci->state), p_ci->state);
+  LOG(DEBUG) << StringPrintf("RW CI state: <%s (%d)>",
+                             rw_ci_get_state_name(p_ci->state), p_ci->state);
 #else
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; RW CI state: %d", __func__, p_ci->state);
+  LOG(DEBUG) << StringPrintf("%s; RW CI state: %d", __func__, p_ci->state);
 #endif
 
   switch (p_ci->state) {
@@ -250,13 +246,13 @@ static void rw_ci_data_cback(__attribute__((unused)) uint8_t conn_id,
 /* Unexpected R-APDU, it should be raw frame response */
 /* forward to upper layer without parsing */
 #if (BT_TRACE_VERBOSE == true)
-      DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-          "%s; RW CI Raw Frame: Len [0x%X] Status [%s]", __func__,
-          p_r_apdu->len, NFC_GetStatusName(p_data->data.status));
+      LOG(DEBUG) << StringPrintf("%s; RW CI Raw Frame: Len [0x%X] Status [%s]",
+                                 __func__, p_r_apdu->len,
+                                 NFC_GetStatusName(p_data->data.status));
 #else
-      DLOG_IF(INFO, nfc_debug_enabled)
-          << StringPrintf("%s; RW CI Raw Frame: Len [0x%X] Status [0x%X]",
-                          __func__, p_r_apdu->len, p_data->data.status);
+      LOG(DEBUG) << StringPrintf(
+          "%s; RW CI Raw Frame: Len [0x%X] Status [0x%X]", __func__,
+          p_r_apdu->len, p_data->data.status);
 #endif
       if (rw_cb.p_cback) {
         rw_data.raw_frame.status = p_data->data.status;
@@ -313,9 +309,9 @@ static void rw_ci_data_cback(__attribute__((unused)) uint8_t conn_id,
 
 #if (BT_TRACE_VERBOSE == true)
   if (begin_state != p_ci->state) {
-    DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-        "%s; RW CI state changed:<%s> -> <%s>", __func__,
-        rw_ci_get_state_name(begin_state), rw_ci_get_state_name(p_ci->state));
+    LOG(DEBUG) << StringPrintf("%s; RW CI state changed:<%s> -> <%s>", __func__,
+                               rw_ci_get_state_name(begin_state),
+                               rw_ci_get_state_name(p_ci->state));
   }
 #endif
 }
@@ -332,7 +328,7 @@ static void rw_ci_data_cback(__attribute__((unused)) uint8_t conn_id,
 tNFC_STATUS rw_ci_select(void) {
   tRW_CI_CB* p_ci = &rw_cb.tcb.ci;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s", __func__);
+  LOG(DEBUG) << StringPrintf("%s", __func__);
 
   NFC_SetStaticRfCback(rw_ci_data_cback);
 
@@ -366,7 +362,7 @@ tNFC_STATUS RW_CiPresenceCheck(void) {
   NFC_HDR* p_data;
   uint8_t* p;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s ", __func__);
+  LOG(DEBUG) << StringPrintf("%s ", __func__);
 
   /* If RW_SelectTagType was not called (no conn_callback) return failure */
   if (!rw_cb.p_cback) {
@@ -416,7 +412,7 @@ tNFC_STATUS RW_CiSendAttrib(uint8_t* nfcid0) {
   NFC_HDR* p_c_apdu;
   uint8_t* p;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf("%s", __func__);
+  LOG(DEBUG) << StringPrintf("%s", __func__);
 
   p_c_apdu = (NFC_HDR*)GKI_getpoolbuf(NFC_RW_POOL_ID);
 
@@ -471,8 +467,8 @@ static void rw_ci_send_uid(void) {
   NFC_HDR* p_c_apdu;
   uint8_t* p;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-      "%s; ATTRIB_RES = %02X", __func__, rw_cb.tcb.ci.attrib_res[0]);
+  LOG(DEBUG) << StringPrintf("%s; ATTRIB_RES = %02X", __func__,
+                             rw_cb.tcb.ci.attrib_res[0]);
 
   p_c_apdu = (NFC_HDR*)GKI_getpoolbuf(NFC_RW_POOL_ID);
 

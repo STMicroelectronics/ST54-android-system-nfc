@@ -23,18 +23,15 @@
  *  (callback). On the transmit side, it manages the command transmission.
  *
  ******************************************************************************/
-#include <string.h>
-
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
-
-#include "nfc_target.h"
+#include <string.h>
 
 #include "gki.h"
 #include "nfc_int.h"
+#include "nfc_target.h"
 
 using android::base::StringPrintf;
-extern bool nfc_debug_enabled;
 
 /****************************************************************************
 ** Declarations
@@ -76,38 +73,6 @@ tNFC_STATUS NFC_RegVSCback(bool is_register, tNFC_VS_CBACK* p_cback) {
     }
   }
   return status;
-}
-
-/*******************************************************************************
-**
-** Function         NFC_RegRestartCback
-**
-** Description      This function is called to register or de-register a
-**                  callback function to receive restart requests
-**
-** Returns          tNFC_STATUS
-**
-*******************************************************************************/
-void NFC_RegRestartCback(void* p_cback) { nfc_cb.p_restart_cback = p_cback; }
-
-/*******************************************************************************
-**
-** Function         NFC_RestartOrAbort
-**
-** Description      This function triggers the call to the callback above
-**
-** Returns          tNFC_STATUS
-**
-*******************************************************************************/
-void NFC_RestartOrAbort() {
-  if (nfc_cb.p_restart_cback) {
-    LOG(ERROR) << StringPrintf("%s; Restart CB registered, calling", __func__);
-    (*(tNFC_RESTART_CBACK*)
-          nfc_cb.p_restart_cback)();  // callback to ask restart
-  } else {
-    LOG(ERROR) << StringPrintf("%s; No restart CB registered, abort", __func__);
-    abort();
-  }
 }
 
 /*******************************************************************************
@@ -192,8 +157,8 @@ tNFC_STATUS NFC_SendVsCommand(uint8_t oid, NFC_HDR* p_data,
 
   // Check if the cmd sent is a request for pipe information
   if ((*(pp + 1) == 0x03) && (*(pp + 2) != 0x00)) {
-    DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
-        "%s; Sending cmd to retrieve pipe information", __func__);
+    LOG(INFO) << StringPrintf("%s; Sending cmd to retrieve pipe information",
+                              __func__);
     nfc_cb.flag_vs_pipe_info = 1;
   } else {
     nfc_cb.flag_vs_pipe_info = 0;

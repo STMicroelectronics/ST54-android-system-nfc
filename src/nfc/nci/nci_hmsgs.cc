@@ -27,7 +27,7 @@
 #include <string.h>
 #include "nfc_target.h"
 #include <android-base/stringprintf.h>
-#include <base/logging.h>
+#include <android-base/logging.h>
 
 #include "include/debug_lmrt.h"
 #include "nci_defs.h"
@@ -36,7 +36,57 @@
 #include "nfc_target.h"
 
 using android::base::StringPrintf;
-extern bool nfc_debug_enabled;
+
+/*******************************************************************************
+**
+** Function         nci_snd_tlv_parameter_generic_cmd
+**
+** Description      compose and send RF Management RF TLV Parameter
+**                  generic command to command queue
+**
+** Returns          status
+**
+*******************************************************************************/
+static uint8_t nci_snd_tlv_parameter_generic_cmd(uint8_t oid,
+                                                 uint8_t* p_param_tlvs,
+                                                 uint8_t tlv_size) {
+  NFC_HDR* p;
+  uint8_t* pp;
+  uint8_t num = 0, ulen, len, *pt;
+
+  p = NCI_GET_CMD_BUF(tlv_size + 1);
+  if (p == nullptr) return (NCI_STATUS_FAILED);
+
+  p->event = BT_EVT_TO_NFC_NCI;
+  p->len = NCI_MSG_HDR_SIZE + tlv_size + 1;
+  p->offset = NCI_MSG_OFFSET_SIZE;
+  pp = (uint8_t*)(p + 1) + p->offset;
+
+  NCI_MSG_BLD_HDR0(pp, NCI_MT_CMD, NCI_GID_RF_MANAGE);
+  NCI_MSG_BLD_HDR1(pp, oid);
+  UINT8_TO_STREAM(pp, (uint8_t)(tlv_size + 1));
+  len = tlv_size;
+  pt = p_param_tlvs;
+  while (len > 1) {
+    len -= 2;
+    pt++;
+    num++;
+    ulen = *pt++;
+    pt += ulen;
+    if (len >= ulen) {
+      len -= ulen;
+    } else {
+      GKI_freebuf(p);
+      return NCI_STATUS_FAILED;
+    }
+  }
+
+  UINT8_TO_STREAM(pp, num);
+  ARRAY_TO_STREAM(pp, p_param_tlvs, tlv_size);
+  nfc_ncif_send_cmd(p);
+
+  return (NCI_STATUS_OK);
+}
 
 /*******************************************************************************
 **
@@ -94,9 +144,9 @@ uint8_t nci_snd_core_init(uint8_t nci_version) {
   NCI_MSG_BLD_HDR0(pp, NCI_MT_CMD, NCI_GID_CORE);
   NCI_MSG_BLD_HDR1(pp, NCI_MSG_CORE_INIT);
   UINT8_TO_STREAM(pp, NCI_CORE_PARAM_SIZE_INIT(nci_version));
-  if (nfc_cb.nci_version == NCI_VERSION_2_0) {
-    UINT8_TO_STREAM(pp, NCI2_0_CORE_INIT_CMD_BYTE_0);
-    UINT8_TO_STREAM(pp, NCI2_0_CORE_INIT_CMD_BYTE_1);
+  if (nfc_cb.nci_version >= NCI_VERSION_2_0) {
+    UINT8_TO_STREAM(pp, NCI2_X_CORE_INIT_CMD_BYTE_0);
+    UINT8_TO_STREAM(pp, NCI2_X_CORE_INIT_CMD_BYTE_1);
   }
 
   nfc_ncif_send_cmd(p);
@@ -164,8 +214,8 @@ uint8_t nci_snd_core_set_config(uint8_t* p_param_tlvs, uint8_t tlv_size) {
   pt = p_param_tlvs;
   while (len > 1) {
     len -= 2;
-    pt++;
-    num++;
+    ++pt;
+    ++num;
     ulen = *pt++;
     pt += ulen;
     if (len >= ulen) {
@@ -281,7 +331,7 @@ uint8_t nci_snd_nfcee_discover(uint8_t discover_action) {
   NCI_MSG_BLD_HDR0(pp, NCI_MT_CMD, NCI_GID_EE_MANAGE);
   NCI_MSG_BLD_HDR1(pp, NCI_MSG_NFCEE_DISCOVER);
   UINT8_TO_STREAM(pp, NCI_PARAM_SIZE_DISCOVER_NFCEE(NFC_GetNCIVersion()));
-  if (NFC_GetNCIVersion() != NCI_VERSION_2_0) {
+  if (NFC_GetNCIVersion() < NCI_VERSION_2_0) {
     UINT8_TO_STREAM(pp, discover_action);
   }
   nfc_ncif_send_cmd(p);
@@ -367,10 +417,10 @@ uint8_t nci_snd_discover_cmd(uint8_t num, tNCI_DISCOVER_PARAMS* p_param) {
   NFC_HDR* p;
   uint8_t *pp, *p_size, *p_start;
   int xx;
-  int size;
 
-  size = num * sizeof(tNCI_DISCOVER_PARAMS) + 1;
+  const int size [[maybe_unused]] = num * sizeof(tNCI_DISCOVER_PARAMS) + 1;
   p = NCI_GET_CMD_BUF(size);
+
   if (p == nullptr) return (NCI_STATUS_FAILED);
 
   p->event = BT_EVT_TO_NFC_NCI;
@@ -381,10 +431,10 @@ uint8_t nci_snd_discover_cmd(uint8_t num, tNCI_DISCOVER_PARAMS* p_param) {
   NCI_MSG_BLD_HDR0(pp, NCI_MT_CMD, NCI_GID_RF_MANAGE);
   NCI_MSG_BLD_HDR1(pp, NCI_MSG_RF_DISCOVER);
   p_size = pp;
-  pp++;
+  ++pp;
   p_start = pp;
   UINT8_TO_STREAM(pp, num);
-  for (xx = 0; xx < num; xx++) {
+  for (xx = 0; xx < num; ++xx) {
     UINT8_TO_STREAM(pp, p_param[xx].type);
     UINT8_TO_STREAM(pp, p_param[xx].frequency);
   }
@@ -432,6 +482,21 @@ uint8_t nci_snd_discover_select_cmd(uint8_t rf_disc_id, uint8_t protocol,
 
 /*******************************************************************************
 **
+** Function         nci_snd_rf_wpt_control_cmd
+**
+** Description      compose and send RF Management WPT_START command
+**                  to command queue
+**
+** Returns          status
+**
+*******************************************************************************/
+uint8_t nci_snd_rf_wpt_control_cmd(uint8_t* p_param_tlvs, uint8_t tlv_size) {
+  return nci_snd_tlv_parameter_generic_cmd(NCI_MSG_WPT_START, p_param_tlvs,
+                                           tlv_size);
+}
+
+/*******************************************************************************
+**
 ** Function         nci_snd_deactivate_cmd
 **
 ** Description      compose and send RF Management DEACTIVATE command
@@ -448,7 +513,7 @@ uint8_t nci_snd_deactivate_cmd(uint8_t de_act_type) {
       (nfc_cb.flags & NFC_FL_DEACTIVATING)) {
     nfc_stop_timer(&nfc_cb.deactivate_timer);
     nfc_cb.flags &= ~NFC_FL_DEACTIVATING;
-    DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+    LOG(INFO) << StringPrintf(
         "%s; Removing deactivate timer as polling was stopped separately",
         __func__);
   }
@@ -487,11 +552,11 @@ uint8_t nci_snd_discover_map_cmd(uint8_t num, tNCI_DISCOVER_MAPS* p_maps) {
   NFC_HDR* p;
   uint8_t *pp, *p_size, *p_start;
   int xx;
-  int size;
 
-  size = num * sizeof(tNCI_DISCOVER_MAPS) + 1;
+  const int size [[maybe_unused]] = num * sizeof(tNCI_DISCOVER_MAPS) + 1;
 
   p = NCI_GET_CMD_BUF(size);
+
   if (p == nullptr) return (NCI_STATUS_FAILED);
 
   p->event = BT_EVT_TO_NFC_NCI;
@@ -502,10 +567,10 @@ uint8_t nci_snd_discover_map_cmd(uint8_t num, tNCI_DISCOVER_MAPS* p_maps) {
   NCI_MSG_BLD_HDR0(pp, NCI_MT_CMD, NCI_GID_RF_MANAGE);
   NCI_MSG_BLD_HDR1(pp, NCI_MSG_RF_DISCOVER_MAP);
   p_size = pp;
-  pp++;
+  ++pp;
   p_start = pp;
   UINT8_TO_STREAM(pp, num);
-  for (xx = 0; xx < num; xx++) {
+  for (xx = 0; xx < num; ++xx) {
     UINT8_TO_STREAM(pp, p_maps[xx].protocol);
     UINT8_TO_STREAM(pp, p_maps[xx].mode);
     UINT8_TO_STREAM(pp, p_maps[xx].intf_type);
@@ -560,42 +625,8 @@ uint8_t nci_snd_t3t_polling(uint16_t system_code, uint8_t rc, uint8_t tsn) {
 **
 *******************************************************************************/
 uint8_t nci_snd_parameter_update_cmd(uint8_t* p_param_tlvs, uint8_t tlv_size) {
-  NFC_HDR* p;
-  uint8_t* pp;
-  uint8_t num = 0, ulen, len, *pt;
-
-  p = NCI_GET_CMD_BUF(tlv_size + 1);
-  if (p == nullptr) return (NCI_STATUS_FAILED);
-
-  p->event = BT_EVT_TO_NFC_NCI;
-  p->len = NCI_MSG_HDR_SIZE + tlv_size + 1;
-  p->offset = NCI_MSG_OFFSET_SIZE;
-  pp = (uint8_t*)(p + 1) + p->offset;
-
-  NCI_MSG_BLD_HDR0(pp, NCI_MT_CMD, NCI_GID_RF_MANAGE);
-  NCI_MSG_BLD_HDR1(pp, NCI_MSG_RF_PARAMETER_UPDATE);
-  UINT8_TO_STREAM(pp, (uint8_t)(tlv_size + 1));
-  len = tlv_size;
-  pt = p_param_tlvs;
-  while (len > 1) {
-    len -= 2;
-    pt++;
-    num++;
-    ulen = *pt++;
-    pt += ulen;
-    if (len >= ulen) {
-      len -= ulen;
-    } else {
-      GKI_freebuf(p);
-      return NCI_STATUS_FAILED;
-    }
-  }
-
-  UINT8_TO_STREAM(pp, num);
-  ARRAY_TO_STREAM(pp, p_param_tlvs, tlv_size);
-  nfc_ncif_send_cmd(p);
-
-  return (NCI_STATUS_OK);
+  return nci_snd_tlv_parameter_generic_cmd(NCI_MSG_RF_PARAMETER_UPDATE,
+                                           p_param_tlvs, tlv_size);
 }
 
 /*******************************************************************************
@@ -742,6 +773,39 @@ uint8_t nci_snd_get_routing_cmd(void) {
   NCI_MSG_BLD_HDR0(pp, NCI_MT_CMD, NCI_GID_RF_MANAGE);
   NCI_MSG_BLD_HDR1(pp, NCI_MSG_RF_GET_ROUTING);
   UINT8_TO_STREAM(pp, param_size);
+
+  nfc_ncif_send_cmd(p);
+  return (NCI_STATUS_OK);
+}
+
+/*******************************************************************************
+**
+** Function         nci_snd_android_get_caps_cmd
+**
+** Description      compose and send android GET_CAPS_COMMAND
+**                  command to command queue
+**
+** Returns          status
+**
+*******************************************************************************/
+uint8_t nci_snd_android_get_caps_cmd(void) {
+  NFC_HDR* p;
+  uint8_t* pp;
+  uint8_t param_size = 1;
+
+  p = NCI_GET_CMD_BUF(param_size);
+  if (p == nullptr) return (NCI_STATUS_FAILED);
+
+  p->event = BT_EVT_TO_NFC_NCI;
+  p->len = NCI_MSG_HDR_SIZE + param_size;
+  p->offset = NCI_MSG_OFFSET_SIZE;
+  p->layer_specific = 0;
+  pp = (uint8_t*)(p + 1) + p->offset;
+
+  NCI_MSG_BLD_HDR0(pp, NCI_MT_CMD, NCI_GID_PROP);
+  NCI_MSG_BLD_HDR1(pp, NCI_MSG_PROP_ANDROID);
+  UINT8_TO_STREAM(pp, param_size);
+  UINT8_TO_STREAM(pp, NCI_ANDROID_GET_CAPS);
 
   nfc_ncif_send_cmd(p);
   return (NCI_STATUS_OK);

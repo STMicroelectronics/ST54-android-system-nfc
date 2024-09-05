@@ -23,24 +23,20 @@
  *  (callback). On the transmit side, it manages the command transmission.
  *
  ******************************************************************************/
-#include <string.h>
-
+#include <android-base/logging.h>
 #include <android-base/stringprintf.h>
 #include <android/hardware/nfc/1.1/types.h>
-#include <base/logging.h>
-
-#include "nfc_target.h"
+#include <string.h>
 
 #include "bt_types.h"
 #include "ce_int.h"
 #include "gki.h"
 #include "nci_hmsgs.h"
 #include "nfc_int.h"
+#include "nfc_target.h"
 #include "rw_int.h"
 
 #if (NFC_RW_ONLY == FALSE)
-
-#include "llcp_int.h"
 
 /* NFC mandates support for at least one logical connection;
  * Update max_conn to the NFCC capability on InitRsp */
@@ -49,7 +45,6 @@
 
 #else /* NFC_RW_ONLY */
 #define ce_init()
-#define llcp_init()
 
 #define NFC_SET_MAX_CONN_DEFAULT()
 
@@ -58,13 +53,10 @@
 using android::base::StringPrintf;
 using android::hardware::nfc::V1_1::NfcEvent;
 
-extern bool nfc_debug_enabled;
-
 /****************************************************************************
 ** Declarations
 ****************************************************************************/
 tNFC_CB nfc_cb;
-
 #if (NFC_RW_ONLY == FALSE)
 #define NFC_NUM_INTERFACE_MAP 3
 #else
@@ -253,7 +245,7 @@ void nfc_enabled(tNFC_STATUS nfc_status, NFC_HDR* p_init_rsp_msg) {
     nfc_cb.nci_ctrl_size = *p++; /* Max Control Packet Payload Length */
     p_cb->init_credits = p_cb->num_buff = 0;
     nfc_set_conn_id(p_cb, NFC_RF_CONN_ID);
-    if (nfc_cb.nci_version == NCI_VERSION_2_0) {
+    if (nfc_cb.nci_version >= NCI_VERSION_2_0) {
       /* one byte is consumed in the top expression and
        * 3 bytes from uit16+uint8 below */
       lremain -= 4;
@@ -270,9 +262,8 @@ void nfc_enabled(tNFC_STATUS nfc_status, NFC_HDR* p_init_rsp_msg) {
         p_cb->init_credits = p_cb->num_buff;
         evt_data.enable.hci_packet_size = p_cb->buff_size;
         evt_data.enable.hci_conn_credits = p_cb->init_credits;
-        DLOG_IF(INFO, nfc_debug_enabled)
-            << StringPrintf("%s; hci num_buf=%d buf_size=%d", __func__,
-                            p_cb->num_buff, p_cb->buff_size);
+        LOG(DEBUG) << StringPrintf("%s; hci num_buf=%d buf_size=%d", __func__,
+                                   p_cb->num_buff, p_cb->buff_size);
       } else {
         /*HCI n/w not enabled skip data buff size and data credit HCI conn */
         p += 2;
@@ -362,10 +353,9 @@ void nfc_enabled(tNFC_STATUS nfc_status, NFC_HDR* p_init_rsp_msg) {
 **
 *******************************************************************************/
 void nfc_set_state(tNFC_STATE nfc_state) {
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; %d (%s)->%d (%s)", __func__, nfc_cb.nfc_state,
-                      nfc_state_name(nfc_cb.nfc_state).c_str(), nfc_state,
-                      nfc_state_name(nfc_state).c_str());
+  LOG(DEBUG) << StringPrintf("%s; %d (%s)->%d (%s)", __func__, nfc_cb.nfc_state,
+                             nfc_state_name(nfc_cb.nfc_state).c_str(),
+                             nfc_state, nfc_state_name(nfc_state).c_str());
   nfc_cb.nfc_state = nfc_state;
 }
 
@@ -415,8 +405,7 @@ void nfc_gen_cleanup(void) {
 void nfc_main_handle_hal_evt(tNFC_HAL_EVT_MSG* p_msg) {
   uint8_t* ps;
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; HAL event=0x%x", __func__, p_msg->hal_evt);
+  LOG(DEBUG) << StringPrintf("%s; HAL event=0x%x", __func__, p_msg->hal_evt);
 
   switch (p_msg->hal_evt) {
     case HAL_NFC_OPEN_CPLT_EVT: /* only for failure case */
@@ -552,7 +541,7 @@ void nfc_main_handle_hal_evt(tNFC_HAL_EVT_MSG* p_msg) {
 void nfc_main_flush_cmd_queue(void) {
   NFC_HDR* p_msg;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   /* initialize command window */
   nfc_cb.nci_cmd_window = NCI_MAX_CMD_WINDOW;
@@ -605,9 +594,8 @@ void nfc_main_post_hal_evt(uint8_t hal_evt, tHAL_NFC_STATUS status) {
 **
 *******************************************************************************/
 static void nfc_main_hal_cback(uint8_t event, tHAL_NFC_STATUS status) {
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; event: %s(0x%x), status=%d", __func__,
-                      nfc_hal_event_name(event).c_str(), event, status);
+  LOG(DEBUG) << StringPrintf("%s; event: %s(0x%x), status=%d", __func__,
+                             nfc_hal_event_name(event).c_str(), event, status);
 
   switch (event) {
     case HAL_NFC_OPEN_CPLT_EVT:
@@ -636,8 +624,7 @@ static void nfc_main_hal_cback(uint8_t event, tHAL_NFC_STATUS status) {
       break;
 
     default:
-      DLOG_IF(INFO, nfc_debug_enabled)
-          << StringPrintf("%s; unhandled event %x", __func__, event);
+      LOG(DEBUG) << StringPrintf("%s; unhandled event %x", __func__, event);
       break;
   }
 }
@@ -677,7 +664,7 @@ static void nfc_main_hal_data_cback(uint16_t data_len, uint8_t* p_data) {
         nfc_cb.fw_log_overflow = true;
         return;
       } else if ((used_ratio < 20) && (nfc_cb.fw_log_overflow)) {
-        DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+        LOG(DEBUG) << StringPrintf(
             "%s; Overflow ended, restart processing FW logs, process dummy "
             "overflow",
             __func__);
@@ -755,7 +742,7 @@ static void nfc_main_hal_data_cback(uint16_t data_len, uint8_t* p_data) {
 **
 *******************************************************************************/
 tNFC_STATUS NFC_Enable(tNFC_RESPONSE_CBACK* p_cback) {
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   /* Validate callback */
   if (!p_cback) {
@@ -786,8 +773,7 @@ tNFC_STATUS NFC_Enable(tNFC_RESPONSE_CBACK* p_cback) {
 **
 *******************************************************************************/
 void NFC_Disable(void) {
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; nfc_state = %d", __func__, nfc_cb.nfc_state);
+  LOG(DEBUG) << StringPrintf("%s; nfc_state = %d", __func__, nfc_cb.nfc_state);
 
   if ((nfc_cb.nfc_state == NFC_STATE_NONE) ||
       (nfc_cb.nfc_state == NFC_STATE_NFCC_POWER_OFF_SLEEP)) {
@@ -837,7 +823,6 @@ void NFC_Init(tHAL_NFC_ENTRY* p_hal_entry_tbl) {
   GKI_init_timer_list(&nfc_cb.quick_timer_queue);
   rw_init();
   ce_init();
-  llcp_init();
   NFC_SET_MAX_CONN_DEFAULT();
 }
 
@@ -920,9 +905,8 @@ tNFC_STATUS NFC_DiscoveryMap(uint8_t num, tNFC_DISCOVER_MAPS* p_maps,
 
   nfc_cb.p_discv_cback = p_cback;
   num_intf = 0;
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; nci_interfaces supported by NFCC: 0x%x", __func__,
-                      nfc_cb.nci_interfaces);
+  LOG(DEBUG) << StringPrintf("%s; nci_interfaces supported by NFCC: 0x%x",
+                             __func__, nfc_cb.nci_interfaces);
 
   for (xx = 0; xx < NFC_NFCC_MAX_NUM_VS_INTERFACE + NCI_INTERFACE_MAX; xx++) {
     memset(&max_maps[xx], 0x00, sizeof(tNFC_DISCOVER_MAPS));
@@ -935,15 +919,15 @@ tNFC_STATUS NFC_DiscoveryMap(uint8_t num, tNFC_DISCOVER_MAPS* p_maps,
         if (nfc_cb.vs_interface[yy] == p_maps[xx].intf_type)
           is_supported = true;
       }
-      DLOG_IF(INFO, nfc_debug_enabled)
-          << StringPrintf("%s; [%d]: vs intf_type:0x%x is_supported:%d",
-                          __func__, xx, p_maps[xx].intf_type, is_supported);
+      LOG(DEBUG) << StringPrintf("%s; [%d]: vs intf_type:0x%x is_supported:%d",
+                                 __func__, xx, p_maps[xx].intf_type,
+                                 is_supported);
     } else {
       intf_mask = (1 << (p_maps[xx].intf_type));
       if (intf_mask & nfc_cb.nci_interfaces) {
         is_supported = true;
       }
-      DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+      LOG(DEBUG) << StringPrintf(
           "%s; [%d]: intf_type:%d intf_mask: 0x%x is_supported:%d", __func__,
           xx, p_maps[xx].intf_type, intf_mask, is_supported);
     }
@@ -1002,8 +986,7 @@ tNFC_STATUS NFC_DiscoveryStart(uint8_t num_params,
     }
   }
 
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; status: 0x%x", __func__, status);
+  LOG(DEBUG) << StringPrintf("%s; status: 0x%x", __func__, status);
   return status;
 }
 
@@ -1017,7 +1000,7 @@ tNFC_STATUS NFC_DiscoveryStart(uint8_t num_params,
 **                  reported by tNFC_DISCOVER_CBACK as NFC_SELECT_DEVT.
 **
 ** Parameters       rf_disc_id - The ID identifies the remote device.
-**                  protocol - the logical endpoint on the remote devide
+**                  protocol - the logical endpoint on the remote device
 **                  rf_interface - the RF interface to communicate with NFCC
 **
 ** Returns          tNFC_STATUS
@@ -1026,6 +1009,26 @@ tNFC_STATUS NFC_DiscoveryStart(uint8_t num_params,
 tNFC_STATUS NFC_DiscoverySelect(uint8_t rf_disc_id, uint8_t protocol,
                                 uint8_t rf_interface) {
   return nci_snd_discover_select_cmd(rf_disc_id, protocol, rf_interface);
+}
+
+/*******************************************************************************
+**
+** Function         NFC_StartPowerTransfert
+**
+** Description      If tNFC_DISCOVER_CBACK reports status=NFC_MULTIPLE_PROT,
+**                  the application needs to use this function to select the
+**                  the logical endpoint to continue. The response from NFCC is
+**                  reported by tNFC_DISCOVER_CBACK as NFC_SELECT_DEVT.
+**
+** Parameters       rf_disc_id - The ID identifies the remote device.
+**                  protocol - the logical endpoint on the remote device
+**                  rf_interface - the RF interface to communicate with NFCC
+**
+** Returns          tNFC_STATUS
+**
+*******************************************************************************/
+tNFC_STATUS NFC_StartPowerTransfert(uint8_t* p_param, uint8_t param_len) {
+  return nci_snd_rf_wpt_control_cmd(p_param, param_len);
 }
 
 /*******************************************************************************
@@ -1221,7 +1224,7 @@ tNFC_STATUS NFC_Deactivate(tNFC_DEACT_TYPE deactivate_type) {
   tNFC_CONN_CB* p_cb = &nfc_cb.conn_cb[NFC_RF_CONN_ID];
   tNFC_STATUS status = NFC_STATUS_OK;
 
-  DLOG_IF(INFO, nfc_debug_enabled) << StringPrintf(
+  LOG(DEBUG) << StringPrintf(
       "%s; %d (%s) deactivate_type:%d", __func__, nfc_cb.nfc_state,
       nfc_state_name(nfc_cb.nfc_state).c_str(), deactivate_type);
 
@@ -1239,9 +1242,9 @@ tNFC_STATUS NFC_Deactivate(tNFC_DEACT_TYPE deactivate_type) {
 
   if (nfc_cb.nfc_state == NFC_STATE_OPEN) {
     nfc_set_state(NFC_STATE_CLOSING);
-    DLOG_IF(INFO, nfc_debug_enabled)
-        << StringPrintf("%s; act_protocol %d credits:%d/%d", __func__,
-                        p_cb->act_protocol, p_cb->init_credits, p_cb->num_buff);
+    LOG(DEBUG) << StringPrintf("%s; act_protocol %d credits:%d/%d", __func__,
+                               p_cb->act_protocol, p_cb->init_credits,
+                               p_cb->num_buff);
     if ((p_cb->act_protocol == NCI_PROTOCOL_NFC_DEP) && (p_cb->num_buff == 0)) {
       nfc_cb.flags |= NFC_FL_DEACTIVATING;
       nfc_cb.deactivate_timer.param = (uintptr_t)deactivate_type;
@@ -1340,8 +1343,7 @@ tNFC_STATUS NFC_UpdateRFCommParams(tNFC_RF_COMM_PARAMS* p_params) {
 **
 *******************************************************************************/
 tNFC_STATUS NFC_SetPowerOffSleep(bool enable) {
-  DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s; enable = %d", __func__, enable);
+  LOG(DEBUG) << StringPrintf("%s; enable = %d", __func__, enable);
 
   if ((enable == false) &&
       (nfc_cb.nfc_state == NFC_STATE_NFCC_POWER_OFF_SLEEP)) {
@@ -1375,7 +1377,7 @@ tNFC_STATUS NFC_SetPowerOffSleep(bool enable) {
 **
 *******************************************************************************/
 tNFC_STATUS NFC_PowerCycleNFCC(void) {
-  DLOG_IF(INFO, nfc_debug_enabled) << __func__;
+  LOG(DEBUG) << __func__;
 
   if (nfc_cb.nfc_state == NFC_STATE_IDLE) {
     /* power cycle NFCC */

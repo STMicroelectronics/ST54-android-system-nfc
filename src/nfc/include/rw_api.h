@@ -28,8 +28,8 @@
 #include "nfc_api.h"
 #include "tags_defs.h"
 
-#define RW_T1T_BLD_ADD(a, k, y) (a) = (((k)&0xF) << 3) | ((y)&0x7);
-#define RW_T1T_BLD_ADDS(a, s) (a) = (((s)&0xF) << 4);
+#define RW_T1T_BLD_ADD(a, k, y) (a) = (((k) & 0xF) << 3) | ((y) & 0x7);
+#define RW_T1T_BLD_ADDS(a, s) (a) = (((s) & 0xF) << 4);
 
 #define RW_T1T_FIRST_EVT 0x20
 #define RW_T2T_FIRST_EVT 0x40
@@ -1291,7 +1291,7 @@ extern tNFC_STATUS RW_I93ReadNDef(void);
 **                  NFC_STATUS_FAILED if I93 is busy or other error
 **
 *******************************************************************************/
-extern tNFC_STATUS RW_I93UpdateNDef(uint16_t length, uint8_t* p_data);
+extern tNFC_STATUS RW_I93UpdateNDef(uint32_t length, uint8_t* p_data);
 
 /*******************************************************************************
 **
@@ -1340,6 +1340,20 @@ extern tNFC_STATUS RW_I93SetTagReadOnly(void);
 **
 *****************************************************************************/
 extern tNFC_STATUS RW_I93PresenceCheck(void);
+
+/*****************************************************************************
+**
+** Function         RW_I93CheckLegacyProduct
+**
+** Description      Returns if the product is part of the legacy product list,
+**                  requiring (Extended)GetSystemInfo ISO commands to provide
+**                  memory information (number and size of blocks).
+**
+** Returns          true, if product is a legacy one
+**                  false, if full NFC forum T5T compliant
+**
+*****************************************************************************/
+extern bool RW_I93CheckLegacyProduct(uint8_t ic_manuf, uint8_t pdt_code);
 
 /*****************************************************************************
 **
