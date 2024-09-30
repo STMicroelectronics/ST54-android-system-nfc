@@ -60,13 +60,7 @@
 /* Already started      */
 #define NFA_STATUS_ALREADY_STARTED NCI_STATUS_ALREADY_STARTED
 
-/* RF transmission error*/
-#define NFA_STATUS_RF_TRANSMISSION_ERR NCI_STATUS_RF_TRANSMISSION_ERR
-/* Unexpected data    */
 #define NFA_STATUS_RF_UNEXPECTED_DATA NCI_STATUS_RF_UNEXPECTED_DATA
-
-/* Command started successfully */
-#define NFA_STATUS_CMD_STARTED NFC_STATUS_CMD_STARTED
 /* 7816 Status Word is not command complete(0x9000) */
 #define NFA_STATUS_CMD_NOT_CMPLTD NFC_STATUS_CMD_NOT_CMPLTD
 
@@ -154,7 +148,6 @@ typedef uint8_t tNFA_NFC_PROTOCOL;
 #define NFA_PROTOCOL_MASK_T2T 0x02     /* MIFARE / Type 2 tag */
 #define NFA_PROTOCOL_MASK_T3T 0x04     /* FeliCa / Type 3 tag */
 #define NFA_PROTOCOL_MASK_ISO_DEP 0x08 /* ISODEP/4A,4B        */
-#define NFA_PROTOCOL_MASK_NFC_DEP 0x10 /* NFCDEP/LLCP         */
 typedef uint8_t tNFA_PROTOCOL_MASK;
 
 /* NFA_DM callback events */
@@ -660,7 +653,6 @@ typedef tNFC_RF_COMM_PARAMS tNFA_RF_COMM_PARAMS;
 /* RF Interface type */
 #define NFA_INTERFACE_FRAME NFC_INTERFACE_FRAME
 #define NFA_INTERFACE_ISO_DEP NFC_INTERFACE_ISO_DEP
-#define NFA_INTERFACE_NFC_DEP NFC_INTERFACE_NFC_DEP
 #define NFA_INTERFACE_MIFARE NFC_INTERFACE_MIFARE
 typedef tNFC_INTF_TYPE tNFA_INTF_TYPE;
 

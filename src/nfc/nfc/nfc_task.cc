@@ -113,10 +113,6 @@ void nfc_process_timer_evt(void) {
       case NFC_TTYPE_NCI_WAIT_RSP:
         nfc_ncif_cmd_timeout();
         break;
-
-      case NFC_TTYPE_WAIT_2_DEACTIVATE:
-        nfc_wait_2_deactivate_timeout();
-        break;
       case NFC_TTYPE_WAIT_MODE_SET_NTF:
         nfc_mode_set_ntf_timeout();
         break;

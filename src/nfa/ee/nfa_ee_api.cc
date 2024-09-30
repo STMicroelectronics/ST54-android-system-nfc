@@ -117,7 +117,8 @@ tNFA_STATUS NFA_EeGetInfo(uint8_t* p_num_nfcee, tNFA_EE_INFO* p_info) {
 
   /* compose output */
   for (xx = 0; (xx < ret) && (num_ret < max_ret); xx++, p_cb++) {
-    if ((p_cb->ee_status & NFA_EE_STATUS_INT_MASK)) {
+    if ((p_cb->ee_status & NFA_EE_STATUS_INT_MASK) ||
+        (p_cb->ee_status & NFA_EE_STATUS_MEP_MASK)) {
       continue;
     }
     LOG(DEBUG) << StringPrintf(
@@ -1152,15 +1153,20 @@ tNFA_STATUS NFA_EeStopForceRouting() {
 ** Returns          NFA_STATUS_OK if successful
 **
 *******************************************************************************/
-tNFA_STATUS NFA_EeClearRoutingTable(bool clear_sc) {
+tNFA_STATUS NFA_EeClearRoutingTable(bool clear_tech, bool clear_proto,
+                                    bool clear_sc) {
   tNFA_EE_API_CLEAR_ROUTING_TABLE* p_msg;
   tNFA_STATUS status = NFA_STATUS_FAILED;
 
-  LOG(DEBUG) << StringPrintf("%s; clear_sc: %d", __func__, clear_sc);
+  LOG(DEBUG) << StringPrintf(
+      "%s; clear_tech: %d, clear_proto: %d, clear_sc: %d", __func__, clear_tech,
+      clear_proto, clear_sc);
 
   if ((p_msg = (tNFA_EE_API_CLEAR_ROUTING_TABLE*)GKI_getbuf(
            sizeof(tNFA_EE_API_CLEAR_ROUTING_TABLE))) != nullptr) {
     p_msg->hdr.event = NFA_EE_API_CLEAR_ROUTING_TABLE_EVT;
+    p_msg->clear_tech = clear_tech;
+    p_msg->clear_proto = clear_proto;
     p_msg->clear_sc = clear_sc;
     p_msg->p_cb = 0;
 

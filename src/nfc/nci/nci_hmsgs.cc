@@ -509,15 +509,6 @@ uint8_t nci_snd_deactivate_cmd(uint8_t de_act_type) {
   NFC_HDR* p;
   uint8_t* pp;
 
-  if ((de_act_type == NFC_DEACTIVATE_TYPE_IDLE) &&
-      (nfc_cb.flags & NFC_FL_DEACTIVATING)) {
-    nfc_stop_timer(&nfc_cb.deactivate_timer);
-    nfc_cb.flags &= ~NFC_FL_DEACTIVATING;
-    LOG(INFO) << StringPrintf(
-        "%s; Removing deactivate timer as polling was stopped separately",
-        __func__);
-  }
-
   nfc_cb.reassembly = true;
 
   p = NCI_GET_CMD_BUF(NCI_DISCOVER_PARAM_SIZE_DEACT);

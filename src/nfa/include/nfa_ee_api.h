@@ -660,7 +660,8 @@ extern tNFA_STATUS NFA_EeStopForceRouting();
 ** Returns          NFA_STATUS_OK if successful
 **
 *******************************************************************************/
-extern tNFA_STATUS NFA_EeClearRoutingTable(bool clear_sc);
+extern tNFA_STATUS NFA_EeClearRoutingTable(bool clear_tech, bool clear_proto,
+                                           bool clear_sc);
 
 /*******************************************************************************
 **

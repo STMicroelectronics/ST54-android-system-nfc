@@ -107,11 +107,10 @@ static void add_route_sys_code_tlv(uint8_t** p_buff, uint8_t* p_sys_code_cfg,
 
 const uint8_t nfa_ee_proto_mask_list[NFA_EE_NUM_PROTO] = {
     NFA_PROTOCOL_MASK_T1T, NFA_PROTOCOL_MASK_T2T, NFA_PROTOCOL_MASK_T3T,
-    NFA_PROTOCOL_MASK_ISO_DEP, NFA_PROTOCOL_MASK_NFC_DEP};
+    NFA_PROTOCOL_MASK_ISO_DEP};
 
 const uint8_t nfa_ee_proto_list[NFA_EE_NUM_PROTO] = {
-    NFC_PROTOCOL_T1T, NFC_PROTOCOL_T2T, NFC_PROTOCOL_T3T, NFC_PROTOCOL_ISO_DEP,
-    NFC_PROTOCOL_NFC_DEP};
+    NFC_PROTOCOL_T1T, NFC_PROTOCOL_T2T, NFC_PROTOCOL_T3T, NFC_PROTOCOL_ISO_DEP};
 
 uint8_t NFA_REMOVE_ALL_AID[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
@@ -422,9 +421,7 @@ static void nfa_ee_add_proto_route_to_ecb(tNFA_EE_ECB* p_cb, uint8_t* pp,
       power_cfg |= NCI_ROUTE_PWR_STATE_SWITCH_OFF;
     if (p_cb->proto_battery_off & nfa_ee_proto_mask_list[xx])
       power_cfg |= NCI_ROUTE_PWR_STATE_BATT_OFF;
-    if (power_cfg ||
-        (p_cb->nfcee_id == NFC_DH_ID &&
-         nfa_ee_proto_mask_list[xx] == NFA_PROTOCOL_MASK_NFC_DEP)) {
+    if (power_cfg) {
       /* Applying Route Block for ISO DEP Protocol, so that AIDs
        * which are not in the routing table can also be blocked */
       if (nfa_ee_proto_mask_list[xx] == NFA_PROTOCOL_MASK_ISO_DEP) {
@@ -447,41 +444,20 @@ static void nfa_ee_add_proto_route_to_ecb(tNFA_EE_ECB* p_cb, uint8_t* pp,
       } else {
         proto_tag = NFC_ROUTE_TAG_PROTO;
       }
-      if (p_cb->nfcee_id == NFC_DH_ID &&
-          nfa_ee_proto_mask_list[xx] == NFA_PROTOCOL_MASK_NFC_DEP) {
-        /* add NFC-DEP routing to HOST if NFC_DEP interface is supported */
-        if (nfc_cb.nci_interfaces & (1 << NCI_INTERFACE_NFC_DEP)) {
-          // Check for NFC-DEP
-          nfa_ee_check_set_routing(5, p_max_len, ps, p_cur_offset);
 
-          if (*ps == 0) {
-            num_tlv = 0;
-            pp = ps + 1 + *p_cur_offset;
-            p = pp;
-          }
-
-          add_route_tech_proto_tlv(
-              &pp, NFC_ROUTE_TAG_PROTO | nfa_ee_cb.route_block_control,
-              NFC_DH_ID, NCI_ROUTE_PWR_STATE_ON, NFC_PROTOCOL_NFC_DEP);
-
-          p_cb->size_dh_added_mask_proto += 5;
-        } else {
-          continue;
-        }
-      } else {
-        add_route_tech_proto_tlv(&pp, proto_tag, p_cb->nfcee_id, power_cfg,
-                                 nfa_ee_proto_list[xx]);
-      }
+      add_route_tech_proto_tlv(&pp, proto_tag, p_cb->nfcee_id, power_cfg,
+                               nfa_ee_proto_list[xx]);
       num_tlv++;
-      /* update the num_tlv and current offset */
-      uint8_t entry_size = (uint8_t)(pp - p);
-      *p_cur_offset += entry_size;
-      *ps = num_tlv;
-      p = pp;
+
       if (power_cfg != NCI_ROUTE_PWR_STATE_ON)
         nfa_ee_cb.ee_cfged |= NFA_EE_CFGED_OFF_ROUTING;
     }
   }
+
+  /* update the num_tlv and current offset */
+  uint8_t entry_size = (uint8_t)(pp - p);
+  *p_cur_offset += entry_size;
+  *ps = num_tlv;
 
   if ((p_cb->nfcee_id == NFC_DH_ID) && (isoDepRoutingDh == false)) {
     pp = ps + 1 + *p_cur_offset;
@@ -1065,18 +1041,12 @@ void nfa_ee_api_set_tech_cfg(tNFA_EE_MSG* p_data) {
   tNFA_TECHNOLOGY_MASK old_tech_screen_off_lock = p_cb->tech_screen_off_lock;
   uint8_t old_size_mask_tech = p_cb->size_mask_tech;
 
-  if (((p_cb->tech_switch_on & p_data->set_tech.technologies_switch_on) ==
-       p_data->set_tech.technologies_switch_on) &&
-      ((p_cb->tech_switch_off & p_data->set_tech.technologies_switch_off) ==
-       p_data->set_tech.technologies_switch_off) &&
-      ((p_cb->tech_battery_off & p_data->set_tech.technologies_battery_off) ==
-       p_data->set_tech.technologies_battery_off) &&
-      ((p_cb->tech_screen_lock & p_data->set_tech.technologies_screen_lock) ==
-       p_data->set_tech.technologies_screen_lock) &&
-      ((p_cb->tech_screen_off & p_data->set_tech.technologies_screen_off) ==
-       p_data->set_tech.technologies_screen_off) &&
-      ((p_cb->tech_screen_off_lock &
-        p_data->set_tech.technologies_screen_off_lock) ==
+  if ((p_cb->tech_switch_on == p_data->set_tech.technologies_switch_on) &&
+      (p_cb->tech_switch_off == p_data->set_tech.technologies_switch_off) &&
+      (p_cb->tech_battery_off == p_data->set_tech.technologies_battery_off) &&
+      (p_cb->tech_screen_lock == p_data->set_tech.technologies_screen_lock) &&
+      (p_cb->tech_screen_off == p_data->set_tech.technologies_screen_off) &&
+      (p_cb->tech_screen_off_lock ==
        p_data->set_tech.technologies_screen_off_lock)) {
     /* nothing to change */
     evt_data.status = NFA_STATUS_OK;
@@ -1185,18 +1155,12 @@ void nfa_ee_api_set_proto_cfg(tNFA_EE_MSG* p_data) {
   tNFA_PROTOCOL_MASK old_proto_screen_off_lock = p_cb->proto_screen_off_lock;
   uint8_t old_size_mask_proto = p_cb->size_mask_proto;
 
-  if (((p_cb->proto_switch_on & p_data->set_proto.protocols_switch_on) ==
-       p_data->set_proto.protocols_switch_on) &&
-      ((p_cb->proto_switch_off & p_data->set_proto.protocols_switch_off) ==
-       p_data->set_proto.protocols_switch_off) &&
-      ((p_cb->proto_battery_off & p_data->set_proto.protocols_battery_off) ==
-       p_data->set_proto.protocols_battery_off) &&
-      ((p_cb->proto_screen_lock & p_data->set_proto.protocols_screen_lock) ==
-       p_data->set_proto.protocols_screen_lock) &&
-      ((p_cb->proto_screen_off & p_data->set_proto.protocols_screen_off) ==
-       p_data->set_proto.protocols_screen_off) &&
-      ((p_cb->proto_screen_off_lock &
-        p_data->set_proto.protocols_screen_off_lock) ==
+  if ((p_cb->proto_switch_on == p_data->set_proto.protocols_switch_on) &&
+      (p_cb->proto_switch_off == p_data->set_proto.protocols_switch_off) &&
+      (p_cb->proto_battery_off == p_data->set_proto.protocols_battery_off) &&
+      (p_cb->proto_screen_lock == p_data->set_proto.protocols_screen_lock) &&
+      (p_cb->proto_screen_off == p_data->set_proto.protocols_screen_off) &&
+      (p_cb->proto_screen_off_lock ==
        p_data->set_proto.protocols_screen_off_lock)) {
     /* nothing to change */
     evt_data.status = NFA_STATUS_OK;
@@ -1886,46 +1850,50 @@ void nfa_ee_api_clear_routing_table(tNFA_EE_MSG* p_data) {
   /******************************************/
   /************* Clear All proto *************/
   /******************************************/
-  p_cb = nfa_ee_cb.ecb;
-  for (xx = 0; xx < NFA_EE_MAX_EE_SUPPORTED; xx++, p_cb++) {
-    p_cb->size_mask_proto = 0;
-    p_cb->proto_battery_off = 0;
-    p_cb->proto_screen_lock = 0;
-    p_cb->proto_screen_off = 0;
-    p_cb->proto_screen_off_lock = 0;
-    p_cb->proto_switch_off = 0;
-    p_cb->proto_switch_on = 0;
-  }
+  if (p_data->clear_routing_table.clear_proto == true) {
+    p_cb = nfa_ee_cb.ecb;
+    for (xx = 0; xx < NFA_EE_MAX_EE_SUPPORTED; xx++, p_cb++) {
+      p_cb->size_mask_proto = 0;
+      p_cb->proto_battery_off = 0;
+      p_cb->proto_screen_lock = 0;
+      p_cb->proto_screen_off = 0;
+      p_cb->proto_screen_off_lock = 0;
+      p_cb->proto_switch_off = 0;
+      p_cb->proto_switch_on = 0;
+    }
 
-  p_ecb->size_mask_proto = 0;
-  p_ecb->proto_battery_off = 0;
-  p_ecb->proto_screen_lock = 0;
-  p_ecb->proto_screen_off = 0;
-  p_ecb->proto_screen_off_lock = 0;
-  p_ecb->proto_switch_off = 0;
-  p_ecb->proto_switch_on = 0;
+    p_ecb->size_mask_proto = 0;
+    p_ecb->proto_battery_off = 0;
+    p_ecb->proto_screen_lock = 0;
+    p_ecb->proto_screen_off = 0;
+    p_ecb->proto_screen_off_lock = 0;
+    p_ecb->proto_switch_off = 0;
+    p_ecb->proto_switch_on = 0;
+  }
 
   /******************************************/
   /************* Clear All tech *************/
   /******************************************/
-  p_cb = nfa_ee_cb.ecb;
-  for (xx = 0; xx < NFA_EE_MAX_EE_SUPPORTED; xx++, p_cb++) {
-    p_cb->size_mask_tech = 0;
-    p_cb->tech_battery_off = 0;
-    p_cb->tech_screen_lock = 0;
-    p_cb->tech_screen_off = 0;
-    p_cb->tech_screen_off_lock = 0;
-    p_cb->tech_switch_off = 0;
-    p_cb->tech_switch_on = 0;
-  }
+  if (p_data->clear_routing_table.clear_tech == true) {
+    p_cb = nfa_ee_cb.ecb;
+    for (xx = 0; xx < NFA_EE_MAX_EE_SUPPORTED; xx++, p_cb++) {
+      p_cb->size_mask_tech = 0;
+      p_cb->tech_battery_off = 0;
+      p_cb->tech_screen_lock = 0;
+      p_cb->tech_screen_off = 0;
+      p_cb->tech_screen_off_lock = 0;
+      p_cb->tech_switch_off = 0;
+      p_cb->tech_switch_on = 0;
+    }
 
-  p_ecb->size_mask_tech = 0;
-  p_ecb->tech_battery_off = 0;
-  p_ecb->tech_screen_lock = 0;
-  p_ecb->tech_screen_off = 0;
-  p_ecb->tech_screen_off_lock = 0;
-  p_ecb->tech_switch_off = 0;
-  p_ecb->tech_switch_on = 0;
+    p_ecb->size_mask_tech = 0;
+    p_ecb->tech_battery_off = 0;
+    p_ecb->tech_screen_lock = 0;
+    p_ecb->tech_screen_off = 0;
+    p_ecb->tech_screen_off_lock = 0;
+    p_ecb->tech_switch_off = 0;
+    p_ecb->tech_switch_on = 0;
+  }
 
   /******************************************/
   /************* Clear All SC *************/
@@ -2321,8 +2289,8 @@ void nfa_ee_nci_disc_ntf(tNFA_EE_MSG* p_data) {
 *******************************************************************************/
 void nfa_ee_nci_nfcee_status_ntf(tNFA_EE_MSG* p_data) {
   tNFA_EE_ECB* p_cb;
-  tNFA_EE_STATUS_NTF status_ntf;
   tNFC_NFCEE_STATUS_REVT* p_rsp;
+  tNFA_EE_CBACK_DATA nfa_ee_cback_data;
 
   if (p_data == nullptr) {
     LOG(ERROR) << StringPrintf("%s; p_data is null", __func__);
@@ -2338,11 +2306,8 @@ void nfa_ee_nci_nfcee_status_ntf(tNFA_EE_MSG* p_data) {
     return;
   }
 
-  status_ntf.nfcee_id = p_rsp->nfcee_id;
-  status_ntf.status = p_rsp->nfcee_status;
-
-  tNFA_EE_CBACK_DATA nfa_ee_cback_data;
-  nfa_ee_cback_data.status_ntf = status_ntf;
+  nfa_ee_cback_data.status_ntf.nfcee_id = p_rsp->nfcee_id;
+  nfa_ee_cback_data.status_ntf.status = p_rsp->nfcee_status;
   nfa_ee_report_event(p_cb->p_ee_cback, NFA_EE_STATUS_NTF_EVT,
                       &nfa_ee_cback_data);
   if (p_data != nullptr) {
@@ -2565,15 +2530,15 @@ void nfa_ee_nci_mode_set_rsp(tNFA_EE_MSG* p_data) {
 void nfa_ee_nci_force_routing_rsp(tNFA_EE_MSG* p_data) {
   // tNFA_EE_ECB* p_cb;
   tNFC_NFCEE_FORCE_ROUTING_REVT* p_rsp = p_data->force_routing_rsp.p_data;
-  tNFA_EE_FORCE_ROUTING_RSP force_routing_rsp;
+  tNFA_EE_CBACK_DATA evt_data;
 
   LOG(DEBUG) << StringPrintf("%s; status:%d", __func__, p_rsp->status);
 
-  force_routing_rsp.status = p_rsp->status;
+  evt_data.force_routing_rsp.status = p_rsp->status;
 
-  nfa_ee_report_event(nullptr, NFA_EE_FORCE_ROUTING_EVT,
-                      (tNFA_EE_CBACK_DATA*)&force_routing_rsp);
+  nfa_ee_report_event(nullptr, NFA_EE_FORCE_ROUTING_EVT, &evt_data);
 }
+
 /*******************************************************************************
 **
 ** Function         nfa_ee_report_update_evt
@@ -2797,8 +2762,6 @@ void nfa_ee_nci_disc_req_ntf(tNFA_EE_MSG* p_data) {
           p_cb->la_protocol |= NFA_PROTOCOL_MASK_ISO_DEP;
         } else if (p_cbk->info[xx].protocol == NFA_PROTOCOL_MIFARE) {
           p_cb->la_protocol |= NFA_PROTOCOL_MASK_T2T;
-        } else if (p_cbk->info[xx].protocol == NFA_PROTOCOL_NFC_DEP) {
-          p_cb->la_protocol |= NFA_PROTOCOL_MASK_NFC_DEP;
         }
       } else if (p_cbk->info[xx].tech_n_mode == NFC_DISCOVERY_TYPE_LISTEN_B) {
         listen_cnt++;
@@ -2811,8 +2774,6 @@ void nfa_ee_nci_disc_req_ntf(tNFA_EE_MSG* p_data) {
 
         if (p_cbk->info[xx].protocol == NFA_PROTOCOL_T3T) {
           p_cb->lf_protocol |= NFA_PROTOCOL_MASK_T3T;
-        } else if (p_cbk->info[xx].protocol == NFA_PROTOCOL_NFC_DEP) {
-          p_cb->lf_protocol |= NFA_PROTOCOL_MASK_NFC_DEP;
         }
       } else if (p_cbk->info[xx].tech_n_mode ==
                  NFC_DISCOVERY_TYPE_LISTEN_B_PRIME) {
@@ -2836,8 +2797,6 @@ void nfa_ee_nci_disc_req_ntf(tNFA_EE_MSG* p_data) {
           p_cb->la_protocol &= ~NFA_PROTOCOL_MASK_ISO_DEP;
         } else if (p_cbk->info[xx].protocol == NFA_PROTOCOL_MIFARE) {
           p_cb->la_protocol &= ~NFA_PROTOCOL_MASK_T2T;
-        } else if (p_cbk->info[xx].protocol == NFA_PROTOCOL_NFC_DEP) {
-          p_cb->la_protocol &= ~NFA_PROTOCOL_MASK_NFC_DEP;
         }
       } else if (p_cbk->info[xx].tech_n_mode == NFC_DISCOVERY_TYPE_LISTEN_B) {
         listen_cnt++;
@@ -2850,8 +2809,6 @@ void nfa_ee_nci_disc_req_ntf(tNFA_EE_MSG* p_data) {
 
         if (p_cbk->info[xx].protocol == NFA_PROTOCOL_T3T) {
           p_cb->lf_protocol &= ~NFA_PROTOCOL_MASK_T3T;
-        } else if (p_cbk->info[xx].protocol == NFA_PROTOCOL_NFC_DEP) {
-          p_cb->lf_protocol &= ~NFA_PROTOCOL_MASK_NFC_DEP;
         }
       } else if (p_cbk->info[xx].tech_n_mode ==
                  NFC_DISCOVERY_TYPE_LISTEN_B_PRIME) {

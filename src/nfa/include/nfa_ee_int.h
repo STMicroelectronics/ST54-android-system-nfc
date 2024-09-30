@@ -378,6 +378,8 @@ typedef struct {
 typedef struct {
   NFC_HDR hdr;
   tNFA_EE_ECB* p_cb;
+  bool clear_tech;
+  bool clear_proto;
   bool clear_sc;
 } tNFA_EE_API_CLEAR_ROUTING_TABLE;
 

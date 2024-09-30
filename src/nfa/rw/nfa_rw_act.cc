@@ -2712,18 +2712,6 @@ static void nfa_rw_raw_mode_data_cback(__attribute__((unused)) uint8_t conn_id,
     }
   } else if (event == NFC_DEACTIVATE_CEVT) {
     NFC_SetStaticRfCback(nullptr);
-  } else {
-    if (event == NFC_DATA_CEVT)
-      LOG(DEBUG) << StringPrintf("%s; status = 0x%X", __func__,
-                                 p_data->data.status);
-    if (event == NFC_ERROR_CEVT &&
-        (nfa_dm_cb.flags & NFA_DM_FLAGS_EXCL_RF_ACTIVE) != 0) {
-      evt_data.data.p_data = (uint8_t*)NULL;
-      evt_data.data.len = 0;
-      evt_data.status = NFA_STATUS_CMD_NOT_CMPLTD;
-
-      nfa_dm_conn_cback_event_notify(NFA_DATA_EVT, &evt_data);
-    }
   }
 }
 

@@ -2895,7 +2895,6 @@ tNFC_STATUS RW_T3tPoll(uint16_t system_code, tT3T_POLL_RC rc, uint8_t tsn) {
   retval = (tNFC_STATUS)nci_snd_t3t_polling(system_code, (uint8_t)rc, tsn);
   if (retval == NCI_STATUS_OK) {
     /* start timer for waiting for responses */
-    p_cb->flags |= RW_T3T_FL_W4_USER_POLL_RSP;
     p_cb->cur_poll_rc = rc;
     p_cb->rw_state = RW_T3T_STATE_COMMAND_PENDING;
     p_cb->flags |= RW_T3T_FL_W4_USER_POLL_RSP;

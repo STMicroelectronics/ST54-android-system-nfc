@@ -485,7 +485,7 @@ void NfcAdaptation::Initialize() {
   initializeNciResetTypeFlag();
   initializeNfcMuteTechRouteOptionFlag();
 
-  LOG(INFO) << StringPrintf("%s; ver=%s nfa=%s st=150-20240824-24W34p0",
+  LOG(INFO) << StringPrintf("%s; ver=%s nfa=%s st=150-20240927-24W39p0",
                             __func__, "AndroidQ", "ST");
 
   nfc_storage_path = NfcConfig::getString(NAME_NFA_STORAGE, "/data/nfc");

@@ -44,7 +44,6 @@
 
 /* NFC Timer events */
 #define NFC_TTYPE_NCI_WAIT_RSP 0
-#define NFC_TTYPE_WAIT_2_DEACTIVATE 1
 #define NFC_WAIT_RSP_RAW_VS 0x02
 #define NFC_TTYPE_WAIT_MODE_SET_NTF 2
 #define NFC_TTYPE_DATA_WAIT_CREDIT 3
@@ -75,8 +74,6 @@ enum {
 typedef uint8_t tNFC_STATE;
 
 /* NFC control block flags */
-/* NFC_Deactivate () is called and the NCI cmd is not sent   */
-#define NFC_FL_DEACTIVATING 0x0001
 /* restarting NFCC after PowerOffSleep          */
 #define NFC_FL_RESTARTING 0x0002
 /* enterning power off sleep mode               */
@@ -181,8 +178,6 @@ typedef struct {
   TIMER_LIST_Q timer_queue; /* 1-sec timer event queue */
   TIMER_LIST_Q quick_timer_queue;
   TIMER_LIST_ENT mode_set_ntf_timer; /* Timer to wait for deactivation */
-  TIMER_LIST_ENT deactivate_timer;   /* Timer to wait for deactivation */
-
   tNFC_STATE nfc_state;
   bool reassembly;                      /* Reassemble fragmented data pkt */
   uint8_t last_hdr[NFC_SAVED_HDR_SIZE]; /* part of last NCI command header */
@@ -257,7 +252,6 @@ extern void nfc_data_event(tNFC_CONN_CB* p_cb);
 extern uint8_t nfc_ncif_send_data(tNFC_CONN_CB* p_cb, NFC_HDR* p_data);
 extern void nfc_ncif_cmd_timeout(void);
 extern void nfc_ncif_data_credit_timeout(void);
-extern void nfc_wait_2_deactivate_timeout(void);
 extern void nfc_mode_set_ntf_timeout(void);
 
 extern bool nfc_ncif_process_event(NFC_HDR* p_msg);
